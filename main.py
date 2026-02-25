@@ -1,8 +1,8 @@
 import pygame
-from config import *
+from config import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, TITLE
 from core.scene_manager import SceneManager
 from scenes.menu_scene import MenuScene
-from scenes.settings_scene import SettingsScene
+from scenes.config_scene import ConfigScene  # 替换settings_scene
 from scenes.training_scene import TrainingScene
 from scenes.report_scene import ReportScene
 
@@ -17,7 +17,7 @@ def main():
     manager = SceneManager()
 
     manager.register("menu", MenuScene(manager))
-    manager.register("settings", SettingsScene(manager))
+    manager.register("config", ConfigScene(manager))  # 使用config场景
     manager.register("training", TrainingScene(manager))
     manager.register("report", ReportScene(manager))
 

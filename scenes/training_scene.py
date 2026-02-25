@@ -2,6 +2,8 @@ import pygame
 import random
 import time
 from core.base_scene import BaseScene
+from core.e_generator import EGenerator
+from config import E_SIZE_LEVELS
 
 
 class TrainingScene(BaseScene):
@@ -15,7 +17,6 @@ class TrainingScene(BaseScene):
 
     def __init__(self, manager):
         super().__init__(manager)
-        self.base_size = 200
         self.reset()
 
     def reset(self):
@@ -24,45 +25,13 @@ class TrainingScene(BaseScene):
         self.correct = 0
         self.start_time = time.time()
         self.previous_direction = None
+        
+        # 根据设置的难度等级获取对应的E字大小
+        # start_level范围是1-7，对应E_SIZE_LEVELS索引0-6
+        level_index = self.manager.settings["start_level"] - 1
+        self.base_size = E_SIZE_LEVELS[level_index]
+        
         self.new_question()
-
-    # ⭐ 根据方向直接绘制
-    def create_e_surface(self, size, direction):
-
-        surface = pygame.Surface((size, size), pygame.SRCALPHA)
-
-        thickness = size // 5
-        bar = size
-
-        if direction == "RIGHT":
-
-            pygame.draw.rect(surface, (255, 255, 255), (0, 0, thickness, size))
-            pygame.draw.rect(surface, (255, 255, 255), (0, 0, bar, thickness))
-            pygame.draw.rect(surface, (255, 255, 255), (0, size//2 - thickness//2, bar, thickness))
-            pygame.draw.rect(surface, (255, 255, 255), (0, size - thickness, bar, thickness))
-
-        elif direction == "LEFT":
-
-            pygame.draw.rect(surface, (255, 255, 255), (size - thickness, 0, thickness, size))
-            pygame.draw.rect(surface, (255, 255, 255), (0, 0, bar, thickness))
-            pygame.draw.rect(surface, (255, 255, 255), (0, size//2 - thickness//2, bar, thickness))
-            pygame.draw.rect(surface, (255, 255, 255), (0, size - thickness, bar, thickness))
-
-        elif direction == "UP":
-
-            pygame.draw.rect(surface, (255, 255, 255), (0, size - thickness, size, thickness))
-            pygame.draw.rect(surface, (255, 255, 255), (0, 0, thickness, bar))
-            pygame.draw.rect(surface, (255, 255, 255), (size//2 - thickness//2, 0, thickness, bar))
-            pygame.draw.rect(surface, (255, 255, 255), (size - thickness, 0, thickness, bar))
-
-        elif direction == "DOWN":
-
-            pygame.draw.rect(surface, (255, 255, 255), (0, 0, size, thickness))
-            pygame.draw.rect(surface, (255, 255, 255), (0, 0, thickness, bar))
-            pygame.draw.rect(surface, (255, 255, 255), (size//2 - thickness//2, 0, thickness, bar))
-            pygame.draw.rect(surface, (255, 255, 255), (size - thickness, 0, thickness, bar))
-
-        return surface
 
     def new_question(self):
 
@@ -74,7 +43,7 @@ class TrainingScene(BaseScene):
         self.target_direction = random.choice(directions)
         self.previous_direction = self.target_direction
 
-        self.surface = self.create_e_surface(self.base_size, self.target_direction)
+        self.surface = EGenerator.create_e_surface(self.base_size, self.target_direction)
         self.rect = self.surface.get_rect(center=(450, 300))
 
     def handle_events(self, events):

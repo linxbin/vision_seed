@@ -15,7 +15,7 @@ class MenuScene(BaseScene):
                 if event.key == pygame.K_1:
                     self.manager.set_scene("training")
                 elif event.key == pygame.K_2:
-                    self.manager.set_scene("settings")
+                    self.manager.set_scene("config")  # 改为config场景
                 elif event.key == pygame.K_3:
                     pygame.quit()
                     exit()
@@ -27,5 +27,5 @@ class MenuScene(BaseScene):
         screen.blit(title, (320, 150))
 
         screen.blit(self.small.render("1. Start Training", True, (200, 200, 200)), (320, 300))
-        screen.blit(self.small.render("2. Settings", True, (200, 200, 200)), (320, 350))
+        screen.blit(self.small.render("2. Configuration", True, (200, 200, 200)), (320, 350))  # 改为Configuration
         screen.blit(self.small.render("3. Exit", True, (200, 200, 200)), (320, 400))
