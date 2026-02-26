@@ -6,6 +6,63 @@ from core.e_generator import EGenerator
 from config import E_SIZE_LEVELS
 
 
+class Particle:
+    """粒子效果类 - 用于显示✓和✗反馈"""
+    
+    def __init__(self, x, y, is_correct):
+        self.x = x
+        self.y = y
+        self.is_correct = is_correct
+        self.size = 40
+        self.lifetime = 60  # 60帧后消失
+        self.font = pygame.font.SysFont(None, self.size)
+        self.create_surface()
+        
+    def create_surface(self):
+        """创建粒子表面"""
+        color = (0, 255, 0) if self.is_correct else (255, 0, 0)  # 绿色V或红色X
+        text = "V" if self.is_correct else "X"  # 使用ASCII字符确保兼容性
+        self.text_surface = self.font.render(text, True, color)
+        
+    def update(self):
+        """更新粒子状态"""
+        self.lifetime -= 1
+        # 轻微上移动画效果
+        self.y -= 1
+        
+    def draw(self, screen):
+        """绘制粒子 - 使用颜色亮度调整替代透明度"""
+        if self.lifetime <= 0:
+            return
+            
+        # 计算亮度因子（通过lifetime控制）
+        brightness_factor = self.lifetime / 60
+        
+        # 根据正确/错误获取基础颜色
+        if self.is_correct:
+            base_color = (0, 255, 0)  # 绿色
+        else:
+            base_color = (255, 0, 0)  # 红色
+            
+        # 调整颜色亮度（模拟淡出效果）
+        adjusted_color = (
+            int(base_color[0] * brightness_factor),
+            int(base_color[1] * brightness_factor),
+            int(base_color[2] * brightness_factor)
+        )
+        
+        # 重新渲染文本表面 - 使用ASCII字符确保兼容性
+        text = "V" if self.is_correct else "X"
+        text_surface = self.font.render(text, True, adjusted_color)
+        
+        screen.blit(text_surface, (self.x - text_surface.get_width() // 2, 
+                                 self.y - text_surface.get_height() // 2))
+        
+    def is_alive(self):
+        """检查粒子是否还存活"""
+        return self.lifetime > 0
+
+
 class TrainingScene(BaseScene):
 
     KEY_DIRECTION = {
@@ -23,6 +80,9 @@ class TrainingScene(BaseScene):
         
         # 返回按钮矩形（右上角，增大尺寸以容纳文字）
         self.back_button_rect = pygame.Rect(810, 15, 80, 30)
+        
+        # 粒子效果列表
+        self.particles = []
 
     def reset(self):
         self.total = self.manager.settings["total_questions"]
@@ -63,8 +123,14 @@ class TrainingScene(BaseScene):
                 if event.key in self.KEY_DIRECTION:
 
                     self.current += 1
+                    is_correct = (self.KEY_DIRECTION[event.key] == self.target_direction)
+                    
+                    # 创建粒子效果
+                    particle_x = self.rect.centerx
+                    particle_y = self.rect.centery - 50  # 在E字上方显示
+                    self.particles.append(Particle(particle_x, particle_y, is_correct))
 
-                    if self.KEY_DIRECTION[event.key] == self.target_direction:
+                    if is_correct:
                         self.correct += 1
 
                     if self.current >= self.total:
@@ -92,6 +158,17 @@ class TrainingScene(BaseScene):
 
         progress = f"{self.current}/{self.total}"
         screen.blit(self.small_font.render(progress, True, (200, 200, 200)), (420, 620))
+        
+        # 更新和绘制粒子效果
+        # 先更新所有粒子
+        for particle in self.particles[:]:
+            particle.update()
+            if not particle.is_alive():
+                self.particles.remove(particle)
+        
+        # 绘制所有存活的粒子
+        for particle in self.particles:
+            particle.draw(screen)
         
         # 绘制返回按钮（右上角，强迫症级别的精确位置）
         mouse_pos = pygame.mouse.get_pos()
