@@ -1,4 +1,5 @@
 import pygame
+import sys
 from core.base_scene import BaseScene
 
 
@@ -30,7 +31,7 @@ class MenuScene(BaseScene):
                     self.manager.set_scene("history")
                 elif event.key == pygame.K_4:
                     pygame.quit()
-                    exit()
+                    sys.exit()
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # 左键点击
@@ -38,7 +39,7 @@ class MenuScene(BaseScene):
                         if option["rect"].collidepoint(mouse_pos):
                             if option["scene"] == "exit":
                                 pygame.quit()
-                                exit()
+                                sys.exit()
                             else:
                                 self.manager.set_scene(option["scene"])
 
