@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from datetime import datetime
 from typing import List, Dict, Any
 
@@ -8,7 +9,8 @@ class DataManager:
     """数据管理器 - 负责训练记录的持久化存储和读取"""
     
     def __init__(self):
-        self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # 获取正确的项目根目录路径（兼容打包后的exe）
+        self.project_root = self._get_project_root()
         self.data_dir = os.path.join(self.project_root, "data")
         self.records_file = os.path.join(self.data_dir, "records.json")
         
@@ -18,6 +20,19 @@ class DataManager:
         # 初始化记录文件（如果不存在）
         if not os.path.exists(self.records_file):
             self._init_records_file()
+    
+    def _get_project_root(self) -> str:
+        """
+        获取项目根目录路径
+        兼容开发环境和打包后的exe环境
+        """
+        if getattr(sys, 'frozen', False):
+            # 打包后的exe环境
+            # sys.executable 指向exe文件路径
+            return os.path.dirname(sys.executable)
+        else:
+            # 开发环境
+            return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
     def _init_records_file(self):
         """初始化记录文件"""
