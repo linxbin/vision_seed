@@ -1,6 +1,7 @@
 import pygame
 import random
 import time
+from datetime import datetime
 from core.base_scene import BaseScene
 from core.e_generator import EGenerator
 from config import E_SIZE_LEVELS
@@ -111,6 +112,29 @@ class TrainingScene(BaseScene):
         self.surface = EGenerator.create_e_surface(self.base_size, self.target_direction)
         self.rect = self.surface.get_rect(center=(450, 300))
 
+    def _save_training_record(self, duration: float, wrong: int):
+        """保存训练记录到数据管理器"""
+        try:
+            session_data = {
+                "timestamp": datetime.now().isoformat(),
+                "difficulty_level": self.manager.settings["start_level"],
+                "e_size_px": self.base_size,
+                "total_questions": self.total,
+                "correct_count": self.correct,
+                "wrong_count": wrong,
+                "duration_seconds": duration,
+                "accuracy_rate": round((self.correct / self.total) * 100, 1) if self.total > 0 else 0.0
+            }
+            
+            success = self.manager.data_manager.save_training_session(session_data)
+            if success:
+                print(f"Training record saved successfully: {session_data['timestamp']}")
+            else:
+                print("Failed to save training record")
+                
+        except Exception as e:
+            print(f"Error saving training record: {e}")
+
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
         
@@ -149,6 +173,9 @@ class TrainingScene(BaseScene):
                         self.manager.current_result["wrong"] = wrong
                         self.manager.current_result["total"] = self.total
                         self.manager.current_result["duration"] = duration
+                        
+                        # 保存训练记录
+                        self._save_training_record(duration, wrong)
 
                         self.manager.set_scene("report")
                     else:

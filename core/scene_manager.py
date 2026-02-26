@@ -1,5 +1,6 @@
 from config import DEFAULT_TOTAL_QUESTIONS, DEFAULT_START_LEVEL
 from .sound_manager import SoundManager
+from .data_manager import DataManager
 
 
 class SceneManager:
@@ -20,6 +21,9 @@ class SceneManager:
         
         # 音效管理器
         self.sound_manager = SoundManager()
+        
+        # 数据管理器
+        self.data_manager = DataManager()
 
     def register(self, name, scene):
         self.scenes[name] = scene

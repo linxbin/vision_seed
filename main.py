@@ -5,7 +5,7 @@ from scenes.menu_scene import MenuScene
 from scenes.config_scene import ConfigScene  # 替换settings_scene
 from scenes.training_scene import TrainingScene
 from scenes.report_scene import ReportScene
-
+from scenes.history_scene import HistoryScene
 
 def main():
     pygame.init()
@@ -24,6 +24,7 @@ def main():
     manager.register("config", ConfigScene(manager))  # 使用config场景
     manager.register("training", TrainingScene(manager))
     manager.register("report", ReportScene(manager))
+    manager.register("history", HistoryScene(manager))
 
     manager.set_scene("menu")
 

@@ -13,7 +13,8 @@ class MenuScene(BaseScene):
         self.menu_options = [
             {"rect": pygame.Rect(320, 300, 280, 40), "text": "1. Start Training", "scene": "training"},
             {"rect": pygame.Rect(320, 350, 280, 40), "text": "2. Configuration", "scene": "config"},
-            {"rect": pygame.Rect(320, 400, 280, 40), "text": "3. Exit", "scene": "exit"}
+            {"rect": pygame.Rect(320, 400, 280, 40), "text": "3. View History", "scene": "history"},
+            {"rect": pygame.Rect(320, 450, 280, 40), "text": "4. Exit", "scene": "exit"}
         ]
 
     def handle_events(self, events):
@@ -26,6 +27,8 @@ class MenuScene(BaseScene):
                 elif event.key == pygame.K_2:
                     self.manager.set_scene("config")
                 elif event.key == pygame.K_3:
+                    self.manager.set_scene("history")
+                elif event.key == pygame.K_4:
                     pygame.quit()
                     exit()
             

@@ -226,9 +226,11 @@ class ConfigScene(BaseScene):
         pygame.draw.rect(screen, input_color, self.input_rect)
         pygame.draw.rect(screen, border_color, self.input_rect, 2)
         
-        # 输入框文字（精确内边距：左10px，上5px）
+        # 输入框文字（精确垂直居中，左内边距10px）
         input_text_surface = self.font.render(self.input_text, True, (0, 0, 0))
-        screen.blit(input_text_surface, (self.input_rect.x + 10, self.input_rect.y + 5))
+        text_height = input_text_surface.get_height()
+        text_y = self.input_rect.y + (self.input_rect.height - text_height) // 2
+        screen.blit(input_text_surface, (self.input_rect.x + 10, text_y))
         
         # 输入范围提示（与输入框保持25px垂直间距）
         range_hint = self.small_font.render(f"Range: {MIN_QUESTIONS}-{MAX_QUESTIONS}", True, (180, 180, 200))
