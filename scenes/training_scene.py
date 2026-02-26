@@ -129,6 +129,13 @@ class TrainingScene(BaseScene):
                     particle_x = self.rect.centerx
                     particle_y = self.rect.centery - 50  # 在E字上方显示
                     self.particles.append(Particle(particle_x, particle_y, is_correct))
+                    
+                    # 播放音效反馈
+                    if self.manager.sound_manager:
+                        if is_correct:
+                            self.manager.sound_manager.play_correct()
+                        else:
+                            self.manager.sound_manager.play_wrong()
 
                     if is_correct:
                         self.correct += 1

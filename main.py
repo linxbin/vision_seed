@@ -9,6 +9,10 @@ from scenes.report_scene import ReportScene
 
 def main():
     pygame.init()
+    
+    # 初始化音频混音器
+    pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+    
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption(TITLE)
 

@@ -1,4 +1,5 @@
 from config import DEFAULT_TOTAL_QUESTIONS, DEFAULT_START_LEVEL
+from .sound_manager import SoundManager
 
 
 class SceneManager:
@@ -16,6 +17,9 @@ class SceneManager:
             "correct": 0,
             "total": 0
         }
+        
+        # 音效管理器
+        self.sound_manager = SoundManager()
 
     def register(self, name, scene):
         self.scenes[name] = scene
