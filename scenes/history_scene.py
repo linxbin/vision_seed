@@ -22,12 +22,9 @@ class HistoryScene(BaseScene):
         self.current_page = 0
         self.total_pages = 0
         
-        # 加载记录数据
-        self._load_records()
-        
-        # 滚动相关（如果需要滚动而不是分页）
-        self.scroll_offset = 0
-        self.max_scroll = 0
+        # 不在初始化时加载数据，改为每次进入场景时加载
+        self.all_records = []
+        self.total_pages = 1
 
     def _load_records(self):
         """加载所有训练记录"""
@@ -73,6 +70,10 @@ class HistoryScene(BaseScene):
                     if self.back_button_rect.collidepoint(mouse_pos):
                         self.manager.set_scene("menu")
 
+    def update(self):
+        """每次进入场景时重新加载最新数据"""
+        self._load_records()
+
     def draw(self, screen):
         screen.fill((25, 25, 45))
         
@@ -98,10 +99,11 @@ class HistoryScene(BaseScene):
         # 计算当前页面记录
         current_records = self._get_current_page_records()
         
-        # 表头
+        # 表头 - 修复列间距，避免重叠
         header_y = 120
         headers = ["Date & Time", "Level", "Questions", "Correct", "Accuracy", "Duration"]
-        header_x_positions = [80, 280, 380, 480, 580, 700]
+        # 调整列位置，确保足够的间距防止重叠
+        header_x_positions = [80, 280, 380, 490, 590, 700]
         
         for i, header in enumerate(headers):
             header_surface = self.header_font.render(header, True, (200, 220, 255))
