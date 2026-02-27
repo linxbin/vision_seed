@@ -86,6 +86,13 @@ class ConfigScene(BaseScene):
         self.manager.apply_sound_preference()
         self.manager.save_user_preferences()
 
+    def _apply_live_preferences(self):
+        """即时应用语言/音效，保持配置界面所见即所得。"""
+        self.manager.settings["language"] = self.current_language
+        self.manager.settings["sound_enabled"] = self.current_sound_enabled
+        self.manager.apply_language_preference()
+        self.manager.apply_sound_preference()
+
     def _toggle_language(self):
         self.current_language = "zh-CN" if self.current_language == "en-US" else "en-US"
 
@@ -163,10 +170,10 @@ class ConfigScene(BaseScene):
                     self.manager.set_scene("training")
                 elif event.key == pygame.K_m:
                     self.current_sound_enabled = not self.current_sound_enabled
-                    self._commit_settings()
+                    self._apply_live_preferences()
                 elif event.key == pygame.K_l:
                     self._toggle_language()
-                    self._commit_settings()
+                    self._apply_live_preferences()
                 elif event.key == pygame.K_UP:
                     self._set_level(max(1, self.current_level - 1))
                 elif event.key == pygame.K_DOWN:
@@ -198,11 +205,17 @@ class ConfigScene(BaseScene):
                     self._commit_settings()
                     self.manager.set_scene("menu")
                 elif self.sound_toggle_rect.collidepoint(mouse_pos):
-                    self.current_sound_enabled = not self.current_sound_enabled
-                    self._commit_settings()
+                    if mouse_pos[0] < self.sound_toggle_rect.centerx:
+                        self.current_sound_enabled = True
+                    else:
+                        self.current_sound_enabled = False
+                    self._apply_live_preferences()
                 elif self.language_toggle_rect.collidepoint(mouse_pos):
-                    self._toggle_language()
-                    self._commit_settings()
+                    if mouse_pos[0] < self.language_toggle_rect.centerx:
+                        self.current_language = "en-US"
+                    else:
+                        self.current_language = "zh-CN"
+                    self._apply_live_preferences()
 
     def _draw_panel(self, screen, rect, title, mouse_pos):
         hovered = rect.collidepoint(mouse_pos)
@@ -214,16 +227,37 @@ class ConfigScene(BaseScene):
         title_surface = self.subtitle_font.render(title, True, (235, 240, 255))
         screen.blit(title_surface, (rect.x + 16, rect.y + 14))
 
-    def _draw_toggle(self, screen, rect, text, enabled, mouse_pos):
+    def _draw_segmented_control(self, screen, rect, label, left_text, right_text, left_selected, mouse_pos):
         hovered = rect.collidepoint(mouse_pos)
-        color = (70, 165, 95) if enabled else (150, 90, 95)
-        if hovered:
-            color = tuple(min(c + 20, 255) for c in color)
-        pygame.draw.rect(screen, color, rect, border_radius=10)
-        pygame.draw.rect(screen, (220, 225, 235), rect, 2, border_radius=10)
+        bg = (56, 78, 124) if hovered else (46, 66, 108)
+        pygame.draw.rect(screen, bg, rect, border_radius=10)
+        pygame.draw.rect(screen, (165, 192, 235), rect, 2, border_radius=10)
 
-        txt = self.font.render(text, True, (255, 255, 255))
-        screen.blit(txt, (rect.centerx - txt.get_width() // 2, rect.centery - txt.get_height() // 2))
+        left_rect = pygame.Rect(rect.x + 2, rect.y + 2, rect.width // 2 - 3, rect.height - 4)
+        right_rect = pygame.Rect(rect.centerx + 1, rect.y + 2, rect.width // 2 - 3, rect.height - 4)
+
+        if left_selected:
+            pygame.draw.rect(screen, (70, 160, 98), left_rect, border_radius=8)
+            pygame.draw.rect(screen, (136, 214, 160), left_rect, 1, border_radius=8)
+            pygame.draw.rect(screen, (80, 94, 124), right_rect, border_radius=8)
+        else:
+            pygame.draw.rect(screen, (80, 94, 124), left_rect, border_radius=8)
+            pygame.draw.rect(screen, (82, 126, 182), right_rect, border_radius=8)
+            pygame.draw.rect(screen, (146, 188, 240), right_rect, 1, border_radius=8)
+
+        label_surface = self.small_font.render(label, True, (205, 220, 245))
+        screen.blit(label_surface, (rect.x, rect.y - 24))
+
+        left_surface = self.small_font.render(left_text, True, (255, 255, 255))
+        right_surface = self.small_font.render(right_text, True, (255, 255, 255))
+        screen.blit(
+            left_surface,
+            (left_rect.centerx - left_surface.get_width() // 2, left_rect.centery - left_surface.get_height() // 2),
+        )
+        screen.blit(
+            right_surface,
+            (right_rect.centerx - right_surface.get_width() // 2, right_rect.centery - right_surface.get_height() // 2),
+        )
 
     def draw(self, screen):
         self._refresh_fonts()
@@ -319,13 +353,25 @@ class ConfigScene(BaseScene):
             err = self.small_font.render(self.input_error, True, (245, 138, 138))
             screen.blit(err, (self.question_panel_rect.x + 26, self.question_panel_rect.y + 146))
 
-        # 偏好开关
-        sound_label = self.manager.t("config.sound_on") if self.current_sound_enabled else self.manager.t("config.sound_off")
-        self._draw_toggle(screen, self.sound_toggle_rect, sound_label, self.current_sound_enabled, mouse_pos)
-
-        current_lang_name = self.manager.t("config.lang_en") if self.current_language == "en-US" else self.manager.t("config.lang_zh")
-        lang_label = self.manager.t("config.language", language=current_lang_name)
-        self._draw_toggle(screen, self.language_toggle_rect, lang_label, True, mouse_pos)
+        # 偏好分段开关
+        self._draw_segmented_control(
+            screen,
+            self.sound_toggle_rect,
+            self.manager.t("config.sound_label"),
+            self.manager.t("config.on"),
+            self.manager.t("config.off"),
+            self.current_sound_enabled,
+            mouse_pos,
+        )
+        self._draw_segmented_control(
+            screen,
+            self.language_toggle_rect,
+            self.manager.t("config.lang_label"),
+            self.manager.t("config.lang_en"),
+            self.manager.t("config.lang_zh"),
+            self.current_language == "en-US",
+            mouse_pos,
+        )
 
         # 底部状态与按钮
         current_size = E_SIZE_LEVELS[self.current_level - 1]
@@ -336,7 +382,7 @@ class ConfigScene(BaseScene):
             questions=self.current_questions,
         )
         status = self.small_font.render(status_text, True, (184, 220, 178))
-        screen.blit(status, (SCREEN_WIDTH // 2 - status.get_width() // 2, 532))
+        screen.blit(status, (SCREEN_WIDTH // 2 - status.get_width() // 2, 540))
 
         for rect, text, base in (
             (self.start_button_rect, self.manager.t("config.start_game"), (62, 155, 90)),
