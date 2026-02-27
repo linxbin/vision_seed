@@ -97,10 +97,14 @@ class TrainingScene(BaseScene):
         level_index = self.manager.settings["start_level"] - 1
         self.base_size = E_SIZE_LEVELS[level_index]
         
+        # 时间控制相关属性
+        self.last_change_time = time.time()  # 上次变换时间
+        self.answer_delay_end_time = 0  # 用户回答后的延迟结束时间
+        self.is_waiting_for_delay = False  # 是否在等待回答后的延迟
+        
         self.new_question()
 
     def new_question(self):
-
         directions = ["UP", "DOWN", "LEFT", "RIGHT"]
 
         if self.previous_direction in directions:
@@ -145,6 +149,9 @@ class TrainingScene(BaseScene):
                     self.manager.set_scene("menu")
 
                 if event.key in self.KEY_DIRECTION:
+                    # 检查是否在等待延迟期间，如果是则忽略输入
+                    if self.is_waiting_for_delay:
+                        continue
 
                     self.current += 1
                     is_correct = (self.KEY_DIRECTION[event.key] == self.target_direction)
@@ -165,7 +172,6 @@ class TrainingScene(BaseScene):
                         self.correct += 1
 
                     if self.current >= self.total:
-
                         duration = round(time.time() - self.start_time, 2)
                         wrong = self.total - self.correct
 
@@ -179,12 +185,38 @@ class TrainingScene(BaseScene):
 
                         self.manager.set_scene("report")
                     else:
-                        self.new_question()
-            
+                        # 设置回答后的延迟标志和结束时间（1秒延迟）
+                        self.is_waiting_for_delay = True
+                        self.answer_delay_end_time = time.time() + 1.0
+
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # 左键点击
                     if self.back_button_rect.collidepoint(mouse_pos):
                         self.manager.set_scene("menu")
+
+    def update(self):
+        """更新训练场景的时间逻辑"""
+        current_time = time.time()
+        
+        # 更新粒子效果
+        for particle in self.particles[:]:
+            particle.update()
+            if not particle.is_alive():
+                self.particles.remove(particle)
+        
+        # 处理回答后的延迟逻辑
+        if self.is_waiting_for_delay:
+            if current_time >= self.answer_delay_end_time:
+                # 延迟结束，生成新问题
+                self.is_waiting_for_delay = False
+                self.new_question()
+                self.last_change_time = current_time
+        else:
+            # 检查是否需要自动变换（每2秒变换一次）
+            # 注意：这里保持原有逻辑，即只有用户回答后才会变换
+            # 自动变换逻辑可能不需要，因为用户需要时间来回答
+            # 如果需要自动变换，可以在这里添加逻辑
+            pass
 
     def draw(self, screen):
         screen.fill((0, 0, 0))
@@ -193,14 +225,7 @@ class TrainingScene(BaseScene):
         progress = f"{self.current}/{self.total}"
         screen.blit(self.small_font.render(progress, True, (200, 200, 200)), (420, 620))
         
-        # 更新和绘制粒子效果
-        # 先更新所有粒子
-        for particle in self.particles[:]:
-            particle.update()
-            if not particle.is_alive():
-                self.particles.remove(particle)
-        
-        # 绘制所有存活的粒子
+        # 绘制粒子效果（已经在update中处理了）
         for particle in self.particles:
             particle.draw(screen)
         

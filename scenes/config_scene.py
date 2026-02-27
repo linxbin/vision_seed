@@ -5,20 +5,21 @@ from config import E_SIZE_LEVELS, SCREEN_WIDTH, SCREEN_HEIGHT, MIN_QUESTIONS, MA
 
 
 class ConfigScene(BaseScene):
-    """配置场景 - 用于设置难度等级和题目数量"""
+    """配置场景 - 按照用户建议重新设计布局"""
 
     def __init__(self, manager):
         super().__init__(manager)
-        self.font = pygame.font.SysFont(None, 28)
-        self.title_font = pygame.font.SysFont(None, 42)
-        self.small_font = pygame.font.SysFont(None, 24)
+        self.font = pygame.font.SysFont(None, 24)
+        self.title_font = pygame.font.SysFont(None, 36)
+        self.subtitle_font = pygame.font.SysFont(None, 28)
+        self.small_font = pygame.font.SysFont(None, 20)
         self.e_generator = EGenerator()
         
         # 初始化当前选中的设置（从settings中读取）
         self.current_level = self.manager.settings["start_level"]
         self.current_questions = self.manager.settings["total_questions"]
         
-        # 确保当前题目数量在有效范围内
+        # 确保当前题目数量在有效范围内 (0-1000)
         if self.current_questions < MIN_QUESTIONS:
             self.current_questions = MIN_QUESTIONS
         elif self.current_questions > MAX_QUESTIONS:
@@ -27,41 +28,82 @@ class ConfigScene(BaseScene):
         # 输入框相关变量
         self.input_active = False
         self.input_text = str(self.current_questions)
-        self.input_rect = None
         
-        # 定义UI元素的矩形区域
-        self.level_buttons = []
+        # UI元素矩形区域
+        self.level_cards = []  # 存储等级卡片的矩形区域
+        self.input_rect = None
         self.start_button_rect = None
         self.back_button_rect = None
+        
+        # 鼠标悬停的等级
+        self.hovered_level = None
         
         self._create_ui_elements()
 
     def _create_ui_elements(self):
-        """创建所有UI元素的矩形区域"""
-        # 难度等级按钮
-        button_start_y = 120
-        button_height = 35
-        button_width = 160
+        """创建左右分栏布局：左侧配置，右侧预览"""
+        # === 垂直分层布局 - 左右分栏设计 ===
         
-        self.level_buttons = []
-        for i in range(8):
+        # 主标题区域
+        self.title_y = 40
+        
+        # 操作说明区域
+        self.info_y = 80
+        
+        # 难度等级区域 - 左侧
+        self.level_title_y = 110  # 与操作说明保持30px间距
+        card_width = 80
+        card_height = 50
+        cards_per_row = 4
+        total_cards = 8
+        
+        # 左侧区域：难度等级配置
+        left_section_center = 250  # 左侧区域中心点
+        cards_total_width = cards_per_row * card_width + (cards_per_row - 1) * 15
+        start_x = left_section_center - cards_total_width // 2
+        self.level_cards_start_y = 140  # 与难度标题保持30px间距
+        
+        self.level_cards = []
+        for i in range(total_cards):
             level = i + 1
-            y_pos = button_start_y + i * (button_height + 6)
-            rect = pygame.Rect(60, y_pos, button_width, button_height)
-            self.level_buttons.append((rect, level))
+            row = i // cards_per_row
+            col = i % cards_per_row
+            
+            x = start_x + col * (card_width + 15)
+            y = self.level_cards_start_y + row * (card_height + 15)
+            
+            rect = pygame.Rect(x, y, card_width, card_height)
+            self.level_cards.append((rect, level))
         
-        # 题目数量输入框 - 精确对齐到右半部分中心
-        input_x = SCREEN_WIDTH - 200  # 右半部分中心点
-        self.input_rect = pygame.Rect(input_x - 60, 160, 120, 35)
+        # 右侧区域：字号预览 - 完整尺寸，无任何限制
+        right_section_center = 650  # 右侧区域中心点
+        self.preview_title_y = 110  # 与左侧难度标题对齐
+        self.preview_e_y = 200      # 预览E字位置，为最大字号预留充足垂直空间
         
-        # 开始游戏按钮
-        self.start_button_rect = pygame.Rect(SCREEN_WIDTH // 2 - 80, SCREEN_HEIGHT - 80, 160, 45)
+        # 题目数量区域 - 居中显示
+        self.question_title_y = 320  # 在预览区域下方适当位置
+        self.input_rect = pygame.Rect(SCREEN_WIDTH // 2 - 60, 350, 120, 35)
+        self.range_hint_y = 390
         
-        # 返回按钮（右上角）
-        self.back_button_rect = pygame.Rect(SCREEN_WIDTH - 80, 20, 60, 30)
+        # 状态摘要区域
+        self.status_y = 430
+        
+        # 操作按钮区域
+        self.button_y = 480
+        button_width = 120
+        button_spacing = 20
+        self.start_button_rect = pygame.Rect(SCREEN_WIDTH // 2 - button_width - button_spacing // 2, self.button_y, button_width, 40)
+        self.back_button_rect = pygame.Rect(SCREEN_WIDTH // 2 + button_spacing // 2, self.button_y, button_width, 40)
 
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
+        
+        # 更新鼠标悬停的等级
+        self.hovered_level = None
+        for rect, level in self.level_cards:
+            if rect.collidepoint(mouse_pos):
+                self.hovered_level = level
+                break
         
         for event in events:
             if event.type == pygame.KEYDOWN:
@@ -90,14 +132,14 @@ class ConfigScene(BaseScene):
                         self.input_active = False
                         self._validate_and_update_questions()
                     elif event.unicode.isdigit():
-                        # 限制输入长度，避免过长
+                        # 限制输入长度，避免过长（最多4位数字）
                         if len(self.input_text) < 4:
                             self.input_text += event.unicode
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # 左键点击
-                    # 检查难度等级按钮点击
-                    for rect, level in self.level_buttons:
+                    # 检查等级卡片点击
+                    for rect, level in self.level_cards:
                         if rect.collidepoint(mouse_pos):
                             self.current_level = level
                     
@@ -121,9 +163,9 @@ class ConfigScene(BaseScene):
                         self.manager.set_scene("menu")
 
     def _validate_and_update_questions(self):
-        """验证输入并更新题目数量"""
+        """验证输入并更新题目数量（支持0-1000范围）"""
         if self.input_text.strip() == "":
-            self.input_text = "50"
+            self.input_text = "0"
         
         try:
             value = int(self.input_text)
@@ -140,130 +182,117 @@ class ConfigScene(BaseScene):
     def draw(self, screen):
         screen.fill((30, 30, 50))
         
-        # 绘制标题
+        # === 主标题区域 ===
         title = self.title_font.render("Game Configuration", True, (255, 255, 255))
-        screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 40))
+        screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, self.title_y))
         
-        # 绘制操作说明
-        info_text = self.small_font.render("↑↓: 难度等级  鼠标: 选择选项  Enter/ESC: 开始/返回", True, (180, 180, 200))
-        screen.blit(info_text, (SCREEN_WIDTH // 2 - info_text.get_width() // 2, 85))
+        # === 操作说明区域 ===
+        info_text = self.small_font.render("Click cards to select difficulty • Enter/ESC: Start/Return", True, (180, 180, 200))
+        screen.blit(info_text, (SCREEN_WIDTH // 2 - info_text.get_width() // 2, self.info_y))
         
         # 获取鼠标位置用于悬停检测
         mouse_pos = pygame.mouse.get_pos()
         
-        # 左侧：难度等级配置
-        level_title = self.font.render("Difficulty Level:", True, (255, 255, 255))
-        screen.blit(level_title, (60, 95))
+        # === 左侧：难度等级配置区域 ===
+        level_title = self.subtitle_font.render("Difficulty Level", True, (255, 255, 255))
+        screen.blit(level_title, (250 - level_title.get_width() // 2, self.level_title_y))
         
-        for rect, level in self.level_buttons:
-            # 检查鼠标悬停或选中状态
-            is_hovered = rect.collidepoint(mouse_pos)
-            is_selected = (level == self.current_level)
-            
-            # 按钮背景颜色
-            if is_selected:
-                button_color = (80, 120, 200)
-                border_color = (150, 180, 255)
-            elif is_hovered:
-                button_color = (70, 100, 180)
-                border_color = (130, 160, 220)
-            else:
-                button_color = (60, 60, 90)
-                border_color = (100, 100, 150)
-            
-            pygame.draw.rect(screen, button_color, rect)
-            pygame.draw.rect(screen, border_color, rect, 2)
-            
-            # 按钮文字
-            level_text = f"Level {level}"
-            size_text = f"({E_SIZE_LEVELS[level-1]}px)"
-            full_text = f"{level_text} {size_text}"
-            text_surface = self.small_font.render(full_text, True, (255, 255, 255))
-            screen.blit(text_surface, (rect.centerx - text_surface.get_width() // 2,
-                                     rect.centery - text_surface.get_height() // 2))
-        
-        # 中部：E字预览（与难度等级保持严格的垂直对齐）
-        e_preview_x = 280  # 与难度等级区域保持120px水平间距
-        e_preview_y = 180  # 与难度等级标题保持严格的垂直对齐基准
+        # 绘制等级卡片（2行×4列网格）
         current_size = E_SIZE_LEVELS[self.current_level - 1]
         
-        # 计算预览框大小，确保有足够的内边距（20px）
-        preview_padding = 20
-        preview_size = min(current_size + preview_padding * 2, 200)
+        for rect, level in self.level_cards:
+            size_value = E_SIZE_LEVELS[level - 1]
+            is_selected = (level == self.current_level)
+            is_hovered = rect.collidepoint(mouse_pos)
+            
+            # 卡片背景颜色
+            if is_selected:
+                card_color = (80, 120, 200)
+                border_color = (150, 180, 255)
+                text_color = (255, 255, 255)
+            elif is_hovered:
+                card_color = (70, 100, 180)
+                border_color = (130, 160, 220)
+                text_color = (255, 255, 255)
+            else:
+                card_color = (60, 60, 90)
+                border_color = (100, 100, 150)
+                text_color = (200, 200, 220)
+            
+            # 绘制卡片背景
+            pygame.draw.rect(screen, card_color, rect, border_radius=6)
+            pygame.draw.rect(screen, border_color, rect, 2, border_radius=6)
+            
+            # 绘制等级文本 (L1, L2, ...)
+            level_text = self.font.render(f"L{level}", True, text_color)
+            screen.blit(level_text, (rect.centerx - level_text.get_width() // 2, 
+                                   rect.y + 6))
+            
+            # 绘制尺寸文本 (10px, 20px, ...)
+            size_text = self.small_font.render(f"{size_value}px", True, text_color)
+            screen.blit(size_text, (rect.centerx - size_text.get_width() // 2, 
+                                  rect.y + 28))
         
-        # 绘制预览框
-        pygame.draw.rect(screen, (50, 50, 80), 
-                        (e_preview_x - preview_size//2, 
-                         e_preview_y - preview_size//2, 
-                         preview_size, preview_size))
-        pygame.draw.rect(screen, (100, 100, 150), 
-                        (e_preview_x - preview_size//2, 
-                         e_preview_y - preview_size//2, 
-                         preview_size, preview_size), 2)
+        # === 右侧：字号预览区域 - 完整尺寸，无任何限制 ===
+        preview_title = self.subtitle_font.render("Font Size Preview", True, (255, 255, 255))
+        screen.blit(preview_title, (650 - preview_title.get_width() // 2, self.preview_title_y))
         
-        # 绘制E字预览
-        preview_e_size = min(current_size, 160)
-        self.e_generator.draw_e(screen, (e_preview_x, e_preview_y), preview_e_size, "RIGHT")
+        # 确定要预览的字号：优先显示悬停的等级，否则显示当前选中等级
+        preview_level = self.hovered_level if self.hovered_level is not None else self.current_level
+        preview_size = E_SIZE_LEVELS[preview_level - 1]
         
-        # E字预览标题（严格对齐到预览框上方30px）
-        preview_title = self.small_font.render("E Preview", True, (255, 255, 255))
-        screen.blit(preview_title, (e_preview_x - preview_title.get_width() // 2, 
-                                  e_preview_y - preview_size//2 - 30))
+        # 绘制E字预览 - 完整尺寸，无任何限制！
+        # 位置经过精确计算，确保即使最大字号80px也不会超出屏幕边界
+        self.e_generator.draw_e(screen, (650, self.preview_e_y), preview_size, "RIGHT")
         
-        # 右半部分：题目数量配置（完美对齐和间距控制）
-        right_section_center = SCREEN_WIDTH - 200  # 右半部分视觉中心
+        # === 题目数量区域 - 居中显示 ===
+        question_title = self.subtitle_font.render("Question Count", True, (255, 255, 255))
+        screen.blit(question_title, (SCREEN_WIDTH // 2 - question_title.get_width() // 2, self.question_title_y))
         
-        # 题目数量标题（与E字预览标题保持相同的垂直基准线）
-        question_title = self.font.render("Question Count:", True, (255, 255, 255))
-        question_title_y = e_preview_y - preview_size//2 - 30  # 与E预览标题完全对齐
-        screen.blit(question_title, (right_section_center - question_title.get_width() // 2, question_title_y))
-        
-        # 输入框（精确居中对齐到右半部分中心）
+        # 输入框
         input_hovered = self.input_rect.collidepoint(mouse_pos)
         input_color = (200, 220, 240) if self.input_active else (180, 200, 220) if input_hovered else (150, 170, 190)
         border_color = (100, 150, 200) if self.input_active else (80, 120, 160)
         
-        pygame.draw.rect(screen, input_color, self.input_rect)
-        pygame.draw.rect(screen, border_color, self.input_rect, 2)
+        pygame.draw.rect(screen, input_color, self.input_rect, border_radius=6)
+        pygame.draw.rect(screen, border_color, self.input_rect, 2, border_radius=6)
         
-        # 输入框文字（精确垂直居中，左内边距10px）
+        # 输入框文字（精确垂直居中）
         input_text_surface = self.font.render(self.input_text, True, (0, 0, 0))
         text_height = input_text_surface.get_height()
         text_y = self.input_rect.y + (self.input_rect.height - text_height) // 2
         screen.blit(input_text_surface, (self.input_rect.x + 10, text_y))
         
-        # 输入范围提示（与输入框保持25px垂直间距）
+        # 输入范围提示
         range_hint = self.small_font.render(f"Range: {MIN_QUESTIONS}-{MAX_QUESTIONS}", True, (180, 180, 200))
-        range_hint_y = self.input_rect.bottom + 25  # 严格25px间距
-        screen.blit(range_hint, (right_section_center - range_hint.get_width() // 2, range_hint_y))
+        screen.blit(range_hint, (SCREEN_WIDTH // 2 - range_hint.get_width() // 2, self.range_hint_y))
         
-        # 底部：开始游戏按钮
+        # === 状态摘要区域 ===
+        status_text = f"Current: Level {self.current_level} ({current_size}px), Questions: {self.current_questions}"
+        status_surface = self.small_font.render(status_text, True, (180, 220, 180))
+        screen.blit(status_surface, (SCREEN_WIDTH // 2 - status_surface.get_width() // 2, self.status_y))
+        
+        # === 操作按钮区域 ===
+        # 开始游戏按钮
         start_button_hovered = self.start_button_rect.collidepoint(mouse_pos)
         start_button_color = (80, 200, 100) if start_button_hovered else (60, 160, 80)
         start_border_color = (150, 240, 180) if start_button_hovered else (120, 200, 140)
         
-        pygame.draw.rect(screen, start_button_color, self.start_button_rect)
-        pygame.draw.rect(screen, start_border_color, self.start_button_rect, 3)
+        pygame.draw.rect(screen, start_button_color, self.start_button_rect, border_radius=8)
+        pygame.draw.rect(screen, start_border_color, self.start_button_rect, 2, border_radius=8)
         
         start_text = self.font.render("Start Game", True, (255, 255, 255))
         screen.blit(start_text, (self.start_button_rect.centerx - start_text.get_width() // 2,
                                self.start_button_rect.centery - start_text.get_height() // 2))
         
-        # 状态信息（放在开始游戏按钮上方，保持严格的25px间距）
-        status_text = f"Selected: Level {self.current_level} ({current_size}px), Questions: {self.current_questions}"
-        status_surface = self.small_font.render(status_text, True, (180, 220, 180))
-        status_y = self.start_button_rect.top - 25  # 严格25px间距
-        screen.blit(status_surface, (SCREEN_WIDTH // 2 - status_surface.get_width() // 2, status_y))
-        
-        # 返回按钮（右上角，像素级精确位置）
+        # 返回按钮
         back_button_hovered = self.back_button_rect.collidepoint(mouse_pos)
-        back_button_color = (80, 120, 200) if back_button_hovered else (60, 90, 150)
-        back_border_color = (150, 180, 255) if back_button_hovered else (100, 130, 200)
+        back_button_color = (120, 120, 160) if back_button_hovered else (90, 90, 130)
+        back_border_color = (180, 180, 220) if back_button_hovered else (150, 150, 190)
         
-        pygame.draw.rect(screen, back_button_color, self.back_button_rect, border_radius=6)
-        pygame.draw.rect(screen, back_border_color, self.back_button_rect, 2, border_radius=6)
+        pygame.draw.rect(screen, back_button_color, self.back_button_rect, border_radius=8)
+        pygame.draw.rect(screen, back_border_color, self.back_button_rect, 2, border_radius=8)
         
-        back_text = self.small_font.render("Back", True, (255, 255, 255))
-        back_text_x = self.back_button_rect.centerx - back_text.get_width() // 2
-        back_text_y = self.back_button_rect.centery - back_text.get_height() // 2
-        screen.blit(back_text, (back_text_x, back_text_y))
+        back_text = self.font.render("Back", True, (255, 255, 255))
+        screen.blit(back_text, (self.back_button_rect.centerx - back_text.get_width() // 2,
+                              self.back_button_rect.centery - back_text.get_height() // 2))
