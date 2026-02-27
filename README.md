@@ -8,10 +8,12 @@ VisionSeed 是一个基于 Python + Pygame 的 E 字方向视觉训练应用，�
 - 难度系统：8 级（10px 到 80px）
 - 题量配置：`0-1000`（含 0 题边界）
 - 历史记录：本地 JSON 持久化、分页查看、手动刷新
-- 用户偏好持久化：题量、难度、音效、语言
+- 用户偏好持久化：题量、难度、音效、语言、全屏
 - 多语言：`en-US` / `zh-CN`，中文优先使用 `assets/SimHei.ttf`
 - 启动健康检查：资源缺失和音频初始化失败时自动降级，不阻断启动
 - 数据模型版本化：训练记录 `schema_version=2`，读取旧记录时自动兼容迁移
+- 全屏快捷键：`F11` 或 `Alt+Enter`，`Esc` 退出全屏
+- 连击系统：训练过程中统计连击，报告页展示最高连击
 
 ## 目录结构
 
@@ -27,6 +29,7 @@ VisionSeed 是一个基于 Python + Pygame 的 E 字方向视觉训练应用，�
 │   └── user_preferences.example.json
 ├── data/                          # 运行时不再写入该目录
 ├── core/
+│   ├── app_paths.py
 │   ├── base_scene.py
 │   ├── data_manager.py
 │   ├── e_generator.py
@@ -101,11 +104,11 @@ python -m unittest discover -s tests -p "test_*.py"
 - `total_questions`
 - `sound_enabled`
 - `language`（`en-US` 或 `zh-CN`）
+- `fullscreen`（布尔值）
 
 ## 已知限制
 
 - 当前测试集为最小回归集，覆盖关键逻辑但不包含完整 UI 自动化测试。
-- 历史页暂不支持筛选和搜索。
 - 若 `assets/SimHei.ttf` 缺失，中文会回退系统字体，显示效果依赖系统环境。
 
 ## 许可证
