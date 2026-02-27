@@ -1,17 +1,18 @@
 import pygame
 from config import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, TITLE
 from core.scene_manager import SceneManager
+from core.startup_health import run_startup_health_check, safe_init_audio
 from scenes.menu_scene import MenuScene
-from scenes.config_scene import ConfigScene  # 替换settings_scene
+from scenes.config_scene import ConfigScene
 from scenes.training_scene import TrainingScene
 from scenes.report_scene import ReportScene
 from scenes.history_scene import HistoryScene
 
 def main():
     pygame.init()
-    
-    # 初始化音频混音器
-    pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+
+    run_startup_health_check()
+    audio_ok = safe_init_audio()
     
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption(TITLE)
@@ -19,9 +20,12 @@ def main():
     clock = pygame.time.Clock()
 
     manager = SceneManager()
+    if not audio_ok:
+        manager.settings["sound_enabled"] = False
+        manager.apply_sound_preference()
 
     manager.register("menu", MenuScene(manager))
-    manager.register("config", ConfigScene(manager))  # 使用config场景
+    manager.register("config", ConfigScene(manager))
     manager.register("training", TrainingScene(manager))
     manager.register("report", ReportScene(manager))
     manager.register("history", HistoryScene(manager))

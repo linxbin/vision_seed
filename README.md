@@ -1,180 +1,110 @@
-# VisionSeed (视芽) - 弱视视觉训练系统
+# VisionSeed (视芽)
 
-## 项目概述
+VisionSeed 是一个基于 Python + Pygame 的 E 字方向视觉训练应用，提供配置、训练、报告和历史记录的完整闭环。
 
-VisionSeed 是一个基于 Python 和 Pygame 的专业弱视视觉训练应用，专为视觉康复、认知测试和教育训练场景设计。系统提供结构化的E字方向识别训练，支持多难度等级配置和完整的训练数据管理。
+## 当前功能
 
-## 核心功能
+- 训练模块：四方向识别（上/下/左/右），实时对错反馈（V/X + 音效）
+- 难度系统：8 级（10px 到 80px）
+- 题量配置：`0-1000`（含 0 题边界）
+- 历史记录：本地 JSON 持久化、分页查看、手动刷新
+- 用户偏好持久化：题量、难度、音效、语言
+- 多语言：`en-US` / `zh-CN`，中文优先使用 `assets/SimHei.ttf`
+- 启动健康检查：资源缺失和音频初始化失败时自动降级，不阻断启动
+- 数据模型版本化：训练记录 `schema_version=2`，读取旧记录时自动兼容迁移
 
-### 🎯 视觉训练模块
-- **E字方向识别**：四方向（上、下、左、右）视觉刺激训练
-- **8级难度系统**：字号从10px到80px，逐级递增，满足不同训练需求
-- **可配置题数**：支持0-1000题灵活设置，适应各种训练强度
-- **实时反馈**：答对/答错即时视觉反馈（V/X标识）和音效提示
+## 目录结构
 
-### ⚙️ 配置管理系统
-- **左右分栏布局**：左侧难度等级选择，右侧实时字号预览
-- **网格化卡片设计**：2×4网格展示L1-L8等级，直观易用
-- **完整尺寸预览**：鼠标悬停实时显示对应等级的完整E字尺寸（10-80px）
-- **智能输入验证**：题目数量范围0-1000，自动修正边界值
-
-### 📊 数据管理与分析
-- **训练记录存储**：自动保存每次训练的详细数据
-- **成果报告生成**：正确率、耗时、错题统计等多维度分析
-- **历史记录查看**：按时间倒序展示训练进展
-- **本地数据安全**：所有敏感数据存储在本地，用户完全控制
-
-### 🎮 多场景导航系统
-- **菜单场景**：主入口，提供训练、设置、历史等选项
-- **配置场景**：训练参数设置和预览
-- **训练场景**：核心交互训练界面
-- **报告场景**：训练结果展示和分析
-- **历史场景**：过往训练记录回顾
-
-## 技术架构
-
-### 架构模式
-- **场景驱动架构**：基于状态机的场景切换机制
-- **面向对象设计**：模块化、高内聚、低耦合
-- **单例模式**：SceneManager、SoundManager全局访问
-- **工厂模式**：E字生成器动态创建不同尺寸和方向的E字
-
-### 核心组件
-```
-├── config/              # 配置文件
-│   ├── display.py       # 显示相关配置
-│   ├── game.py          # 游戏规则配置  
-│   └── levels.py        # 难度等级配置
-├── core/                # 核心框架
-│   ├── base_scene.py    # 基础场景类
-│   ├── data_manager.py  # 数据管理器
-│   ├── e_generator.py   # E字生成器
-│   ├── scene_manager.py # 场景管理器
-│   └── sound_manager.py # 音效管理器
-├── scenes/              # 业务场景
-│   ├── config_scene.py  # 配置场景
-│   ├── training_scene.py # 训练场景
-│   ├── menu_scene.py    # 菜单场景
-│   ├── report_scene.py  # 报告场景
-│   └── history_scene.py # 历史记录场景
-├── main.py              # 程序入口
-└── package_secure.bat   # Windows打包脚本
+```text
+├── assets/
+│   ├── correct.wav
+│   ├── wrong.wav
+│   └── SimHei.ttf
+├── config/
+│   ├── display.py
+│   ├── game.py
+│   ├── levels.py
+│   └── user_preferences.json
+├── core/
+│   ├── base_scene.py
+│   ├── data_manager.py
+│   ├── e_generator.py
+│   ├── language_manager.py
+│   ├── preferences_manager.py
+│   ├── scene_manager.py
+│   ├── sound_manager.py
+│   └── startup_health.py
+├── scenes/
+│   ├── menu_scene.py
+│   ├── config_scene.py
+│   ├── training_scene.py
+│   ├── report_scene.py
+│   └── history_scene.py
+├── tests/
+│   ├── test_config_validation.py
+│   ├── test_data_manager_io.py
+│   └── test_training_scoring.py
+└── main.py
 ```
 
-## 技术栈
+## 快速开始
 
-- **主要框架**: Pygame 2.5.2
-- **编程语言**: Python 3.7+
-- **架构模式**: 面向对象 + 场景驱动
-- **数据存储**: 本地JSON文件
-- **打包工具**: PyInstaller (Windows)
-
-## 用户体验特色
-
-### 🎨 界面设计
-- **像素级精确布局**：所有UI元素经过精确计算，确保完美对齐
-- **响应式设计**：自动适配不同屏幕尺寸
-- **视觉层次清晰**：严格的垂直分层和水平分栏布局
-- **无障碍设计**：支持键盘导航和鼠标操作双重交互
-
-### 🔊 交互反馈
-- **三级状态反馈**：默认、悬停、选中状态提供清晰视觉反馈
-- **音效系统**：答对/答错音效差异化设计，增强训练效果
-- **粒子效果**：V/X标识淡出动画，提升视觉体验
-- **实时预览**：悬停即预览，所见即所得
-
-### 🛡️ 安全与稳定性
-- **防重叠保护**：所有UI元素预留充足安全间距
-- **异常处理**：完善的错误处理和降级机制
-- **数据隔离**：用户数据与程序分离，确保隐私安全
-- **跨平台兼容**：使用ASCII字符确保字体兼容性
-
-## 开发环境
-
-### 系统要求
-- **操作系统**: Windows 10/11 (推荐)
-- **Python版本**: 3.7+
-- **依赖库**: Pygame 2.5.2
-
-### 快速开始
 ```bash
-# 克隆项目
-git clone <repository-url>
-cd vision_seed
-
-# 创建虚拟环境
 python -m venv venv
-
-# 激活虚拟环境 (Windows)
 venv\Scripts\activate
-
-# 安装依赖
-pip install pygame==2.5.2
-
-# 运行应用
+pip install -r requirements.txt
 python main.py
 ```
 
-### 打包发布
+## 运行测试
+
 ```bash
-# Windows打包
-package_secure.bat
+python -m unittest discover -s tests -p "test_*.py"
 ```
 
-## 配置说明
+## 数据格式说明
 
-### 难度等级配置
-```python
-# config/levels.py
-E_SIZE_LEVELS = [
-    10,  # 等级1 - 最小，最难
-    20,  # 等级2
-    30,  # 等级3 - 默认等级
-    40,  # 等级4
-    50,  # 等级5
-    60,  # 等级6
-    70,  # 等级7
-    80   # 等级8 - 最大，最易
-]
-```
+### 训练记录
 
-### 游戏参数配置
-```python
-# config/game.py
-DEFAULT_TOTAL_QUESTIONS = 30    # 默认题目数量
-DEFAULT_START_LEVEL = 3         # 默认难度等级
-MIN_QUESTIONS = 0              # 最小题目数
-MAX_QUESTIONS = 1000           # 最大题目数
-```
+文件：`data/records.json`
 
-## 设计理念
+顶层字段：
 
-### 专业性
-- 基于视觉康复医学原理设计训练流程
-- 符合弱视训练的专业标准和要求
-- 提供科学的数据分析和进度跟踪
+- `schema_version`：当前为 `2`
+- `sessions`：训练会话数组（最新在前）
 
-### 用户友好
-- 简洁直观的操作界面
-- 渐进式难度设计，避免挫败感
-- 即时反馈机制，增强训练效果
+每条会话字段：
 
-### 技术卓越
-- 代码质量：遵循Python最佳实践
-- 性能优化：高效的渲染和事件处理
-- 可维护性：清晰的架构和模块化设计
+- `schema_version`
+- `timestamp`（ISO 字符串）
+- `session_id`
+- `difficulty_level`（1-8）
+- `e_size_px`
+- `total_questions`
+- `correct_count`
+- `wrong_count`
+- `duration_seconds`
+- `accuracy_rate`（0-100）
 
-## 适用场景
+兼容策略：读取旧记录时自动补齐缺失字段并规范化数据。
 
-- **医疗机构**：眼科诊所、康复中心的弱视治疗辅助工具
-- **教育机构**：特殊教育学校的视觉训练课程
-- **家庭使用**：儿童弱视家庭康复训练
-- **科研用途**：视觉认知研究的实验平台
+### 用户偏好
+
+文件：`config/user_preferences.json`
+
+字段：
+
+- `start_level`
+- `total_questions`
+- `sound_enabled`
+- `language`（`en-US` 或 `zh-CN`）
+
+## 已知限制
+
+- 当前测试集为最小回归集，覆盖关键逻辑但不包含完整 UI 自动化测试。
+- 历史页暂不支持筛选和搜索。
+- 若 `assets/SimHei.ttf` 缺失，中文会回退系统字体，显示效果依赖系统环境。
 
 ## 许可证
 
-本项目仅供学习和非商业用途使用。
-
----
-
-*VisionSeed - 用心呵护每一双眼睛，用技术点亮视觉未来*
+本项目仅供学习和非商业用途。
