@@ -1,6 +1,8 @@
 from config import DEFAULT_TOTAL_QUESTIONS, DEFAULT_START_LEVEL
 from .sound_manager import SoundManager
 from .data_manager import DataManager
+from .preferences_manager import PreferencesManager
+from .language_manager import LanguageManager
 
 
 class SceneManager:
@@ -10,8 +12,16 @@ class SceneManager:
 
         self.settings = {
             "total_questions": DEFAULT_TOTAL_QUESTIONS,
-            "start_level": DEFAULT_START_LEVEL
+            "start_level": DEFAULT_START_LEVEL,
+            "sound_enabled": True,
+            "language": "en-US",
         }
+
+        # 用户偏好管理器
+        self.preferences_manager = PreferencesManager()
+        self.settings.update(self.preferences_manager.load_preferences())
+        self.language_manager = LanguageManager(self.settings.get("language", "en-US"))
+        self.settings["language"] = self.language_manager.get_language()
 
         # ⭐ 当前训练结果统一存储
         self.current_result = {
@@ -21,9 +31,35 @@ class SceneManager:
         
         # 音效管理器
         self.sound_manager = SoundManager()
+        self.apply_sound_preference()
         
         # 数据管理器
         self.data_manager = DataManager()
+
+    def apply_sound_preference(self):
+        """将当前偏好中的音效开关应用到音效管理器。"""
+        if self.sound_manager:
+            self.sound_manager.set_enabled(self.settings.get("sound_enabled", True))
+
+    def apply_language_preference(self):
+        """将当前偏好中的语言应用到语言管理器。"""
+        self.settings["language"] = self.language_manager.set_language(
+            self.settings.get("language", "en-US")
+        )
+
+    def t(self, key, **kwargs):
+        """文案翻译快捷方法。"""
+        return self.language_manager.t(key, **kwargs)
+
+    def save_user_preferences(self) -> bool:
+        """保存当前用户偏好设置。"""
+        payload = {
+            "start_level": self.settings["start_level"],
+            "total_questions": self.settings["total_questions"],
+            "sound_enabled": self.settings.get("sound_enabled", True),
+            "language": self.settings.get("language", "en-US"),
+        }
+        return self.preferences_manager.save_preferences(payload)
 
     def register(self, name, scene):
         self.scenes[name] = scene
@@ -34,6 +70,12 @@ class SceneManager:
         # 每次进入训练必须重置
         if name == "training":
             self.scene.reset()
+            return
+
+        # 场景进入回调（可选）
+        on_enter = getattr(self.scene, "on_enter", None)
+        if callable(on_enter):
+            on_enter()
 
     def get_scene(self):
         return self.scene

@@ -9,15 +9,14 @@ class ConfigScene(BaseScene):
 
     def __init__(self, manager):
         super().__init__(manager)
-        self.font = pygame.font.SysFont(None, 24)
-        self.title_font = pygame.font.SysFont(None, 36)
-        self.subtitle_font = pygame.font.SysFont(None, 28)
-        self.small_font = pygame.font.SysFont(None, 20)
+        self._refresh_fonts()
         self.e_generator = EGenerator()
         
         # 初始化当前选中的设置（从settings中读取）
         self.current_level = self.manager.settings["start_level"]
         self.current_questions = self.manager.settings["total_questions"]
+        self.current_sound_enabled = self.manager.settings.get("sound_enabled", True)
+        self.current_language = self.manager.settings.get("language", "en-US")
         
         # 确保当前题目数量在有效范围内 (0-1000)
         if self.current_questions < MIN_QUESTIONS:
@@ -34,11 +33,27 @@ class ConfigScene(BaseScene):
         self.input_rect = None
         self.start_button_rect = None
         self.back_button_rect = None
+        self.sound_toggle_rect = None
+        self.language_toggle_rect = None
         
         # 鼠标悬停的等级
         self.hovered_level = None
         
         self._create_ui_elements()
+
+    def _refresh_fonts(self):
+        self.font = self.create_font(24)
+        self.title_font = self.create_font(36)
+        self.subtitle_font = self.create_font(28)
+        self.small_font = self.create_font(20)
+
+    def on_enter(self):
+        """每次进入配置页时同步当前全局设置。"""
+        self.current_level = self.manager.settings["start_level"]
+        self.current_questions = self.manager.settings["total_questions"]
+        self.current_sound_enabled = self.manager.settings.get("sound_enabled", True)
+        self.current_language = self.manager.settings.get("language", "en-US")
+        self.input_text = str(self.current_questions)
 
     def _create_ui_elements(self):
         """创建左右分栏布局：左侧配置，右侧预览"""
@@ -87,13 +102,28 @@ class ConfigScene(BaseScene):
         
         # 状态摘要区域
         self.status_y = 430
-        
+        self.sound_toggle_rect = pygame.Rect(SCREEN_WIDTH // 2 - 100, 460, 200, 35)
+        self.language_toggle_rect = pygame.Rect(SCREEN_WIDTH // 2 - 100, 500, 200, 35)
+
         # 操作按钮区域
-        self.button_y = 480
+        self.button_y = 550
         button_width = 120
         button_spacing = 20
         self.start_button_rect = pygame.Rect(SCREEN_WIDTH // 2 - button_width - button_spacing // 2, self.button_y, button_width, 40)
         self.back_button_rect = pygame.Rect(SCREEN_WIDTH // 2 + button_spacing // 2, self.button_y, button_width, 40)
+
+    def _commit_settings(self):
+        """将当前配置提交到全局并持久化。"""
+        self.manager.settings["start_level"] = self.current_level
+        self.manager.settings["total_questions"] = self.current_questions
+        self.manager.settings["sound_enabled"] = self.current_sound_enabled
+        self.manager.settings["language"] = self.current_language
+        self.manager.apply_language_preference()
+        self.manager.apply_sound_preference()
+        self.manager.save_user_preferences()
+
+    def _toggle_language(self):
+        self.current_language = "zh-CN" if self.current_language == "en-US" else "en-US"
 
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
@@ -109,14 +139,18 @@ class ConfigScene(BaseScene):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     # 返回菜单前保存设置
-                    self.manager.settings["start_level"] = self.current_level
-                    self.manager.settings["total_questions"] = self.current_questions
+                    self._commit_settings()
                     self.manager.set_scene("menu")
                 elif event.key == pygame.K_RETURN:
                     # 确认设置并开始训练
-                    self.manager.settings["start_level"] = self.current_level
-                    self.manager.settings["total_questions"] = self.current_questions
+                    self._commit_settings()
                     self.manager.set_scene("training")
+                elif event.key == pygame.K_m:
+                    self.current_sound_enabled = not self.current_sound_enabled
+                    self._commit_settings()
+                elif event.key == pygame.K_l:
+                    self._toggle_language()
+                    self._commit_settings()
                 elif event.key == pygame.K_UP:
                     # 向上选择上方的按钮（降低等级）
                     self.current_level = max(1, self.current_level - 1)
@@ -152,15 +186,23 @@ class ConfigScene(BaseScene):
                     
                     # 检查开始游戏按钮点击
                     if self.start_button_rect and self.start_button_rect.collidepoint(mouse_pos):
-                        self.manager.settings["start_level"] = self.current_level
-                        self.manager.settings["total_questions"] = self.current_questions
+                        self._commit_settings()
                         self.manager.set_scene("training")
                     
                     # 检查返回按钮点击
                     if self.back_button_rect and self.back_button_rect.collidepoint(mouse_pos):
-                        self.manager.settings["start_level"] = self.current_level
-                        self.manager.settings["total_questions"] = self.current_questions
+                        self._commit_settings()
                         self.manager.set_scene("menu")
+
+                    # 检查音效开关点击
+                    if self.sound_toggle_rect and self.sound_toggle_rect.collidepoint(mouse_pos):
+                        self.current_sound_enabled = not self.current_sound_enabled
+                        self._commit_settings()
+
+                    # 检查语言开关点击
+                    if self.language_toggle_rect and self.language_toggle_rect.collidepoint(mouse_pos):
+                        self._toggle_language()
+                        self._commit_settings()
 
     def _validate_and_update_questions(self):
         """验证输入并更新题目数量（支持0-1000范围）"""
@@ -180,21 +222,22 @@ class ConfigScene(BaseScene):
             self.input_text = str(self.current_questions)
 
     def draw(self, screen):
+        self._refresh_fonts()
         screen.fill((30, 30, 50))
         
         # === 主标题区域 ===
-        title = self.title_font.render("Game Configuration", True, (255, 255, 255))
+        title = self.title_font.render(self.manager.t("config.title"), True, (255, 255, 255))
         screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, self.title_y))
         
         # === 操作说明区域 ===
-        info_text = self.small_font.render("Click cards to select difficulty • Enter/ESC: Start/Return", True, (180, 180, 200))
+        info_text = self.small_font.render(self.manager.t("config.info"), True, (180, 180, 200))
         screen.blit(info_text, (SCREEN_WIDTH // 2 - info_text.get_width() // 2, self.info_y))
         
         # 获取鼠标位置用于悬停检测
         mouse_pos = pygame.mouse.get_pos()
         
         # === 左侧：难度等级配置区域 ===
-        level_title = self.subtitle_font.render("Difficulty Level", True, (255, 255, 255))
+        level_title = self.subtitle_font.render(self.manager.t("config.difficulty_level"), True, (255, 255, 255))
         screen.blit(level_title, (250 - level_title.get_width() // 2, self.level_title_y))
         
         # 绘制等级卡片（2行×4列网格）
@@ -234,7 +277,7 @@ class ConfigScene(BaseScene):
                                   rect.y + 28))
         
         # === 右侧：字号预览区域 - 完整尺寸，无任何限制 ===
-        preview_title = self.subtitle_font.render("Font Size Preview", True, (255, 255, 255))
+        preview_title = self.subtitle_font.render(self.manager.t("config.font_preview"), True, (255, 255, 255))
         screen.blit(preview_title, (650 - preview_title.get_width() // 2, self.preview_title_y))
         
         # 确定要预览的字号：优先显示悬停的等级，否则显示当前选中等级
@@ -246,7 +289,7 @@ class ConfigScene(BaseScene):
         self.e_generator.draw_e(screen, (650, self.preview_e_y), preview_size, "RIGHT")
         
         # === 题目数量区域 - 居中显示 ===
-        question_title = self.subtitle_font.render("Question Count", True, (255, 255, 255))
+        question_title = self.subtitle_font.render(self.manager.t("config.question_count"), True, (255, 255, 255))
         screen.blit(question_title, (SCREEN_WIDTH // 2 - question_title.get_width() // 2, self.question_title_y))
         
         # 输入框
@@ -264,13 +307,51 @@ class ConfigScene(BaseScene):
         screen.blit(input_text_surface, (self.input_rect.x + 10, text_y))
         
         # 输入范围提示
-        range_hint = self.small_font.render(f"Range: {MIN_QUESTIONS}-{MAX_QUESTIONS}", True, (180, 180, 200))
+        range_hint = self.small_font.render(
+            self.manager.t("config.range", min_questions=MIN_QUESTIONS, max_questions=MAX_QUESTIONS),
+            True,
+            (180, 180, 200)
+        )
         screen.blit(range_hint, (SCREEN_WIDTH // 2 - range_hint.get_width() // 2, self.range_hint_y))
         
         # === 状态摘要区域 ===
-        status_text = f"Current: Level {self.current_level} ({current_size}px), Questions: {self.current_questions}"
+        status_text = self.manager.t(
+            "config.status",
+            level=self.current_level,
+            size=current_size,
+            questions=self.current_questions
+        )
         status_surface = self.small_font.render(status_text, True, (180, 220, 180))
         screen.blit(status_surface, (SCREEN_WIDTH // 2 - status_surface.get_width() // 2, self.status_y))
+
+        # 音效开关
+        toggle_hovered = self.sound_toggle_rect.collidepoint(mouse_pos)
+        toggle_bg = (90, 150, 90) if self.current_sound_enabled else (150, 90, 90)
+        if toggle_hovered:
+            toggle_bg = (min(toggle_bg[0] + 20, 255), min(toggle_bg[1] + 20, 255), min(toggle_bg[2] + 20, 255))
+
+        pygame.draw.rect(screen, toggle_bg, self.sound_toggle_rect, border_radius=8)
+        pygame.draw.rect(screen, (220, 220, 220), self.sound_toggle_rect, 2, border_radius=8)
+
+        sound_label = self.manager.t("config.sound_on") if self.current_sound_enabled else self.manager.t("config.sound_off")
+        sound_text = self.font.render(sound_label, True, (255, 255, 255))
+        screen.blit(sound_text, (self.sound_toggle_rect.centerx - sound_text.get_width() // 2,
+                               self.sound_toggle_rect.centery - sound_text.get_height() // 2))
+
+        # 语言开关
+        lang_hovered = self.language_toggle_rect.collidepoint(mouse_pos)
+        lang_bg = (90, 120, 170)
+        if lang_hovered:
+            lang_bg = (110, 140, 190)
+
+        pygame.draw.rect(screen, lang_bg, self.language_toggle_rect, border_radius=8)
+        pygame.draw.rect(screen, (220, 220, 220), self.language_toggle_rect, 2, border_radius=8)
+
+        current_lang_name = self.manager.t("config.lang_en") if self.current_language == "en-US" else self.manager.t("config.lang_zh")
+        lang_label = self.manager.t("config.language", language=current_lang_name)
+        lang_text = self.font.render(lang_label, True, (255, 255, 255))
+        screen.blit(lang_text, (self.language_toggle_rect.centerx - lang_text.get_width() // 2,
+                              self.language_toggle_rect.centery - lang_text.get_height() // 2))
         
         # === 操作按钮区域 ===
         # 开始游戏按钮
@@ -281,7 +362,7 @@ class ConfigScene(BaseScene):
         pygame.draw.rect(screen, start_button_color, self.start_button_rect, border_radius=8)
         pygame.draw.rect(screen, start_border_color, self.start_button_rect, 2, border_radius=8)
         
-        start_text = self.font.render("Start Game", True, (255, 255, 255))
+        start_text = self.font.render(self.manager.t("config.start_game"), True, (255, 255, 255))
         screen.blit(start_text, (self.start_button_rect.centerx - start_text.get_width() // 2,
                                self.start_button_rect.centery - start_text.get_height() // 2))
         
@@ -293,6 +374,6 @@ class ConfigScene(BaseScene):
         pygame.draw.rect(screen, back_button_color, self.back_button_rect, border_radius=8)
         pygame.draw.rect(screen, back_border_color, self.back_button_rect, 2, border_radius=8)
         
-        back_text = self.font.render("Back", True, (255, 255, 255))
+        back_text = self.font.render(self.manager.t("config.back"), True, (255, 255, 255))
         screen.blit(back_text, (self.back_button_rect.centerx - back_text.get_width() // 2,
                               self.back_button_rect.centery - back_text.get_height() // 2))

@@ -91,6 +91,9 @@ class TrainingScene(BaseScene):
         self.correct = 0
         self.start_time = time.time()
         self.previous_direction = None
+
+        # 每次开训时应用最新音效偏好
+        self.manager.apply_sound_preference()
         
         # 根据设置的难度等级获取对应的E字大小
         # start_level范围是1-8，对应E_SIZE_LEVELS索引0-7
@@ -101,7 +104,12 @@ class TrainingScene(BaseScene):
         self.last_change_time = time.time()  # 上次变换时间
         self.answer_delay_end_time = 0  # 用户回答后的延迟结束时间
         self.is_waiting_for_delay = False  # 是否在等待回答后的延迟
-        
+
+        # 0题模式：直接结束并生成报告，避免进入无意义训练循环
+        if self.total <= 0:
+            self._finish_training()
+            return
+
         self.new_question()
 
     def new_question(self):
@@ -139,6 +147,20 @@ class TrainingScene(BaseScene):
         except Exception as e:
             print(f"Error saving training record: {e}")
 
+    def _finish_training(self):
+        """统一训练结束逻辑，确保边界值安全。"""
+        duration = round(time.time() - self.start_time, 2)
+        wrong = max(0, self.total - self.correct)
+
+        self.manager.current_result["correct"] = self.correct
+        self.manager.current_result["wrong"] = wrong
+        self.manager.current_result["total"] = self.total
+        self.manager.current_result["duration"] = duration
+
+        # 保存训练记录
+        self._save_training_record(duration, wrong)
+        self.manager.set_scene("report")
+
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
         
@@ -172,18 +194,7 @@ class TrainingScene(BaseScene):
                         self.correct += 1
 
                     if self.current >= self.total:
-                        duration = round(time.time() - self.start_time, 2)
-                        wrong = self.total - self.correct
-
-                        self.manager.current_result["correct"] = self.correct
-                        self.manager.current_result["wrong"] = wrong
-                        self.manager.current_result["total"] = self.total
-                        self.manager.current_result["duration"] = duration
-                        
-                        # 保存训练记录
-                        self._save_training_record(duration, wrong)
-
-                        self.manager.set_scene("report")
+                        self._finish_training()
                     else:
                         # 设置回答后的延迟标志和结束时间（1秒延迟）
                         self.is_waiting_for_delay = True

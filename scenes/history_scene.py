@@ -9,10 +9,7 @@ class HistoryScene(BaseScene):
 
     def __init__(self, manager):
         super().__init__(manager)
-        self.title_font = pygame.font.SysFont(None, 48)
-        self.header_font = pygame.font.SysFont(None, 32)
-        self.record_font = pygame.font.SysFont(None, 26)
-        self.small_font = pygame.font.SysFont(None, 24)
+        self._refresh_fonts()
         
         # 返回按钮（右上角，像素级精确位置）
         self.back_button_rect = pygame.Rect(SCREEN_WIDTH - 80, 20, 60, 30)
@@ -25,6 +22,16 @@ class HistoryScene(BaseScene):
         # 不在初始化时加载数据，改为每次进入场景时加载
         self.all_records = []
         self.total_pages = 1
+
+    def _refresh_fonts(self):
+        self.title_font = self.create_font(48)
+        self.header_font = self.create_font(32)
+        self.record_font = self.create_font(26)
+        self.small_font = self.create_font(24)
+
+    def on_enter(self):
+        """进入场景时加载一次最新数据，避免每帧读文件。"""
+        self._load_records()
 
     def _load_records(self):
         """加载所有训练记录"""
@@ -43,7 +50,7 @@ class HistoryScene(BaseScene):
             dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
             return dt.strftime("%Y-%m-%d %H:%M")
         except (ValueError, AttributeError):
-            return "Invalid Date"
+            return self.manager.t("history.invalid_date")
 
     def _get_current_page_records(self):
         """获取当前页面的记录"""
@@ -64,6 +71,9 @@ class HistoryScene(BaseScene):
                 elif event.key == pygame.K_RIGHT:
                     # 下一页
                     self.current_page = min(self.total_pages - 1, self.current_page + 1)
+                elif event.key == pygame.K_r:
+                    # 手动刷新
+                    self._load_records()
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # 左键点击
@@ -71,24 +81,25 @@ class HistoryScene(BaseScene):
                         self.manager.set_scene("menu")
 
     def update(self):
-        """每次进入场景时重新加载最新数据"""
-        self._load_records()
+        """历史页不需要逐帧更新逻辑。"""
+        pass
 
     def draw(self, screen):
+        self._refresh_fonts()
         screen.fill((25, 25, 45))
         
         # 获取鼠标位置用于悬停检测
         mouse_pos = pygame.mouse.get_pos()
         
         # 绘制标题
-        title = self.title_font.render("Training History", True, (255, 255, 255))
+        title = self.title_font.render(self.manager.t("history.title"), True, (255, 255, 255))
         screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 40))
         
         # 绘制操作说明
         if self.all_records:
-            info_text = self.small_font.render("←→: Navigate Pages  ESC/Click Back: Return to Menu", True, (180, 180, 200))
+            info_text = self.small_font.render(self.manager.t("history.info_with_records"), True, (180, 180, 200))
         else:
-            info_text = self.small_font.render("No training records available. Complete a training session first!", True, (200, 150, 150))
+            info_text = self.small_font.render(self.manager.t("history.info_empty"), True, (200, 150, 150))
         screen.blit(info_text, (SCREEN_WIDTH // 2 - info_text.get_width() // 2, 85))
         
         if not self.all_records:
@@ -101,7 +112,14 @@ class HistoryScene(BaseScene):
         
         # 表头 - 修复列间距，避免重叠
         header_y = 120
-        headers = ["Date & Time", "Level", "Questions", "Correct", "Accuracy", "Duration"]
+        headers = [
+            self.manager.t("history.header.datetime"),
+            self.manager.t("history.header.level"),
+            self.manager.t("history.header.questions"),
+            self.manager.t("history.header.correct"),
+            self.manager.t("history.header.accuracy"),
+            self.manager.t("history.header.duration"),
+        ]
         # 调整列位置，确保足够的间距防止重叠
         header_x_positions = [80, 280, 380, 490, 590, 700]
         
@@ -150,7 +168,7 @@ class HistoryScene(BaseScene):
         
         # 绘制分页信息
         if self.total_pages > 1:
-            page_info = f"Page {self.current_page + 1} of {self.total_pages}"
+            page_info = self.manager.t("history.page_info", current=self.current_page + 1, total=self.total_pages)
             page_surface = self.small_font.render(page_info, True, (180, 200, 220))
             screen.blit(page_surface, (SCREEN_WIDTH // 2 - page_surface.get_width() // 2, 
                                   record_start_y + len(current_records) * record_height + 20))
@@ -170,7 +188,7 @@ class HistoryScene(BaseScene):
         pygame.draw.rect(screen, border_color, self.back_button_rect, 2, border_radius=6)
         
         # 按钮文字
-        back_text = self.small_font.render("Back", True, (255, 255, 255))
+        back_text = self.small_font.render(self.manager.t("history.back"), True, (255, 255, 255))
         text_x = self.back_button_rect.centerx - back_text.get_width() // 2
         text_y = self.back_button_rect.centery - back_text.get_height() // 2
         screen.blit(back_text, (text_x, text_y))

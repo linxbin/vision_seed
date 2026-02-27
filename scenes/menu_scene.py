@@ -7,16 +7,19 @@ class MenuScene(BaseScene):
 
     def __init__(self, manager):
         super().__init__(manager)
-        self.title_font = pygame.font.SysFont(None, 60)
-        self.option_font = pygame.font.SysFont(None, 40)
+        self._refresh_fonts()
         
         # 定义菜单选项的矩形区域（像素级精确位置）
         self.menu_options = [
-            {"rect": pygame.Rect(320, 300, 280, 40), "text": "1. Start Training", "scene": "training"},
-            {"rect": pygame.Rect(320, 350, 280, 40), "text": "2. Configuration", "scene": "config"},
-            {"rect": pygame.Rect(320, 400, 280, 40), "text": "3. View History", "scene": "history"},
-            {"rect": pygame.Rect(320, 450, 280, 40), "text": "4. Exit", "scene": "exit"}
+            {"rect": pygame.Rect(320, 300, 280, 40), "key": "menu.start_training", "scene": "training"},
+            {"rect": pygame.Rect(320, 350, 280, 40), "key": "menu.configuration", "scene": "config"},
+            {"rect": pygame.Rect(320, 400, 280, 40), "key": "menu.view_history", "scene": "history"},
+            {"rect": pygame.Rect(320, 450, 280, 40), "key": "menu.exit", "scene": "exit"}
         ]
+
+    def _refresh_fonts(self):
+        self.title_font = self.create_font(60)
+        self.option_font = self.create_font(40)
 
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
@@ -44,10 +47,11 @@ class MenuScene(BaseScene):
                                 self.manager.set_scene(option["scene"])
 
     def draw(self, screen):
+        self._refresh_fonts()
         screen.fill((20, 20, 40))
         
         # 绘制标题（居中对齐）
-        title = self.title_font.render("VisionSeed", True, (255, 255, 255))
+        title = self.title_font.render(self.manager.t("menu.title"), True, (255, 255, 255))
         title_x = 450 - title.get_width() // 2  # 900/2 = 450
         screen.blit(title, (title_x, 150))
         
@@ -55,9 +59,9 @@ class MenuScene(BaseScene):
         mouse_pos = pygame.mouse.get_pos()
         
         # 绘制菜单选项（带鼠标交互效果）
-        for option in self.menu_options:
+        for index, option in enumerate(self.menu_options, start=1):
             rect = option["rect"]
-            text = option["text"]
+            text = f"{index}. {self.manager.t(option['key'])}"
             is_hovered = rect.collidepoint(mouse_pos)
             
             # 颜色配置（符合强迫症的色彩规范）

@@ -1,6 +1,44 @@
+import os
+import pygame
+
+
 class BaseScene:
+    CHINESE_FONT_SCALE = 0.88
+
     def __init__(self, manager):
         self.manager = manager
+        self._font_cache = {}
+
+    def _get_chinese_font_path(self):
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        font_path = os.path.join(project_root, "assets", "SimHei.ttf")
+        return font_path if os.path.exists(font_path) else None
+
+    def create_font(self, size, bold=False, italic=False):
+        """根据当前语言创建字体；中文优先使用项目内置 TTF。"""
+        language = self.manager.settings.get("language", "en-US")
+        adjusted_size = size
+        if language == "zh-CN":
+            adjusted_size = max(10, int(round(size * self.CHINESE_FONT_SCALE)))
+
+        cache_key = (language, adjusted_size, bold, italic)
+        if cache_key in self._font_cache:
+            return self._font_cache[cache_key]
+
+        font = None
+        if language == "zh-CN":
+            font_path = self._get_chinese_font_path()
+            if font_path:
+                font = pygame.font.Font(font_path, adjusted_size)
+            else:
+                font = pygame.font.SysFont("SimHei", adjusted_size)
+        else:
+            font = pygame.font.SysFont(None, adjusted_size)
+
+        font.set_bold(bold)
+        font.set_italic(italic)
+        self._font_cache[cache_key] = font
+        return font
 
     def handle_events(self, events):
         pass
