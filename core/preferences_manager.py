@@ -1,9 +1,14 @@
 import json
 import os
 import shutil
-import sys
 from typing import Dict, Any
 
+from core.app_paths import (
+    get_install_root,
+    get_resource_path,
+    get_user_config_dir,
+    get_user_data_dir,
+)
 from config import (
     DEFAULT_TOTAL_QUESTIONS,
     DEFAULT_START_LEVEL,
@@ -19,20 +24,17 @@ class PreferencesManager:
     SUPPORTED_LANGUAGES = {"en-US", "zh-CN"}
 
     def __init__(self):
-        self.project_root = self._get_project_root()
-        self.config_dir = os.path.join(self.project_root, "config")
-        self.data_dir = os.path.join(self.project_root, "data")
-        self.preferences_file = os.path.join(self.data_dir, "user_preferences.json")
-        self.legacy_preferences_file = os.path.join(self.config_dir, "user_preferences.json")
-        self.preferences_example_file = os.path.join(self.config_dir, "user_preferences.example.json")
-        os.makedirs(self.config_dir, exist_ok=True)
-        os.makedirs(self.data_dir, exist_ok=True)
-        self._ensure_preferences_file()
+        self.user_config_dir = get_user_config_dir()
+        self.user_data_dir = get_user_data_dir()
+        self.preferences_file = os.path.join(self.user_config_dir, "user_preferences.json")
+        self.preferences_example_file = get_resource_path("config", "user_preferences.example.json")
 
-    def _get_project_root(self) -> str:
-        if getattr(sys, "frozen", False):
-            return os.path.dirname(sys.executable)
-        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        install_root = get_install_root()
+        self.legacy_config_dir = os.path.join(install_root, "config")
+        self.legacy_data_dir = os.path.join(install_root, "data")
+        self.legacy_preferences_file = os.path.join(self.legacy_config_dir, "user_preferences.json")
+        self.legacy_data_preferences_file = os.path.join(self.legacy_data_dir, "user_preferences.json")
+        self._ensure_preferences_file()
 
     def default_preferences(self) -> Dict[str, Any]:
         return {
@@ -48,13 +50,21 @@ class PreferencesManager:
         if os.path.exists(self.preferences_file):
             return
 
-        # 旧版本路径迁移：config/user_preferences.json -> data/user_preferences.json
+        # 旧版本路径迁移：config/user_preferences.json -> 用户目录
         if os.path.exists(self.legacy_preferences_file):
             try:
                 shutil.copyfile(self.legacy_preferences_file, self.preferences_file)
                 return
             except OSError as e:
                 print(f"Error migrating legacy preferences file: {e}")
+
+        # 旧版本路径迁移：data/user_preferences.json -> 用户目录
+        if os.path.exists(self.legacy_data_preferences_file):
+            try:
+                shutil.copyfile(self.legacy_data_preferences_file, self.preferences_file)
+                return
+            except OSError as e:
+                print(f"Error migrating legacy data preferences file: {e}")
 
         # 使用 example 初始化
         if os.path.exists(self.preferences_example_file):

@@ -1,8 +1,9 @@
 import json
 import os
-import sys
+import shutil
 from typing import List, Dict, Any, Tuple
 from config import E_SIZE_LEVELS
+from core.app_paths import get_install_root, get_user_data_dir
 
 
 class DataManager:
@@ -10,30 +11,24 @@ class DataManager:
     CURRENT_SCHEMA_VERSION = 2
     
     def __init__(self):
-        # 获取正确的项目根目录路径（兼容打包后的exe）
-        self.project_root = self._get_project_root()
-        self.data_dir = os.path.join(self.project_root, "data")
+        self.data_dir = get_user_data_dir()
         self.records_file = os.path.join(self.data_dir, "records.json")
-        
-        # 确保data目录存在
-        os.makedirs(self.data_dir, exist_ok=True)
-        
+
         # 初始化记录文件（如果不存在）
         if not os.path.exists(self.records_file):
-            self._init_records_file()
-    
-    def _get_project_root(self) -> str:
-        """
-        获取项目根目录路径
-        兼容开发环境和打包后的exe环境
-        """
-        if getattr(sys, 'frozen', False):
-            # 打包后的exe环境
-            # sys.executable 指向exe文件路径
-            return os.path.dirname(sys.executable)
-        else:
-            # 开发环境
-            return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            self._migrate_or_init_records()
+
+    def _migrate_or_init_records(self):
+        install_root = get_install_root()
+        legacy_records = os.path.join(install_root, "data", "records.json")
+        if os.path.exists(legacy_records):
+            try:
+                os.makedirs(self.data_dir, exist_ok=True)
+                shutil.copyfile(legacy_records, self.records_file)
+                return
+            except OSError as e:
+                print(f"Error migrating legacy records file: {e}")
+        self._init_records_file()
     
     def _init_records_file(self):
         """初始化记录文件"""

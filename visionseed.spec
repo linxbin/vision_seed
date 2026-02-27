@@ -1,6 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-import sys
 import os
 
 # 获取项目根目录
@@ -14,9 +13,7 @@ a = Analysis(
     datas=[
         # 包含必要的资源目录
         ('assets', 'assets'),
-        ('config', 'config'),
-        ('core', 'core'),
-        ('scenes', 'scenes'),
+        ('config/user_preferences.example.json', 'config'),
         # 注意：不包含 data 目录，保护用户隐私！
     ],
     hiddenimports=[],
@@ -57,10 +54,8 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
+    exclude_binaries=True,
     name='VisionSeed',
     debug=False,
     bootloader_ignore_signals=False,
@@ -75,4 +70,14 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     # icon='assets/icon.ico'  # 移除图标引用，因为不存在
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    name='VisionSeed',
 )

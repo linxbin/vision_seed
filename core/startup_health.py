@@ -1,16 +1,12 @@
 import os
 import pygame
 from typing import Dict, Any, List
-
-
-def _project_root() -> str:
-    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from core.app_paths import get_resource_path
 
 
 def run_startup_health_check() -> Dict[str, Any]:
     """启动健康检查：资源缺失仅告警，不阻断启动。"""
-    root = _project_root()
-    assets_dir = os.path.join(root, "assets")
+    assets_dir = get_resource_path("assets")
 
     checks = {
         "correct_sound": os.path.exists(os.path.join(assets_dir, "correct.wav")),

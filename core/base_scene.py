@@ -1,5 +1,6 @@
 import os
 import pygame
+from core.app_paths import get_resource_path
 
 
 class BaseScene:
@@ -10,8 +11,7 @@ class BaseScene:
         self._font_cache = {}
 
     def _get_chinese_font_path(self):
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        font_path = os.path.join(project_root, "assets", "SimHei.ttf")
+        font_path = get_resource_path("assets", "SimHei.ttf")
         return font_path if os.path.exists(font_path) else None
 
     def create_font(self, size, bold=False, italic=False):

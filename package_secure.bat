@@ -21,9 +21,9 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-if exist "dist\VisionSeed.exe" (
-    echo Success: VisionSeed.exe created successfully (single file)
-    dir "dist\VisionSeed.exe"
+if exist "dist\VisionSeed\VisionSeed.exe" (
+    echo Success: VisionSeed.exe created successfully (one-folder)
+    dir "dist\VisionSeed\VisionSeed.exe"
 ) else (
     echo Error: Executable not found
     pause

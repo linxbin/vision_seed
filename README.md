@@ -25,9 +25,7 @@ VisionSeed 是一个基于 Python + Pygame 的 E 字方向视觉训练应用，�
 │   ├── game.py
 │   ├── levels.py
 │   └── user_preferences.example.json
-├── data/
-│   ├── records.json
-│   └── user_preferences.json
+├── data/                          # 运行时不再写入该目录
 ├── core/
 │   ├── base_scene.py
 │   ├── data_manager.py
@@ -69,7 +67,7 @@ python -m unittest discover -s tests -p "test_*.py"
 
 ### 训练记录
 
-文件：`data/records.json`
+文件：`%LOCALAPPDATA%/VisionSeed/data/records.json`
 
 顶层字段：
 
@@ -93,7 +91,7 @@ python -m unittest discover -s tests -p "test_*.py"
 
 ### 用户偏好
 
-运行时文件：`data/user_preferences.json`（已加入 `.gitignore`）
+运行时文件：`%LOCALAPPDATA%/VisionSeed/config/user_preferences.json`（已加入 `.gitignore`）
 
 模板文件：`config/user_preferences.example.json`
 

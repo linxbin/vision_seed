@@ -1,5 +1,6 @@
-import pygame
 import os
+import pygame
+from core.app_paths import get_resource_path
 
 
 class SoundManager:
@@ -8,9 +9,7 @@ class SoundManager:
     def __init__(self):
         self.is_enabled = True  # 音效开关
         
-        # 获取项目根目录
-        self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.assets_dir = os.path.join(self.project_root, "assets")
+        self.assets_dir = get_resource_path("assets")
         
         # 尝试加载音效文件
         try:

@@ -9,7 +9,7 @@
 **训练记录绝不会被打包到分发版本中！**
 - 用户的个人训练数据（`data/records.json`）属于敏感隐私信息
 - 打包配置已明确排除 `data` 目录
-- 每个新用户首次运行程序时都会创建全新的训练记录
+- 每个新用户首次运行程序时都会在用户目录创建全新的训练记录
 - 这确保了用户隐私安全和数据隔离
 
 ## 🎯 **训练难度等级配置**
@@ -63,12 +63,11 @@ pyinstaller visionseed.spec
 ```
 项目根目录/
 ├── dist/                    # 直接可运行的程序
-│   ├── VisionSeed.exe      # 主程序（约10-20MB）
-│   ├── assets/             # 音效文件
-│   ├── config/             # 配置文件  
-│   ├── core/               # 核心模块
-│   └── scenes/             # 场景模块
-│   # 注意：不包含 data/ 目录！
+│   └── VisionSeed/         # 一体化发布目录
+│       ├── VisionSeed.exe  # 主程序
+│       ├── assets/         # 音效文件
+│       └── config/         # 配置模板（只读）
+│       # 注意：不包含 data/ 目录！
 │
 └── build/                  # 临时构建文件（可删除）
 ```
@@ -92,14 +91,14 @@ pyinstaller visionseed.spec
 
 ### 数据保护原则
 - **零数据泄露**：分发版本不包含任何用户训练记录
-- **本地存储**：所有用户数据仅保存在本地 `data` 目录
+- **本地存储**：所有用户数据仅保存在用户目录 `%LOCALAPPDATA%/VisionSeed`
 - **用户控制**：用户拥有完全的数据导出和清除权限
 - **纯净启动**：每个新用户获得完全干净的初始状态
 
 ## 数据文件说明
 
-- `data/records.json`：训练记录（`schema_version=2`，兼容旧版本自动迁移）
-- `data/user_preferences.json`：用户偏好运行时文件（建议忽略版本控制）
+- `%LOCALAPPDATA%/VisionSeed/data/records.json`：训练记录（`schema_version=2`，兼容旧版本自动迁移）
+- `%LOCALAPPDATA%/VisionSeed/config/user_preferences.json`：用户偏好运行时文件（建议忽略版本控制）
 - `config/user_preferences.example.json`：用户偏好模板文件（用于初始化默认值）
 
 ### 安全考虑
