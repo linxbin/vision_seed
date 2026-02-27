@@ -9,12 +9,14 @@ class SceneManager:
     def __init__(self):
         self.scene = None
         self.scenes = {}
+        self.screen_size = None
 
         self.settings = {
             "total_questions": DEFAULT_TOTAL_QUESTIONS,
             "start_level": DEFAULT_START_LEVEL,
             "sound_enabled": True,
             "language": "en-US",
+            "fullscreen": False,
         }
 
         # 用户偏好管理器
@@ -58,14 +60,23 @@ class SceneManager:
             "total_questions": self.settings["total_questions"],
             "sound_enabled": self.settings.get("sound_enabled", True),
             "language": self.settings.get("language", "en-US"),
+            "fullscreen": self.settings.get("fullscreen", False),
         }
         return self.preferences_manager.save_preferences(payload)
 
     def register(self, name, scene):
         self.scenes[name] = scene
 
+    def set_screen_size(self, width, height):
+        self.screen_size = (width, height)
+
     def set_scene(self, name):
         self.scene = self.scenes[name]
+
+        if self.screen_size:
+            on_resize = getattr(self.scene, "on_resize", None)
+            if callable(on_resize):
+                on_resize(*self.screen_size)
 
         # 每次进入训练必须重置
         if name == "training":

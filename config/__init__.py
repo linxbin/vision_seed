@@ -3,7 +3,7 @@
 配置包初始化文件
 """
 
-from .display import SCREEN_WIDTH, SCREEN_HEIGHT, FPS
+from .display import SCREEN_WIDTH, SCREEN_HEIGHT, MIN_SCREEN_WIDTH, MIN_SCREEN_HEIGHT, FPS
 from .game import (
     TITLE,
     DEFAULT_TOTAL_QUESTIONS,

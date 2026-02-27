@@ -11,7 +11,11 @@ class HistoryScene(BaseScene):
         super().__init__(manager)
         self._refresh_fonts()
 
-        self.back_button_rect = pygame.Rect(SCREEN_WIDTH - 80, 20, 60, 30)
+        self.width = SCREEN_WIDTH
+        self.height = 700
+        self.layout_offset_x = 0
+
+        self.back_button_rect = pygame.Rect(self.width - 80, 20, 60, 30)
         self.records_per_page = 8
         self.current_page = 0
         self.total_pages = 1
@@ -23,7 +27,7 @@ class HistoryScene(BaseScene):
         self.level_filter = 0     # 0 means all
         self.sort_mode = "time"   # time / accuracy
 
-        self._create_filter_controls()
+        self._reflow_layout()
 
     def _refresh_fonts(self):
         self.title_font = self.create_font(48)
@@ -32,15 +36,27 @@ class HistoryScene(BaseScene):
         self.small_font = self.create_font(20)
 
     def _create_filter_controls(self):
+        offset_x = self.layout_offset_x
         y = 118
-        self.date_all_rect = pygame.Rect(120, y, 60, 32)
-        self.date_7d_rect = pygame.Rect(186, y, 60, 32)
-        self.date_30d_rect = pygame.Rect(252, y, 60, 32)
-        self.level_dec_rect = pygame.Rect(408, y, 32, 32)
-        self.level_value_rect = pygame.Rect(444, y, 74, 32)
-        self.level_inc_rect = pygame.Rect(522, y, 32, 32)
-        self.sort_time_rect = pygame.Rect(640, y, 78, 32)
-        self.sort_acc_rect = pygame.Rect(724, y, 116, 32)
+        self.date_all_rect = pygame.Rect(offset_x + 120, y, 60, 32)
+        self.date_7d_rect = pygame.Rect(offset_x + 186, y, 60, 32)
+        self.date_30d_rect = pygame.Rect(offset_x + 252, y, 60, 32)
+        self.level_dec_rect = pygame.Rect(offset_x + 408, y, 32, 32)
+        self.level_value_rect = pygame.Rect(offset_x + 444, y, 74, 32)
+        self.level_inc_rect = pygame.Rect(offset_x + 522, y, 32, 32)
+        self.sort_time_rect = pygame.Rect(offset_x + 640, y, 78, 32)
+        self.sort_acc_rect = pygame.Rect(offset_x + 724, y, 116, 32)
+
+    def _reflow_layout(self):
+        base_width = SCREEN_WIDTH
+        self.layout_offset_x = max(0, (self.width - base_width) // 2)
+        self.back_button_rect = pygame.Rect(self.width - 80, 20, 60, 30)
+        self._create_filter_controls()
+
+    def on_resize(self, width, height):
+        self.width = width
+        self.height = height
+        self._reflow_layout()
 
     def on_enter(self):
         self._load_records()
@@ -140,12 +156,13 @@ class HistoryScene(BaseScene):
 
     def _draw_filters(self, screen, mouse_pos):
         label_color = (180, 205, 240)
+        offset_x = self.layout_offset_x
         date_label = self.small_font.render(self.manager.t("history.filter.date"), True, label_color)
         level_label = self.small_font.render(self.manager.t("history.filter.level"), True, label_color)
         sort_label = self.small_font.render(self.manager.t("history.filter.sort"), True, label_color)
-        screen.blit(date_label, (60, 124))
-        screen.blit(level_label, (346, 124))
-        screen.blit(sort_label, (586, 124))
+        screen.blit(date_label, (offset_x + 60, 124))
+        screen.blit(level_label, (offset_x + 346, 124))
+        screen.blit(sort_label, (offset_x + 586, 124))
 
         self._draw_chip(
             screen, self.date_all_rect, self.manager.t("history.filter.all"), self.date_filter == "all", mouse_pos
@@ -224,11 +241,11 @@ class HistoryScene(BaseScene):
         mouse_pos = pygame.mouse.get_pos()
 
         title = self.title_font.render(self.manager.t("history.title"), True, (255, 255, 255))
-        screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 34))
+        screen.blit(title, (self.width // 2 - title.get_width() // 2, 34))
 
         info = self.manager.t("history.info_with_records") if self.filtered_records else self.manager.t("history.info_empty")
         info_surface = self.small_font.render(info, True, (180, 180, 200) if self.filtered_records else (200, 150, 150))
-        screen.blit(info_surface, (SCREEN_WIDTH // 2 - info_surface.get_width() // 2, 82))
+        screen.blit(info_surface, (self.width // 2 - info_surface.get_width() // 2, 82))
 
         self._draw_filters(screen, mouse_pos)
 
@@ -237,8 +254,9 @@ class HistoryScene(BaseScene):
             return
 
         # 自适应列宽（时间列更宽）
-        table_left = 60
-        table_right = SCREEN_WIDTH - 60
+        margin = self.layout_offset_x + 60
+        table_left = margin
+        table_right = self.width - margin
         table_width = table_right - table_left
         weights = [0.31, 0.10, 0.13, 0.13, 0.14, 0.19]
         col_widths = [int(table_width * w) for w in weights]
@@ -290,6 +308,6 @@ class HistoryScene(BaseScene):
         if self.total_pages > 1:
             page_info = self.manager.t("history.page_info", current=self.current_page + 1, total=self.total_pages)
             page_surf = self.small_font.render(page_info, True, (180, 200, 220))
-            screen.blit(page_surf, (SCREEN_WIDTH // 2 - page_surf.get_width() // 2, row_start + len(current_records) * row_height + 16))
+            screen.blit(page_surf, (self.width // 2 - page_surf.get_width() // 2, row_start + len(current_records) * row_height + 16))
 
         self._draw_back_button(screen, mouse_pos)

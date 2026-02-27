@@ -2,5 +2,6 @@
   "start_level": 3,
   "total_questions": 30,
   "sound_enabled": true,
-  "language": "en-US"
+  "language": "en-US",
+  "fullscreen": false
 }

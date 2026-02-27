@@ -83,7 +83,7 @@ class LanguageManager:
             "history.sort.accuracy": "Accuracy",
         },
         "zh-CN": {
-            "menu.title": "VisionSeed",
+            "menu.title": "视芽",
             "menu.subtitle": "视觉训练系统",
             "menu.start_training": "开始训练",
             "menu.configuration": "参数配置",

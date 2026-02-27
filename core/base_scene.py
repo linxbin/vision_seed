@@ -48,3 +48,6 @@ class BaseScene:
 
     def draw(self, screen):
         pass
+
+    def on_resize(self, width, height):
+        pass

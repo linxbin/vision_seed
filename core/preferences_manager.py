@@ -40,6 +40,7 @@ class PreferencesManager:
             "total_questions": DEFAULT_TOTAL_QUESTIONS,
             "sound_enabled": True,
             "language": "en-US",
+            "fullscreen": False,
         }
 
     def _ensure_preferences_file(self):
@@ -90,6 +91,8 @@ class PreferencesManager:
         if language not in self.SUPPORTED_LANGUAGES:
             language = defaults["language"]
         merged["language"] = language
+
+        merged["fullscreen"] = bool(merged.get("fullscreen", defaults["fullscreen"]))
         return merged
 
     def load_preferences(self) -> Dict[str, Any]:

@@ -7,7 +7,11 @@ class ReportScene(BaseScene):
     def __init__(self, manager):
         super().__init__(manager)
         self._refresh_fonts()
-        self._create_ui()
+        self.width = 900
+        self.height = 700
+        self.layout_offset_x = 0
+        self.layout_offset_y = 0
+        self._reflow_layout()
         self.prev_session = None
 
     def _refresh_fonts(self):
@@ -20,16 +24,30 @@ class ReportScene(BaseScene):
         self.suggestion_font = self.create_font(22)
 
     def _create_ui(self):
+        offset_x = self.layout_offset_x
+        offset_y = self.layout_offset_y
         self.cards = [
-            {"label_key": "report.total_questions", "field": "total", "x": 120, "y": 220, "w": 300, "h": 90},
-            {"label_key": "report.correct", "field": "correct", "x": 480, "y": 220, "w": 300, "h": 90},
-            {"label_key": "report.wrong", "field": "wrong", "x": 120, "y": 330, "w": 300, "h": 90},
-            {"label_key": "report.accuracy", "field": "accuracy", "x": 480, "y": 330, "w": 300, "h": 90},
-            {"label_key": "report.time_used", "field": "duration", "x": 120, "y": 440, "w": 300, "h": 90},
-            {"label_key": "report.max_combo", "field": "max_combo", "x": 480, "y": 440, "w": 300, "h": 90},
+            {"label_key": "report.total_questions", "field": "total", "x": offset_x + 120, "y": offset_y + 220, "w": 300, "h": 90},
+            {"label_key": "report.correct", "field": "correct", "x": offset_x + 480, "y": offset_y + 220, "w": 300, "h": 90},
+            {"label_key": "report.wrong", "field": "wrong", "x": offset_x + 120, "y": offset_y + 330, "w": 300, "h": 90},
+            {"label_key": "report.accuracy", "field": "accuracy", "x": offset_x + 480, "y": offset_y + 330, "w": 300, "h": 90},
+            {"label_key": "report.time_used", "field": "duration", "x": offset_x + 120, "y": offset_y + 440, "w": 300, "h": 90},
+            {"label_key": "report.max_combo", "field": "max_combo", "x": offset_x + 480, "y": offset_y + 440, "w": 300, "h": 90},
         ]
-        self.retry_button_rect = pygame.Rect(250, 610, 170, 44)
-        self.menu_button_rect = pygame.Rect(480, 610, 170, 44)
+        self.retry_button_rect = pygame.Rect(offset_x + 250, offset_y + 610, 170, 44)
+        self.menu_button_rect = pygame.Rect(offset_x + 480, offset_y + 610, 170, 44)
+
+    def _reflow_layout(self):
+        base_width = 900
+        base_height = 700
+        self.layout_offset_x = max(0, (self.width - base_width) // 2)
+        self.layout_offset_y = max(0, (self.height - base_height) // 2)
+        self._create_ui()
+
+    def on_resize(self, width, height):
+        self.width = width
+        self.height = height
+        self._reflow_layout()
 
     def on_enter(self):
         sessions = self.manager.data_manager.get_all_sessions()
@@ -98,12 +116,12 @@ class ReportScene(BaseScene):
 
         # 标题与结果等级
         title = self.title_font.render(self.manager.t("report.title"), True, (255, 255, 255))
-        screen.blit(title, (450 - title.get_width() // 2, 80))
+        screen.blit(title, (self.width // 2 - title.get_width() // 2, self.layout_offset_y + 80))
 
         badge_text = self._result_text(accuracy)
         badge_color = self._accuracy_color(accuracy)
         badge = self.badge_font.render(badge_text, True, badge_color)
-        screen.blit(badge, (450 - badge.get_width() // 2, 145))
+        screen.blit(badge, (self.width // 2 - badge.get_width() // 2, self.layout_offset_y + 145))
 
         # 结果卡片
         for card in self.cards:
@@ -150,14 +168,14 @@ class ReportScene(BaseScene):
             dur_text = self.manager.t("report.trend_duration", delta=f"{dur_delta:+.2f}", arrow=dur_arrow)
             acc_surface = self.trend_font.render(acc_text, True, (190, 210, 245))
             dur_surface = self.trend_font.render(dur_text, True, (190, 210, 245))
-            screen.blit(acc_surface, (450 - acc_surface.get_width() // 2, 560))
-            screen.blit(dur_surface, (450 - dur_surface.get_width() // 2, 582))
+            screen.blit(acc_surface, (self.width // 2 - acc_surface.get_width() // 2, self.layout_offset_y + 560))
+            screen.blit(dur_surface, (self.width // 2 - dur_surface.get_width() // 2, self.layout_offset_y + 582))
         else:
             no_hist = self.trend_font.render(self.manager.t("report.trend_no_history"), True, (180, 190, 210))
-            screen.blit(no_hist, (450 - no_hist.get_width() // 2, 570))
+            screen.blit(no_hist, (self.width // 2 - no_hist.get_width() // 2, self.layout_offset_y + 570))
 
         suggestion = self.suggestion_font.render(self._get_suggestion(accuracy), True, (130, 220, 175))
-        screen.blit(suggestion, (450 - suggestion.get_width() // 2, 535))
+        screen.blit(suggestion, (self.width // 2 - suggestion.get_width() // 2, self.layout_offset_y + 535))
 
         # 操作按钮
         self._draw_button(
@@ -177,4 +195,4 @@ class ReportScene(BaseScene):
 
         # 快捷键提示
         hint = self.hint_font.render(self.manager.t("report.return_hint"), True, (180, 190, 210))
-        screen.blit(hint, (450 - hint.get_width() // 2, 665))
+        screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.layout_offset_y + 665))

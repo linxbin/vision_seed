@@ -10,6 +10,11 @@ class ConfigScene(BaseScene):
         self._refresh_fonts()
         self.e_generator = EGenerator()
 
+        self.width = SCREEN_WIDTH
+        self.height = 700
+        self.layout_offset_x = 0
+        self.layout_offset_y = 0
+
         self.current_level = self.manager.settings["start_level"]
         self.current_questions = self.manager.settings["total_questions"]
         self.current_sound_enabled = self.manager.settings.get("sound_enabled", True)
@@ -24,7 +29,7 @@ class ConfigScene(BaseScene):
         self.level_flash_level = self.current_level
 
         self.level_cards = []
-        self._create_ui_elements()
+        self._reflow_layout()
 
     def _refresh_fonts(self):
         self.font = self.create_font(24)
@@ -46,13 +51,16 @@ class ConfigScene(BaseScene):
             self.level_flash_frames -= 1
 
     def _create_ui_elements(self):
-        self.title_y = 28
-        self.info_y = 66
+        offset_x = self.layout_offset_x
+        offset_y = self.layout_offset_y
 
-        self.level_panel_rect = pygame.Rect(40, 105, 380, 235)
-        self.preview_panel_rect = pygame.Rect(440, 105, 420, 235)
-        self.question_panel_rect = pygame.Rect(40, 355, 380, 170)
-        self.pref_panel_rect = pygame.Rect(440, 355, 420, 170)
+        self.title_y = offset_y + 28
+        self.info_y = offset_y + 66
+
+        self.level_panel_rect = pygame.Rect(offset_x + 40, offset_y + 105, 380, 235)
+        self.preview_panel_rect = pygame.Rect(offset_x + 440, offset_y + 105, 420, 235)
+        self.question_panel_rect = pygame.Rect(offset_x + 40, offset_y + 355, 380, 170)
+        self.pref_panel_rect = pygame.Rect(offset_x + 440, offset_y + 355, 420, 170)
 
         card_w = 78
         card_h = 52
@@ -74,8 +82,20 @@ class ConfigScene(BaseScene):
         self.sound_toggle_rect = pygame.Rect(self.pref_panel_rect.x + 25, self.pref_panel_rect.y + 60, 180, 42)
         self.language_toggle_rect = pygame.Rect(self.pref_panel_rect.x + 215, self.pref_panel_rect.y + 60, 180, 42)
 
-        self.start_button_rect = pygame.Rect(SCREEN_WIDTH // 2 - 145, 560, 130, 42)
-        self.back_button_rect = pygame.Rect(SCREEN_WIDTH // 2 + 15, 560, 130, 42)
+        self.start_button_rect = pygame.Rect(self.width // 2 - 145, offset_y + 560, 130, 42)
+        self.back_button_rect = pygame.Rect(self.width // 2 + 15, offset_y + 560, 130, 42)
+
+    def _reflow_layout(self):
+        base_width = SCREEN_WIDTH
+        base_height = 700
+        self.layout_offset_x = max(0, (self.width - base_width) // 2)
+        self.layout_offset_y = max(0, (self.height - base_height) // 2)
+        self._create_ui_elements()
+
+    def on_resize(self, width, height):
+        self.width = width
+        self.height = height
+        self._reflow_layout()
 
     def _commit_settings(self):
         self.manager.settings["start_level"] = self.current_level
@@ -265,9 +285,9 @@ class ConfigScene(BaseScene):
         mouse_pos = pygame.mouse.get_pos()
 
         title = self.title_font.render(self.manager.t("config.title"), True, (255, 255, 255))
-        screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, self.title_y))
+        screen.blit(title, (self.width // 2 - title.get_width() // 2, self.title_y))
         info = self.small_font.render(self.manager.t("config.info"), True, (176, 190, 220))
-        screen.blit(info, (SCREEN_WIDTH // 2 - info.get_width() // 2, self.info_y))
+        screen.blit(info, (self.width // 2 - info.get_width() // 2, self.info_y))
 
         self._draw_panel(screen, self.level_panel_rect, self.manager.t("config.difficulty_level"), mouse_pos)
         self._draw_panel(screen, self.preview_panel_rect, self.manager.t("config.font_preview"), mouse_pos)
@@ -303,7 +323,12 @@ class ConfigScene(BaseScene):
         preview_level = self.hovered_level if self.hovered_level is not None else self.current_level
         preview_size = E_SIZE_LEVELS[preview_level - 1]
         distance = max(1.0, round(4.5 - (preview_level - 1) * 0.5, 1))
-        self.e_generator.draw_e(screen, (650, 205), preview_size, "RIGHT")
+        self.e_generator.draw_e(
+            screen,
+            (self.preview_panel_rect.centerx, self.preview_panel_rect.y + 100),
+            preview_size,
+            "RIGHT",
+        )
 
         info1 = self.small_font.render(
             self.manager.t("config.preview_level_size", level=preview_level, size=preview_size),
@@ -382,7 +407,7 @@ class ConfigScene(BaseScene):
             questions=self.current_questions,
         )
         status = self.small_font.render(status_text, True, (184, 220, 178))
-        screen.blit(status, (SCREEN_WIDTH // 2 - status.get_width() // 2, 540))
+        screen.blit(status, (self.width // 2 - status.get_width() // 2, self.layout_offset_y + 540))
 
         for rect, text, base in (
             (self.start_button_rect, self.manager.t("config.start_game"), (62, 155, 90)),

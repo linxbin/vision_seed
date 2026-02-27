@@ -85,10 +85,9 @@ class TrainingScene(BaseScene):
         self._refresh_fonts()
 
         # 自适应布局参数（基于屏幕尺寸）
-        self.center_pos = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
-        self.progress_pos = (SCREEN_WIDTH // 2, SCREEN_HEIGHT - 70)
-        self.status_pos = (SCREEN_WIDTH // 2, SCREEN_HEIGHT - 36)
-        self.back_button_rect = pygame.Rect(SCREEN_WIDTH - 90, 15, 80, 30)
+        self.width = SCREEN_WIDTH
+        self.height = SCREEN_HEIGHT
+        self._reflow_layout()
 
         # 运行态字段（进入训练时由 reset 正式赋值）
         self.total = 0
@@ -113,6 +112,19 @@ class TrainingScene(BaseScene):
     def _refresh_fonts(self):
         self.small_font = self.create_font(40)
         self.back_button_font = self.create_font(24)
+
+    def _reflow_layout(self):
+        self.center_pos = (self.width // 2, self.height // 2 - 50)
+        self.progress_pos = (self.width // 2, self.height - 70)
+        self.status_pos = (self.width // 2, self.height - 36)
+        self.back_button_rect = pygame.Rect(self.width - 90, 15, 80, 30)
+        if getattr(self, "rect", None):
+            self.rect.center = self.center_pos
+
+    def on_resize(self, width, height):
+        self.width = width
+        self.height = height
+        self._reflow_layout()
 
     def reset(self):
         self.total = self.manager.settings["total_questions"]
