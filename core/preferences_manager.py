@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import sys
 from typing import Dict, Any
 
@@ -20,11 +21,13 @@ class PreferencesManager:
     def __init__(self):
         self.project_root = self._get_project_root()
         self.config_dir = os.path.join(self.project_root, "config")
-        self.preferences_file = os.path.join(self.config_dir, "user_preferences.json")
+        self.data_dir = os.path.join(self.project_root, "data")
+        self.preferences_file = os.path.join(self.data_dir, "user_preferences.json")
+        self.legacy_preferences_file = os.path.join(self.config_dir, "user_preferences.json")
+        self.preferences_example_file = os.path.join(self.config_dir, "user_preferences.example.json")
         os.makedirs(self.config_dir, exist_ok=True)
-
-        if not os.path.exists(self.preferences_file):
-            self.save_preferences(self.default_preferences())
+        os.makedirs(self.data_dir, exist_ok=True)
+        self._ensure_preferences_file()
 
     def _get_project_root(self) -> str:
         if getattr(sys, "frozen", False):
@@ -38,6 +41,32 @@ class PreferencesManager:
             "sound_enabled": True,
             "language": "en-US",
         }
+
+    def _ensure_preferences_file(self):
+        """确保运行时偏好文件存在，支持从旧路径平滑迁移。"""
+        if os.path.exists(self.preferences_file):
+            return
+
+        # 旧版本路径迁移：config/user_preferences.json -> data/user_preferences.json
+        if os.path.exists(self.legacy_preferences_file):
+            try:
+                shutil.copyfile(self.legacy_preferences_file, self.preferences_file)
+                return
+            except OSError as e:
+                print(f"Error migrating legacy preferences file: {e}")
+
+        # 使用 example 初始化
+        if os.path.exists(self.preferences_example_file):
+            try:
+                with open(self.preferences_example_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                self.save_preferences(data)
+                return
+            except (json.JSONDecodeError, OSError) as e:
+                print(f"Error loading preferences example file: {e}")
+
+        # 回退默认值
+        self.save_preferences(self.default_preferences())
 
     def _sanitize(self, preferences: Dict[str, Any]) -> Dict[str, Any]:
         defaults = self.default_preferences()

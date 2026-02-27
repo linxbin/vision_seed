@@ -110,7 +110,7 @@ class HistoryScene(BaseScene):
         # 计算当前页面记录
         current_records = self._get_current_page_records()
         
-        # 表头 - 修复列间距，避免重叠
+        # 表头 - 列内容居中
         header_y = 120
         headers = [
             self.manager.t("history.header.datetime"),
@@ -120,12 +120,19 @@ class HistoryScene(BaseScene):
             self.manager.t("history.header.accuracy"),
             self.manager.t("history.header.duration"),
         ]
-        # 调整列位置，确保足够的间距防止重叠
-        header_x_positions = [80, 280, 380, 490, 590, 700]
+
+        table_left = 60
+        col_widths = [240, 90, 110, 100, 110, 130]
+        col_centers = []
+        cursor = table_left
+        for width in col_widths:
+            col_centers.append(cursor + width // 2)
+            cursor += width
         
         for i, header in enumerate(headers):
             header_surface = self.header_font.render(header, True, (200, 220, 255))
-            screen.blit(header_surface, (header_x_positions[i], header_y))
+            header_x = col_centers[i] - header_surface.get_width() // 2
+            screen.blit(header_surface, (header_x, header_y))
         
         # 绘制分隔线
         pygame.draw.line(screen, (80, 100, 140), (60, header_y + 35), (SCREEN_WIDTH - 60, header_y + 35), 2)
@@ -164,7 +171,8 @@ class HistoryScene(BaseScene):
                 # 精确垂直居中：计算文字高度并调整Y坐标
                 text_height = data_surface.get_height()
                 text_y = y_pos + (record_height - 5 - text_height) // 2
-                screen.blit(data_surface, (header_x_positions[j], text_y))
+                text_x = col_centers[j] - data_surface.get_width() // 2
+                screen.blit(data_surface, (text_x, text_y))
         
         # 绘制分页信息
         if self.total_pages > 1:

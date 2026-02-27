@@ -75,8 +75,7 @@ class TrainingScene(BaseScene):
 
     def __init__(self, manager):
         super().__init__(manager)
-        self.small_font = pygame.font.SysFont(None, 40)
-        self.back_button_font = pygame.font.SysFont(None, 24)  # 专门为返回按钮创建合适大小的字体
+        self._refresh_fonts()
         self.reset()
         
         # 返回按钮矩形（右上角，增大尺寸以容纳文字）
@@ -84,6 +83,10 @@ class TrainingScene(BaseScene):
         
         # 粒子效果列表
         self.particles = []
+
+    def _refresh_fonts(self):
+        self.small_font = self.create_font(40)
+        self.back_button_font = self.create_font(24)
 
     def reset(self):
         self.total = self.manager.settings["total_questions"]
@@ -230,6 +233,7 @@ class TrainingScene(BaseScene):
             pass
 
     def draw(self, screen):
+        self._refresh_fonts()
         screen.fill((0, 0, 0))
         screen.blit(self.surface, self.rect)
 
@@ -251,8 +255,8 @@ class TrainingScene(BaseScene):
         pygame.draw.rect(screen, button_color, self.back_button_rect, border_radius=6)
         pygame.draw.rect(screen, border_color, self.back_button_rect, 2, border_radius=6)
         
-        # 按钮文字（使用专门的字体大小，确保完美适配）
-        back_text = self.back_button_font.render("Back", True, (255, 255, 255))
+        # 按钮文字（多语言）
+        back_text = self.back_button_font.render(self.manager.t("training.back"), True, (255, 255, 255))
         text_x = self.back_button_rect.centerx - back_text.get_width() // 2
         text_y = self.back_button_rect.centery - back_text.get_height() // 2
         screen.blit(back_text, (text_x, text_y))

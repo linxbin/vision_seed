@@ -99,7 +99,8 @@ pyinstaller visionseed.spec
 ## 数据文件说明
 
 - `data/records.json`：训练记录（`schema_version=2`，兼容旧版本自动迁移）
-- `config/user_preferences.json`：用户偏好（题量、难度、音效、语言）
+- `data/user_preferences.json`：用户偏好运行时文件（建议忽略版本控制）
+- `config/user_preferences.example.json`：用户偏好模板文件（用于初始化默认值）
 
 ### 安全考虑
 - 所有用户数据保存在本地 `data` 目录

@@ -49,3 +49,4 @@ Thumbs.db
 # Local Data / Runtime Files
 # ==============================
 data/records.json
+data/user_preferences.json
