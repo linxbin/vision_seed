@@ -25,7 +25,8 @@ class ReportScene(BaseScene):
             {"label_key": "report.correct", "field": "correct", "x": 480, "y": 220, "w": 300, "h": 90},
             {"label_key": "report.wrong", "field": "wrong", "x": 120, "y": 330, "w": 300, "h": 90},
             {"label_key": "report.accuracy", "field": "accuracy", "x": 480, "y": 330, "w": 300, "h": 90},
-            {"label_key": "report.time_used", "field": "duration", "x": 300, "y": 440, "w": 300, "h": 90},
+            {"label_key": "report.time_used", "field": "duration", "x": 120, "y": 440, "w": 300, "h": 90},
+            {"label_key": "report.max_combo", "field": "max_combo", "x": 480, "y": 440, "w": 300, "h": 90},
         ]
         self.retry_button_rect = pygame.Rect(250, 610, 170, 44)
         self.menu_button_rect = pygame.Rect(480, 610, 170, 44)
@@ -91,6 +92,7 @@ class ReportScene(BaseScene):
         wrong = self.manager.current_result.get("wrong", 0)
         total = self.manager.current_result.get("total", 0)
         duration = self.manager.current_result.get("duration", 0.0)
+        max_combo = self.manager.current_result.get("max_combo", 0)
         accuracy = round((correct / total) * 100, 1) if total > 0 else 0.0
         mouse_pos = pygame.mouse.get_pos()
 
@@ -122,6 +124,9 @@ class ReportScene(BaseScene):
             elif field == "accuracy":
                 text = self.manager.t("report.accuracy", accuracy=accuracy)
                 color = self._accuracy_color(accuracy)
+            elif field == "max_combo":
+                text = self.manager.t("report.max_combo", combo=max_combo)
+                color = (255, 196, 112)
             else:
                 text = self.manager.t("report.time_used", duration=duration)
                 color = (170, 200, 255)

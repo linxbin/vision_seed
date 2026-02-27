@@ -4,11 +4,12 @@ import time
 from datetime import datetime
 from core.base_scene import BaseScene
 from core.e_generator import EGenerator
-from config import E_SIZE_LEVELS
+from config import E_SIZE_LEVELS, SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 class Particle:
     """粒子效果类 - 用于显示✓和✗反馈"""
+    _FONT_CACHE = {}
     
     def __init__(self, x, y, is_correct):
         self.x = x
@@ -16,8 +17,14 @@ class Particle:
         self.is_correct = is_correct
         self.size = 40
         self.lifetime = 60  # 60帧后消失
-        self.font = pygame.font.SysFont(None, self.size)
+        self.font = self._get_font(self.size)
         self.create_surface()
+
+    @classmethod
+    def _get_font(cls, size):
+        if size not in cls._FONT_CACHE:
+            cls._FONT_CACHE[size] = pygame.font.SysFont(None, size)
+        return cls._FONT_CACHE[size]
         
     def create_surface(self):
         """创建粒子表面"""
@@ -76,13 +83,32 @@ class TrainingScene(BaseScene):
     def __init__(self, manager):
         super().__init__(manager)
         self._refresh_fonts()
-        self.reset()
-        
-        # 返回按钮矩形（右上角，增大尺寸以容纳文字）
-        self.back_button_rect = pygame.Rect(810, 15, 80, 30)
-        
+
+        # 自适应布局参数（基于屏幕尺寸）
+        self.center_pos = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50)
+        self.progress_pos = (SCREEN_WIDTH // 2, SCREEN_HEIGHT - 70)
+        self.status_pos = (SCREEN_WIDTH // 2, SCREEN_HEIGHT - 36)
+        self.back_button_rect = pygame.Rect(SCREEN_WIDTH - 90, 15, 80, 30)
+
+        # 运行态字段（进入训练时由 reset 正式赋值）
+        self.total = 0
+        self.current = 0
+        self.correct = 0
+        self.combo = 0
+        self.max_combo = 0
+        self.base_size = E_SIZE_LEVELS[0]
+        self.target_direction = "RIGHT"
+        self.surface = EGenerator.create_e_surface(self.base_size, self.target_direction)
+        self.rect = self.surface.get_rect(center=self.center_pos)
+        self.is_waiting_for_delay = False
+        self.answer_delay_end_time = 0
+        self.combo_display_frames = 0
+
         # 粒子效果列表
         self.particles = []
+
+        # 保持现有行为：构造后即可进入可用状态
+        self.reset()
 
     def _refresh_fonts(self):
         self.small_font = self.create_font(40)
@@ -92,6 +118,9 @@ class TrainingScene(BaseScene):
         self.total = self.manager.settings["total_questions"]
         self.current = 0
         self.correct = 0
+        self.combo = 0
+        self.max_combo = 0
+        self.combo_display_frames = 0
         self.start_time = time.time()
         self.previous_direction = None
 
@@ -125,7 +154,7 @@ class TrainingScene(BaseScene):
         self.previous_direction = self.target_direction
 
         self.surface = EGenerator.create_e_surface(self.base_size, self.target_direction)
-        self.rect = self.surface.get_rect(center=(450, 300))
+        self.rect = self.surface.get_rect(center=self.center_pos)
 
     def _save_training_record(self, duration: float, wrong: int):
         """保存训练记录到数据管理器"""
@@ -159,10 +188,17 @@ class TrainingScene(BaseScene):
         self.manager.current_result["wrong"] = wrong
         self.manager.current_result["total"] = self.total
         self.manager.current_result["duration"] = duration
+        self.manager.current_result["max_combo"] = self.max_combo
 
         # 保存训练记录
         self._save_training_record(duration, wrong)
-        self.manager.set_scene("report")
+
+        # 防止在场景尚未完整注册时切换导致异常
+        scenes = getattr(self.manager, "scenes", None)
+        if isinstance(scenes, dict) and len(scenes) > 0 and "report" not in scenes:
+            self.manager.set_scene("menu")
+        else:
+            self.manager.set_scene("report")
 
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
@@ -183,7 +219,7 @@ class TrainingScene(BaseScene):
                     
                     # 创建粒子效果
                     particle_x = self.rect.centerx
-                    particle_y = self.rect.centery - 50  # 在E字上方显示
+                    particle_y = self.rect.centery - max(30, self.base_size // 2 + 10)
                     self.particles.append(Particle(particle_x, particle_y, is_correct))
                     
                     # 播放音效反馈
@@ -195,6 +231,16 @@ class TrainingScene(BaseScene):
 
                     if is_correct:
                         self.correct += 1
+                        self.combo += 1
+                        self.max_combo = max(self.max_combo, self.combo)
+                        self.combo_display_frames = 45
+
+                        # 高连击强化反馈：在主粒子两侧追加粒子
+                        if self.combo >= 3:
+                            self.particles.append(Particle(particle_x - 22, particle_y + 6, True))
+                            self.particles.append(Particle(particle_x + 22, particle_y + 6, True))
+                    else:
+                        self.combo = 0
 
                     if self.current >= self.total:
                         self._finish_training()
@@ -217,6 +263,9 @@ class TrainingScene(BaseScene):
             particle.update()
             if not particle.is_alive():
                 self.particles.remove(particle)
+
+        if self.combo_display_frames > 0:
+            self.combo_display_frames -= 1
         
         # 处理回答后的延迟逻辑
         if self.is_waiting_for_delay:
@@ -238,7 +287,26 @@ class TrainingScene(BaseScene):
         screen.blit(self.surface, self.rect)
 
         progress = f"{self.current}/{self.total}"
-        screen.blit(self.small_font.render(progress, True, (200, 200, 200)), (420, 620))
+        progress_surface = self.small_font.render(progress, True, (200, 200, 200))
+        screen.blit(
+            progress_surface,
+            (self.progress_pos[0] - progress_surface.get_width() // 2, self.progress_pos[1]),
+        )
+
+        # 轻量训练状态信息：等级/尺寸/正确率
+        accuracy = round((self.correct / self.current) * 100, 1) if self.current > 0 else 0.0
+        level = self.manager.settings.get("start_level", 1)
+        status_text = f"L{level} | {self.base_size}px | {accuracy:.1f}%"
+        status_surface = self.back_button_font.render(status_text, True, (160, 180, 210))
+        screen.blit(
+            status_surface,
+            (self.status_pos[0] - status_surface.get_width() // 2, self.status_pos[1]),
+        )
+
+        if self.combo >= 2 and self.combo_display_frames > 0:
+            combo_color = (245, 210, 110) if self.combo < 5 else (255, 170, 95)
+            combo_text = self.small_font.render(self.manager.t("training.combo", combo=self.combo), True, combo_color)
+            screen.blit(combo_text, (self.center_pos[0] - combo_text.get_width() // 2, 36))
         
         # 绘制粒子效果（已经在update中处理了）
         for particle in self.particles:
