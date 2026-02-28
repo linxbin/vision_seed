@@ -11,12 +11,15 @@ def run_startup_health_check() -> Dict[str, Any]:
     checks = {
         "correct_sound": os.path.exists(os.path.join(assets_dir, "correct.wav")),
         "wrong_sound": os.path.exists(os.path.join(assets_dir, "wrong.wav")),
+        "completed_sound": os.path.exists(os.path.join(assets_dir, "completed.wav")),
         "chinese_font": os.path.exists(os.path.join(assets_dir, "SimHei.ttf")),
     }
 
     warnings: List[str] = []
     if not checks["correct_sound"] or not checks["wrong_sound"]:
         warnings.append("Sound assets missing. Audio feedback will be degraded.")
+    if not checks["completed_sound"]:
+        warnings.append("Completed sound missing (assets/completed.wav). Finish feedback audio will be skipped.")
     if not checks["chinese_font"]:
         warnings.append("Chinese font missing (assets/SimHei.ttf). Chinese text may fallback to system font.")
 

@@ -16,13 +16,16 @@ class SoundManager:
             if pygame.mixer.get_init():
                 self.correct_sound = self._load_sound("correct.wav")
                 self.wrong_sound = self._load_sound("wrong.wav")
+                self.completed_sound = self._load_sound("completed.wav")
             else:
                 self.correct_sound = None
                 self.wrong_sound = None
+                self.completed_sound = None
         except Exception as e:
             print(f"Sound initialization failed: {e}")
             self.correct_sound = None
             self.wrong_sound = None
+            self.completed_sound = None
     
     def _load_sound(self, filename):
         """
@@ -63,6 +66,17 @@ class SoundManager:
             except Exception as e:
                 print(f"Failed to play wrong sound: {e}")
                 pass  # 忽略播放错误
+
+    def play_completed(self):
+        """播放训练完成音效，返回音频时长（秒）。"""
+        if self.is_enabled and self.completed_sound:
+            try:
+                self.completed_sound.play()
+                return max(0.0, float(self.completed_sound.get_length()))
+            except Exception as e:
+                print(f"Failed to play completed sound: {e}")
+                return 0.0
+        return 0.0
     
     def set_enabled(self, enabled):
         """设置音效开关"""

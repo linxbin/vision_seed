@@ -56,6 +56,10 @@ class Particle:
 
 
 class TrainingScene(BaseScene):
+    FINISH_TRANSITION_SECONDS = 1
+    FINISH_TRANSITION_AUDIO_PADDING_SECONDS = 0.05
+    FINISH_TRANSITION_MIN_SECONDS = 0.35
+    FINISH_TRANSITION_MAX_SECONDS = 1.2
 
     KEY_DIRECTION = {
         pygame.K_UP: "UP",
@@ -86,6 +90,10 @@ class TrainingScene(BaseScene):
         self.is_waiting_for_delay = False
         self.answer_delay_end_time = 0
         self.combo_display_frames = 0
+        self.finish_transition_active = False
+        self.finish_transition_ends_at = 0.0
+        self.finish_transition_committed = False
+        self.completed_sound_played = False
 
         # 粒子效果列表
         self.particles = []
@@ -135,10 +143,14 @@ class TrainingScene(BaseScene):
         self.last_change_time = time.time()  # 上次变换时间
         self.answer_delay_end_time = 0  # 用户回答后的延迟结束时间
         self.is_waiting_for_delay = False  # 是否在等待回答后的延迟
+        self.finish_transition_active = False
+        self.finish_transition_ends_at = 0.0
+        self.finish_transition_committed = False
+        self.completed_sound_played = False
 
         # 0题模式：直接结束并生成报告，避免进入无意义训练循环
         if self.total <= 0:
-            self._finish_training()
+            self._finalize_finish_transition()
             return
 
         self.new_question()
@@ -207,8 +219,13 @@ class TrainingScene(BaseScene):
         except Exception as e:
             print(f"Error saving training record: {e}")
 
-    def _finish_training(self):
+    def _finalize_finish_transition(self):
         """统一训练结束逻辑，确保边界值安全。"""
+        if self.finish_transition_committed:
+            return
+        self.finish_transition_committed = True
+        self.finish_transition_active = False
+
         duration = round(self._active_elapsed_seconds(), 2)
         wrong = max(0, self.total - self.correct)
 
@@ -228,6 +245,22 @@ class TrainingScene(BaseScene):
         else:
             self.manager.set_scene("report")
 
+    def _begin_finish_transition(self):
+        if self.finish_transition_active or self.finish_transition_committed:
+            return
+        self.finish_transition_active = True
+        transition_seconds = self.FINISH_TRANSITION_SECONDS
+        if not self.completed_sound_played and self.manager.sound_manager:
+            played_seconds = float(self.manager.sound_manager.play_completed() or 0.0)
+            if played_seconds > 0:
+                transition_seconds = played_seconds + self.FINISH_TRANSITION_AUDIO_PADDING_SECONDS
+            self.completed_sound_played = True
+        transition_seconds = max(
+            self.FINISH_TRANSITION_MIN_SECONDS,
+            min(self.FINISH_TRANSITION_MAX_SECONDS, transition_seconds),
+        )
+        self.finish_transition_ends_at = time.time() + transition_seconds
+
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
         focus_lost_event = getattr(pygame, "WINDOWFOCUSLOST", None)
@@ -246,6 +279,11 @@ class TrainingScene(BaseScene):
 
                 if event.key == pygame.K_ESCAPE:
                     self.manager.set_scene("menu")
+                    continue
+
+                if self.finish_transition_active:
+                    if event.key == pygame.K_RETURN:
+                        self._finalize_finish_transition()
                     continue
 
                 if self.is_paused:
@@ -285,7 +323,7 @@ class TrainingScene(BaseScene):
                         self.combo = 0
 
                     if self.current >= self.total:
-                        self._finish_training()
+                        self._begin_finish_transition()
                     else:
                         # 设置回答后的延迟标志和结束时间（1秒延迟）
                         self.is_waiting_for_delay = True
@@ -293,6 +331,8 @@ class TrainingScene(BaseScene):
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # 左键点击
+                    if self.finish_transition_active:
+                        continue
                     if self.back_button_rect.collidepoint(mouse_pos):
                         self.manager.set_scene("menu")
                     elif self.pause_button_rect.collidepoint(mouse_pos):
@@ -313,6 +353,11 @@ class TrainingScene(BaseScene):
 
         if self.combo_display_frames > 0:
             self.combo_display_frames -= 1
+
+        if self.finish_transition_active:
+            if current_time >= self.finish_transition_ends_at:
+                self._finalize_finish_transition()
+            return
         
         # 处理回答后的延迟逻辑
         if self.is_waiting_for_delay:
@@ -403,3 +448,12 @@ class TrainingScene(BaseScene):
             paused_x = paused_rect.centerx - paused_text.get_width() // 2
             paused_y = paused_rect.centery - paused_text.get_height() // 2
             screen.blit(paused_text, (paused_x, paused_y))
+
+        if self.finish_transition_active:
+            done_rect = pygame.Rect(self.width // 2 - 230, self.height // 2 - 34, 460, 78)
+            pygame.draw.rect(screen, (30, 48, 78), done_rect, border_radius=10)
+            pygame.draw.rect(screen, (132, 174, 232), done_rect, 2, border_radius=10)
+            done_text = self.back_button_font.render(self.manager.t("training.completed"), True, (236, 244, 255))
+            hint_text = self.back_button_font.render(self.manager.t("training.skip_hint"), True, (180, 206, 238))
+            screen.blit(done_text, (done_rect.centerx - done_text.get_width() // 2, done_rect.y + 13))
+            screen.blit(hint_text, (done_rect.centerx - hint_text.get_width() // 2, done_rect.y + 42))
