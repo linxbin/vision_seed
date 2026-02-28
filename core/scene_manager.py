@@ -18,6 +18,7 @@ class SceneManager:
             "sound_enabled": True,
             "language": "en-US",
             "fullscreen": False,
+            "onboarding_completed": False,
         }
 
         # 用户偏好管理器
@@ -63,8 +64,22 @@ class SceneManager:
             "sound_enabled": self.settings.get("sound_enabled", True),
             "language": self.settings.get("language", "en-US"),
             "fullscreen": self.settings.get("fullscreen", False),
+            "onboarding_completed": self.settings.get("onboarding_completed", False),
         }
         return self.preferences_manager.save_preferences(payload)
+
+    def apply_training_template(self, template_id: str):
+        templates = {
+            "child": {"start_level": 6, "total_questions": 20},
+            "adult": {"start_level": 4, "total_questions": 30},
+            "recovery": {"start_level": 7, "total_questions": 12},
+        }
+        selected = templates.get(template_id)
+        if not selected:
+            return
+        self.settings["start_level"] = selected["start_level"]
+        self.settings["total_questions"] = selected["total_questions"]
+        self.save_user_preferences()
 
     def register(self, name, scene):
         self.scenes[name] = scene

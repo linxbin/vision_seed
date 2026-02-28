@@ -109,25 +109,25 @@ class LicenseManager:
         token = (token or "").strip()
         parts = token.split(".")
         if len(parts) != 3:
-            return False, "Invalid token format.", None
+            return False, "ERR_FORMAT", None
 
         prefix, payload_b64, signature = parts
         if prefix != self.TOKEN_PREFIX:
-            return False, "Invalid token prefix.", None
+            return False, "ERR_PREFIX", None
 
         try:
             payload_raw = self._b64url_decode(payload_b64)
             payload = json.loads(payload_raw.decode("utf-8"))
         except (ValueError, json.JSONDecodeError):
-            return False, "Invalid token payload.", None
+            return False, "ERR_PAYLOAD", None
 
         if not isinstance(payload, dict):
-            return False, "Invalid token payload type.", None
+            return False, "ERR_PAYLOAD", None
 
         if not self._verify_signature(payload, signature):
-            return False, "Token signature verification failed.", None
+            return False, "ERR_SIGNATURE", None
 
-        return True, "ok", payload
+        return True, "OK", payload
 
     def validate_token_for_current_device(self, token: str) -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         ok, message, payload = self._decode_token(token)
@@ -135,21 +135,21 @@ class LicenseManager:
             return False, message, None
 
         if payload.get("status") != "active":
-            return False, "License is not active.", None
+            return False, "ERR_STATUS", None
 
         if payload.get("schema_version") != self.LOCAL_SCHEMA_VERSION:
-            return False, "Unsupported license schema version.", None
+            return False, "ERR_SCHEMA", None
 
         token_device_hash = payload.get("device_hash")
         current_device_hash = self.get_device_hash()
         if token_device_hash != current_device_hash:
-            return False, "License device mismatch.", None
+            return False, "ERR_DEVICE", None
 
         expires_at = self._safe_parse_utc(payload.get("expires_at"))
         if expires_at and expires_at < datetime.now(timezone.utc):
-            return False, "License has expired.", None
+            return False, "ERR_EXPIRED", None
 
-        return True, "ok", payload
+        return True, "OK", payload
 
     def activate_with_token(self, token: str) -> Tuple[bool, str]:
         ok, message, payload = self.validate_token_for_current_device(token)
@@ -167,9 +167,10 @@ class LicenseManager:
         try:
             with open(self.license_file, "w", encoding="utf-8") as f:
                 json.dump(local_data, f, ensure_ascii=False, indent=2)
-            return True, "License activated."
+            return True, "OK"
         except OSError as e:
-            return False, f"Failed to write license file: {e}"
+            print(f"Failed to write license file: {e}")
+            return False, "ERR_WRITE"
 
     def clear_local_license(self) -> bool:
         try:
@@ -181,13 +182,13 @@ class LicenseManager:
 
     def check_local_license(self) -> Tuple[bool, str]:
         if not os.path.exists(self.license_file):
-            return False, "License file not found."
+            return False, "ERR_NOT_FOUND"
 
         try:
             with open(self.license_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except (OSError, json.JSONDecodeError):
-            return False, "License file is unreadable."
+            return False, "ERR_UNREADABLE"
 
         token = data.get("token", "")
         ok, message, _payload = self.validate_token_for_current_device(token)

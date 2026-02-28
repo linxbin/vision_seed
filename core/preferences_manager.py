@@ -43,6 +43,7 @@ class PreferencesManager:
             "sound_enabled": True,
             "language": "en-US",
             "fullscreen": False,
+            "onboarding_completed": False,
         }
 
     def _ensure_preferences_file(self):
@@ -103,6 +104,7 @@ class PreferencesManager:
         merged["language"] = language
 
         merged["fullscreen"] = bool(merged.get("fullscreen", defaults["fullscreen"]))
+        merged["onboarding_completed"] = bool(merged.get("onboarding_completed", defaults["onboarding_completed"]))
         return merged
 
     def load_preferences(self) -> Dict[str, Any]:

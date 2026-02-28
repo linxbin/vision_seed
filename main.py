@@ -8,6 +8,7 @@ from scenes.training_scene import TrainingScene
 from scenes.report_scene import ReportScene
 from scenes.history_scene import HistoryScene
 from scenes.license_scene import LicenseScene
+from scenes.onboarding_scene import OnboardingScene
 
 def main():
     pygame.init()
@@ -45,13 +46,19 @@ def main():
 
     manager.register("menu", MenuScene(manager))
     manager.register("license", LicenseScene(manager))
+    manager.register("onboarding", OnboardingScene(manager))
     manager.register("config", ConfigScene(manager))
     manager.register("training", TrainingScene(manager))
     manager.register("report", ReportScene(manager))
     manager.register("history", HistoryScene(manager))
 
     has_license, _message = manager.license_manager.check_local_license()
-    manager.set_scene("menu" if has_license else "license")
+    if not has_license:
+        manager.set_scene("license")
+    elif not manager.settings.get("onboarding_completed", False):
+        manager.set_scene("onboarding")
+    else:
+        manager.set_scene("menu")
 
     running = True
     while running:

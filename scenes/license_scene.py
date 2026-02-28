@@ -18,6 +18,7 @@ class LicenseScene(BaseScene):
         self.message_color = (220, 180, 120)
         self._backspace_held = False
         self._backspace_next_repeat_at = 0.0
+        self.copy_flash_frames = 0
 
         try:
             if not pygame.scrap.get_init():
@@ -48,6 +49,7 @@ class LicenseScene(BaseScene):
         self.hash_value_rect = pygame.Rect(self.panel_rect.x + 30, self.panel_rect.y + 146, panel_w - 176, 34)
         self.copy_hash_button_rect = pygame.Rect(self.hash_value_rect.right + 10, self.hash_value_rect.y, 106, 34)
         self.input_rect = pygame.Rect(self.panel_rect.x + 30, self.panel_rect.y + 196, panel_w - 60, 46)
+        self.paste_button_rect = pygame.Rect(self.input_rect.right - 96, self.input_rect.y + 6, 86, self.input_rect.height - 12)
         self.activate_button_rect = pygame.Rect(self.panel_rect.x + 30, self.panel_rect.y + 250, 180, 44)
         self.exit_button_rect = pygame.Rect(self.panel_rect.right - 210, self.panel_rect.y + 250, 180, 44)
 
@@ -59,17 +61,20 @@ class LicenseScene(BaseScene):
     def _activate(self):
         token = self.input_text.strip()
         if not token:
-            self.message = self.manager.t("license.error_empty")
-            self.message_color = (240, 150, 150)
-            return
+            self._paste_token(silent=True)
+            token = self.input_text.strip()
+            if not token:
+                self.message = self.manager.t("license.error_empty")
+                self.message_color = (240, 150, 150)
+                return
 
-        ok, message = self.manager.license_manager.activate_with_token(token)
+        ok, code = self.manager.license_manager.activate_with_token(token)
         if ok:
             self.message = self.manager.t("license.success")
             self.message_color = (145, 225, 165)
             self.manager.set_scene("menu")
         else:
-            self.message = self.manager.t("license.error_invalid") + f" ({message})"
+            self.message = self.manager.t("license.error_invalid") + f" [{code}] " + self.manager.t(f"license.err.{code}")
             self.message_color = (240, 150, 150)
 
     def _copy_device_hash(self):
@@ -80,31 +85,36 @@ class LicenseScene(BaseScene):
             pygame.scrap.put(pygame.SCRAP_TEXT, device_hash.encode("utf-8") + b"\x00")
             self.message = self.manager.t("license.copy_success")
             self.message_color = (145, 225, 165)
+            self.copy_flash_frames = 20
         except Exception:
             self.message = self.manager.t("license.copy_failed")
             self.message_color = (240, 150, 150)
 
-    def _paste_token(self):
+    def _paste_token(self, silent=False):
         try:
             if not pygame.scrap.get_init():
                 pygame.scrap.init()
             raw = pygame.scrap.get(pygame.SCRAP_TEXT)
             if not raw:
-                self.message = self.manager.t("license.paste_failed")
-                self.message_color = (240, 150, 150)
+                if not silent:
+                    self.message = self.manager.t("license.paste_failed")
+                    self.message_color = (240, 150, 150)
                 return
             text = raw.decode("utf-8", errors="ignore").replace("\x00", "").strip()
             if not text:
-                self.message = self.manager.t("license.paste_failed")
-                self.message_color = (240, 150, 150)
+                if not silent:
+                    self.message = self.manager.t("license.paste_failed")
+                    self.message_color = (240, 150, 150)
                 return
             self.input_text = text
             self.input_active = True
-            self.message = self.manager.t("license.paste_success")
-            self.message_color = (145, 225, 165)
+            if not silent:
+                self.message = self.manager.t("license.paste_success")
+                self.message_color = (145, 225, 165)
         except Exception:
-            self.message = self.manager.t("license.paste_failed")
-            self.message_color = (240, 150, 150)
+            if not silent:
+                self.message = self.manager.t("license.paste_failed")
+                self.message_color = (240, 150, 150)
 
     def _delete_one_char(self):
         if self.input_text:
@@ -155,6 +165,8 @@ class LicenseScene(BaseScene):
                 self.input_active = self.input_rect.collidepoint(mouse_pos)
                 if self.copy_hash_button_rect.collidepoint(mouse_pos):
                     self._copy_device_hash()
+                elif self.paste_button_rect.collidepoint(mouse_pos):
+                    self._paste_token()
                 elif self.activate_button_rect.collidepoint(mouse_pos):
                     self._activate()
                 elif self.exit_button_rect.collidepoint(mouse_pos):
@@ -165,12 +177,15 @@ class LicenseScene(BaseScene):
                     self.input_active = True
                     self._paste_token()
 
-    def _draw_button(self, screen, rect, text, mouse_pos, base_color):
+    def _draw_button(self, screen, rect, text, mouse_pos, base_color, flash=False):
         hovered = rect.collidepoint(mouse_pos)
         fill = tuple(min(c + 20, 255) for c in base_color) if hovered else base_color
+        if flash:
+            fill = (96, 166, 228)
         pygame.draw.rect(screen, fill, rect, border_radius=8)
         pygame.draw.rect(screen, (195, 212, 238), rect, 2, border_radius=8)
-        label = self.text_font.render(text, True, (255, 255, 255))
+        font = self.small_font if rect.height <= 36 else self.text_font
+        label = font.render(text, True, (255, 255, 255))
         screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
 
     def draw(self, screen):
@@ -212,6 +227,7 @@ class LicenseScene(BaseScene):
             self.manager.t("license.copy_hash"),
             mouse_pos,
             (73, 118, 175),
+            flash=self.copy_flash_frames > 0,
         )
 
         input_bg = (211, 227, 246) if self.input_active else (184, 202, 230)
@@ -227,6 +243,13 @@ class LicenseScene(BaseScene):
             render_text = render_text[1:]
             text_surface = self.small_font.render(render_text, True, text_color)
         screen.blit(text_surface, (self.input_rect.x + 10, self.input_rect.centery - text_surface.get_height() // 2))
+        self._draw_button(
+            screen,
+            self.paste_button_rect,
+            self.manager.t("license.paste"),
+            mouse_pos,
+            (80, 114, 168),
+        )
 
         self._draw_button(
             screen,
@@ -245,6 +268,8 @@ class LicenseScene(BaseScene):
 
         hint = self.small_font.render(self.manager.t("license.hint"), True, (176, 194, 222))
         screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.panel_rect.y + 312))
+        paste_tip = self.small_font.render(self.manager.t("license.paste_tip"), True, (158, 186, 220))
+        screen.blit(paste_tip, (self.panel_rect.x + 30, self.input_rect.y - 24))
 
         if self.message:
             msg = self.small_font.render(self.message, True, self.message_color)
@@ -256,3 +281,5 @@ class LicenseScene(BaseScene):
             if now >= self._backspace_next_repeat_at:
                 self._delete_one_char()
                 self._backspace_next_repeat_at = now + 0.045
+        if self.copy_flash_frames > 0:
+            self.copy_flash_frames -= 1

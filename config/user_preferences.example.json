@@ -3,5 +3,6 @@
   "total_questions": 30,
   "sound_enabled": true,
   "language": "zh-CN",
-  "fullscreen": false
+  "fullscreen": false,
+  "onboarding_completed": false
 }

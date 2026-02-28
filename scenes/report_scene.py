@@ -26,13 +26,17 @@ class ReportScene(BaseScene):
     def _create_ui(self):
         offset_x = self.layout_offset_x
         offset_y = self.layout_offset_y
+        card_w = 280
+        card_h = 82
+        left_x = offset_x + 130
+        right_x = offset_x + 490
         self.cards = [
-            {"label_key": "report.total_questions", "field": "total", "x": offset_x + 120, "y": offset_y + 220, "w": 300, "h": 90},
-            {"label_key": "report.correct", "field": "correct", "x": offset_x + 480, "y": offset_y + 220, "w": 300, "h": 90},
-            {"label_key": "report.wrong", "field": "wrong", "x": offset_x + 120, "y": offset_y + 330, "w": 300, "h": 90},
-            {"label_key": "report.accuracy", "field": "accuracy", "x": offset_x + 480, "y": offset_y + 330, "w": 300, "h": 90},
-            {"label_key": "report.time_used", "field": "duration", "x": offset_x + 120, "y": offset_y + 440, "w": 300, "h": 90},
-            {"label_key": "report.max_combo", "field": "max_combo", "x": offset_x + 480, "y": offset_y + 440, "w": 300, "h": 90},
+            {"label_key": "report.total_questions", "field": "total", "x": left_x, "y": offset_y + 228, "w": card_w, "h": card_h},
+            {"label_key": "report.correct", "field": "correct", "x": right_x, "y": offset_y + 228, "w": card_w, "h": card_h},
+            {"label_key": "report.wrong", "field": "wrong", "x": left_x, "y": offset_y + 332, "w": card_w, "h": card_h},
+            {"label_key": "report.accuracy", "field": "accuracy", "x": right_x, "y": offset_y + 332, "w": card_w, "h": card_h},
+            {"label_key": "report.time_used", "field": "duration", "x": left_x, "y": offset_y + 436, "w": card_w, "h": card_h},
+            {"label_key": "report.max_combo", "field": "max_combo", "x": right_x, "y": offset_y + 436, "w": card_w, "h": card_h},
         ]
         self.retry_button_rect = pygame.Rect(offset_x + 250, offset_y + 610, 170, 44)
         self.menu_button_rect = pygame.Rect(offset_x + 480, offset_y + 610, 170, 44)
@@ -80,6 +84,15 @@ class ReportScene(BaseScene):
         text_y = rect.centery - text_surface.get_height() // 2
         screen.blit(text_surface, (text_x, text_y))
 
+    def _fit_text(self, text, font, max_width):
+        if font.size(text)[0] <= max_width:
+            return text
+        ellipsis = "..."
+        trimmed = text
+        while trimmed and font.size(trimmed + ellipsis)[0] > max_width:
+            trimmed = trimmed[:-1]
+        return (trimmed + ellipsis) if trimmed else ellipsis
+
     def _get_suggestion(self, accuracy):
         level = self.manager.settings.get("start_level", 3)
         if accuracy >= 85:
@@ -87,6 +100,33 @@ class ReportScene(BaseScene):
         if accuracy < 60:
             return self.manager.t("report.suggestion_lower", level=min(8, level + 1))
         return self.manager.t("report.suggestion_keep", level=level)
+
+    def _get_next_plan(self, accuracy, duration, total):
+        current_level = self.manager.settings.get("start_level", 3)
+        current_questions = self.manager.settings.get("total_questions", 30)
+        avg_sec = (duration / total) if total > 0 else 2.0
+
+        if accuracy >= 88 and avg_sec <= 2.0:
+            next_level = max(1, current_level - 1)
+        elif accuracy < 65:
+            next_level = min(8, current_level + 1)
+        else:
+            next_level = current_level
+
+        if accuracy >= 85 and avg_sec <= 2.2:
+            next_questions = min(1000, current_questions + 10)
+        elif accuracy < 60:
+            next_questions = max(10, current_questions - 10)
+        else:
+            next_questions = current_questions
+
+        target_minutes = max(3, min(20, round((next_questions * 2.0) / 60)))
+        return self.manager.t(
+            "report.next_plan",
+            level=next_level,
+            questions=next_questions,
+            minutes=target_minutes,
+        )
 
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
@@ -122,6 +162,18 @@ class ReportScene(BaseScene):
         badge_color = self._accuracy_color(accuracy)
         badge = self.badge_font.render(badge_text, True, badge_color)
         screen.blit(badge, (self.width // 2 - badge.get_width() // 2, self.layout_offset_y + 145))
+
+        # 建议区固定在卡片上方安全区，使用较小字号避免与卡片重叠
+        suggestion_raw = self._get_suggestion(accuracy)
+        next_plan_raw = self._get_next_plan(accuracy, duration, total)
+        suggestion_text = self._fit_text(suggestion_raw, self.trend_font, 760)
+        next_plan_text = self._fit_text(next_plan_raw, self.hint_font, 760)
+        suggestion = self.trend_font.render(suggestion_text, True, (130, 220, 175))
+        next_plan = self.hint_font.render(next_plan_text, True, (188, 218, 255))
+        suggestion_y = self.layout_offset_y + 178
+        next_plan_y = self.layout_offset_y + 202
+        screen.blit(suggestion, (self.width // 2 - suggestion.get_width() // 2, suggestion_y))
+        screen.blit(next_plan, (self.width // 2 - next_plan.get_width() // 2, next_plan_y))
 
         # 结果卡片
         for card in self.cards:
@@ -166,16 +218,13 @@ class ReportScene(BaseScene):
 
             acc_text = self.manager.t("report.trend_accuracy", delta=f"{acc_delta:+.1f}", arrow=acc_arrow)
             dur_text = self.manager.t("report.trend_duration", delta=f"{dur_delta:+.2f}", arrow=dur_arrow)
-            acc_surface = self.trend_font.render(acc_text, True, (190, 210, 245))
-            dur_surface = self.trend_font.render(dur_text, True, (190, 210, 245))
+            acc_surface = self.trend_font.render(self._fit_text(acc_text, self.trend_font, 820), True, (190, 210, 245))
+            dur_surface = self.trend_font.render(self._fit_text(dur_text, self.trend_font, 820), True, (190, 210, 245))
             screen.blit(acc_surface, (self.width // 2 - acc_surface.get_width() // 2, self.layout_offset_y + 560))
             screen.blit(dur_surface, (self.width // 2 - dur_surface.get_width() // 2, self.layout_offset_y + 582))
         else:
             no_hist = self.trend_font.render(self.manager.t("report.trend_no_history"), True, (180, 190, 210))
             screen.blit(no_hist, (self.width // 2 - no_hist.get_width() // 2, self.layout_offset_y + 570))
-
-        suggestion = self.suggestion_font.render(self._get_suggestion(accuracy), True, (130, 220, 175))
-        screen.blit(suggestion, (self.width // 2 - suggestion.get_width() // 2, self.layout_offset_y + 535))
 
         # 操作按钮
         self._draw_button(

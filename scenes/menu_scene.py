@@ -24,10 +24,11 @@ class MenuScene(BaseScene):
         self.subtitle_font = self.create_font(24)
         self.option_font = self.create_font(30)
         self.hint_font = self.create_font(20)
+        self.template_font = self.create_font(19)
 
     def _reflow_layout(self):
         self.top_offset = max(0, (self.height - SCREEN_HEIGHT) // 2)
-        start_y = 260 + self.top_offset
+        start_y = 220 + self.top_offset
         start_x = self.width // 2 - self.menu_width // 2
 
         self.menu_options = [
@@ -36,6 +37,35 @@ class MenuScene(BaseScene):
             {"rect": pygame.Rect(start_x, start_y + 2 * (self.menu_height + self.menu_gap), self.menu_width, self.menu_height), "key": "menu.view_history", "scene": "history"},
             {"rect": pygame.Rect(start_x, start_y + 3 * (self.menu_height + self.menu_gap), self.menu_width, self.menu_height), "key": "menu.exit", "scene": "exit"}
         ]
+        template_y = start_y + 4 * (self.menu_height + self.menu_gap) + 36
+        template_w = 132
+        template_h = 70
+        template_gap = 12
+        template_start_x = self.width // 2 - (template_w * 3 + template_gap * 2) // 2
+        self.templates = [
+            {
+                "rect": pygame.Rect(template_start_x, template_y, template_w, template_h),
+                "key": "menu.template_child",
+                "template_id": "child",
+                "shortcut": pygame.K_5,
+            },
+            {
+                "rect": pygame.Rect(template_start_x + template_w + template_gap, template_y, template_w, template_h),
+                "key": "menu.template_adult",
+                "template_id": "adult",
+                "shortcut": pygame.K_6,
+            },
+            {
+                "rect": pygame.Rect(template_start_x + (template_w + template_gap) * 2, template_y, template_w, template_h),
+                "key": "menu.template_recovery",
+                "template_id": "recovery",
+                "shortcut": pygame.K_7,
+            },
+        ]
+
+    def _start_with_template(self, template_id):
+        self.manager.apply_training_template(template_id)
+        self.manager.set_scene("training")
 
     def on_resize(self, width, height):
         self.width = width
@@ -75,6 +105,12 @@ class MenuScene(BaseScene):
                 elif event.key == pygame.K_4:
                     pygame.quit()
                     sys.exit()
+                elif event.key == pygame.K_5:
+                    self._start_with_template("child")
+                elif event.key == pygame.K_6:
+                    self._start_with_template("adult")
+                elif event.key == pygame.K_7:
+                    self._start_with_template("recovery")
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # 左键点击
@@ -85,6 +121,9 @@ class MenuScene(BaseScene):
                                 sys.exit()
                             else:
                                 self.manager.set_scene(option["scene"])
+                    for template in self.templates:
+                        if template["rect"].collidepoint(mouse_pos):
+                            self._start_with_template(template["template_id"])
 
     def draw(self, screen):
         self._refresh_fonts()
@@ -134,3 +173,19 @@ class MenuScene(BaseScene):
         # 底部快捷键提示
         hint = self.hint_font.render(self.manager.t("menu.hint"), True, (150, 170, 205))
         screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.height - 40))
+
+        template_title = self.hint_font.render(self.manager.t("menu.template_title"), True, (176, 200, 235))
+        template_title_y = self.templates[0]["rect"].y - 28
+        screen.blit(template_title, (self.width // 2 - template_title.get_width() // 2, template_title_y))
+
+        for idx, template in enumerate(self.templates, start=5):
+            rect = template["rect"]
+            is_hovered = rect.collidepoint(mouse_pos)
+            fill = (64, 103, 165) if is_hovered else (46, 77, 126)
+            border = (162, 198, 246) if is_hovered else (114, 152, 210)
+            pygame.draw.rect(screen, fill, rect, border_radius=10)
+            pygame.draw.rect(screen, border, rect, 2, border_radius=10)
+            label = self.template_font.render(f"{idx}. {self.manager.t(template['key'])}", True, (240, 246, 255))
+            label_x = rect.centerx - label.get_width() // 2
+            label_y = rect.centery - label.get_height() // 2
+            screen.blit(label, (label_x, label_y))

@@ -37,7 +37,7 @@ class LicenseManagerTests(unittest.TestCase):
             )
             ok, msg = manager.activate_with_token(token)
             self.assertFalse(ok)
-            self.assertIn("device mismatch", msg.lower())
+            self.assertEqual(msg, "ERR_DEVICE")
 
     def test_reject_tampered_token(self):
         with tempfile.TemporaryDirectory() as tmp:
