@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import tempfile
 from typing import List, Dict, Any, Tuple
 from config import E_SIZE_LEVELS
 from core.app_paths import get_install_root, get_user_data_dir
@@ -155,11 +156,26 @@ class DataManager:
     
     def _write_json(self, data: Dict[str, Any]):
         """安全写入JSON文件"""
+        temp_path = ""
         try:
-            with open(self.records_file, 'w', encoding='utf-8') as f:
+            os.makedirs(os.path.dirname(self.records_file), exist_ok=True)
+            fd, temp_path = tempfile.mkstemp(
+                dir=os.path.dirname(self.records_file),
+                prefix=".records.",
+                suffix=".tmp",
+            )
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp_path, self.records_file)
         except IOError as e:
             print(f"Error writing records file: {e}")
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
     
     def save_training_session(self, session_data: Dict[str, Any]) -> bool:
         """

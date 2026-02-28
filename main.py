@@ -53,12 +53,11 @@ def main():
     manager.register("history", HistoryScene(manager))
 
     has_license, _message = manager.license_manager.check_local_license()
-    if not has_license:
-        manager.set_scene("license")
-    elif not manager.settings.get("onboarding_completed", False):
-        manager.set_scene("onboarding")
-    else:
-        manager.set_scene("menu")
+    initial_scene = manager.decide_initial_scene(
+        has_license=has_license,
+        onboarding_completed=bool(manager.settings.get("onboarding_completed", False)),
+    )
+    manager.set_scene(initial_scene)
 
     running = True
     while running:

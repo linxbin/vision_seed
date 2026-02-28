@@ -169,7 +169,7 @@ class ReportScene(BaseScene):
                     self.manager.set_scene("menu")
 
     def draw(self, screen):
-        self._refresh_fonts()
+        self.refresh_fonts_if_needed()
         screen.fill((24, 32, 52))
 
         correct = self.manager.current_result.get("correct", 0)

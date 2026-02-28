@@ -135,5 +135,13 @@ class SceneManager:
         if callable(on_enter):
             on_enter()
 
+    @staticmethod
+    def decide_initial_scene(has_license: bool, onboarding_completed: bool) -> str:
+        if not has_license:
+            return "license"
+        if not onboarding_completed:
+            return "onboarding"
+        return "menu"
+
     def get_scene(self):
         return self.scene

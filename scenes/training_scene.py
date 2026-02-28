@@ -39,32 +39,16 @@ class Particle:
         self.y -= 1
         
     def draw(self, screen):
-        """绘制粒子 - 使用颜色亮度调整替代透明度"""
+        """绘制粒子 - 使用透明度淡出避免每帧重渲染文本。"""
         if self.lifetime <= 0:
             return
-            
-        # 计算亮度因子（通过lifetime控制）
-        brightness_factor = self.lifetime / 60
-        
-        # 根据正确/错误获取基础颜色
-        if self.is_correct:
-            base_color = (0, 255, 0)  # 绿色
-        else:
-            base_color = (255, 0, 0)  # 红色
-            
-        # 调整颜色亮度（模拟淡出效果）
-        adjusted_color = (
-            int(base_color[0] * brightness_factor),
-            int(base_color[1] * brightness_factor),
-            int(base_color[2] * brightness_factor)
+
+        alpha = max(0, min(255, int((self.lifetime / 60) * 255)))
+        self.text_surface.set_alpha(alpha)
+        screen.blit(
+            self.text_surface,
+            (self.x - self.text_surface.get_width() // 2, self.y - self.text_surface.get_height() // 2),
         )
-        
-        # 重新渲染文本表面 - 使用ASCII字符确保兼容性
-        text = "V" if self.is_correct else "X"
-        text_surface = self.font.render(text, True, adjusted_color)
-        
-        screen.blit(text_surface, (self.x - text_surface.get_width() // 2, 
-                                 self.y - text_surface.get_height() // 2))
         
     def is_alive(self):
         """检查粒子是否还存活"""
@@ -345,7 +329,7 @@ class TrainingScene(BaseScene):
             pass
 
     def draw(self, screen):
-        self._refresh_fonts()
+        self.refresh_fonts_if_needed()
         screen.fill((0, 0, 0))
         screen.blit(self.surface, self.rect)
 

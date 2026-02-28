@@ -9,6 +9,7 @@ class BaseScene:
     def __init__(self, manager):
         self.manager = manager
         self._font_cache = {}
+        self._font_language_marker = self.manager.settings.get("language", "en-US")
 
     def _get_chinese_font_path(self):
         font_path = get_resource_path("assets", "SimHei.ttf")
@@ -39,6 +40,16 @@ class BaseScene:
         font.set_italic(italic)
         self._font_cache[cache_key] = font
         return font
+
+    def refresh_fonts_if_needed(self):
+        """仅在语言切换时刷新字体引用，避免每帧重复刷新。"""
+        current_language = self.manager.settings.get("language", "en-US")
+        if current_language == self._font_language_marker:
+            return
+        self._font_language_marker = current_language
+        refresher = getattr(self, "_refresh_fonts", None)
+        if callable(refresher):
+            refresher()
 
     def handle_events(self, events):
         pass

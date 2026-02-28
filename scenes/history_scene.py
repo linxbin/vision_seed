@@ -236,7 +236,7 @@ class HistoryScene(BaseScene):
         pass
 
     def draw(self, screen):
-        self._refresh_fonts()
+        self.refresh_fonts_if_needed()
         screen.fill((25, 25, 45))
         mouse_pos = pygame.mouse.get_pos()
 

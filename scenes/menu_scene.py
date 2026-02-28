@@ -126,7 +126,7 @@ class MenuScene(BaseScene):
                             self._start_with_template(template["template_id"])
 
     def draw(self, screen):
-        self._refresh_fonts()
+        self.refresh_fonts_if_needed()
         self._draw_background(screen)
         
         # 标题与副标题

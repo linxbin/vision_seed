@@ -114,6 +114,34 @@ class ConfigSceneStateTests(unittest.TestCase):
         self.assertEqual(manager.last_scene, "menu")
         self.assertEqual(manager.saved, 1)
 
+    def test_enter_with_invalid_input_does_not_commit_or_start(self):
+        manager = _ManagerStub()
+        scene = ConfigScene(manager)
+        scene.on_enter()
+
+        scene.input_text = "abc"
+        event = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN, mod=0, unicode="\r")
+        scene.handle_events([event])
+
+        self.assertEqual(manager.settings["total_questions"], 30)
+        self.assertIsNone(manager.last_scene)
+        self.assertEqual(manager.saved, 0)
+        self.assertTrue(scene.input_error)
+
+    def test_ctrl_s_with_invalid_input_does_not_commit_or_leave(self):
+        manager = _ManagerStub()
+        scene = ConfigScene(manager)
+        scene.on_enter()
+
+        scene.input_text = "abc"
+        event = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_s, mod=pygame.KMOD_CTRL, unicode="")
+        scene.handle_events([event])
+
+        self.assertEqual(manager.settings["total_questions"], 30)
+        self.assertIsNone(manager.last_scene)
+        self.assertEqual(manager.saved, 0)
+        self.assertTrue(scene.input_error)
+
     def test_escape_cancels_and_rolls_back(self):
         manager = _ManagerStub()
         scene = ConfigScene(manager)

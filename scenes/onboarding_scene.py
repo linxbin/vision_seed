@@ -61,7 +61,7 @@ class OnboardingScene(BaseScene):
         screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
 
     def draw(self, screen):
-        self._refresh_fonts()
+        self.refresh_fonts_if_needed()
         screen.fill((20, 30, 50))
         pygame.draw.rect(screen, (35, 49, 80), self.panel_rect, border_radius=14)
         pygame.draw.rect(screen, (98, 136, 196), self.panel_rect, 2, border_radius=14)

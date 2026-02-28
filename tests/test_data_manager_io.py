@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from core.data_manager import DataManager
 
@@ -30,6 +31,24 @@ class DataManagerIOTests(unittest.TestCase):
             self.assertIn("e_size_px", sessions[0])
             self.assertIn("session_id", sessions[0])
             self.assertEqual(sessions[0]["accuracy_rate"], 70.0)
+
+    def test_atomic_write_replace_failure_keeps_original_file(self):
+        manager = DataManager()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            manager.records_file = str(Path(tmp_dir) / "records.json")
+            manager._init_records_file()
+
+            baseline = manager._read_json()
+            next_data = {"schema_version": DataManager.CURRENT_SCHEMA_VERSION, "sessions": [{"timestamp": "x"}]}
+
+            with patch("core.data_manager.os.replace", side_effect=OSError("replace failed")):
+                manager._write_json(next_data)
+
+            after = manager._read_json()
+            self.assertEqual(after, baseline)
+
+            tmp_files = list(Path(tmp_dir).glob(".records.*.tmp"))
+            self.assertEqual(tmp_files, [])
 
 
 if __name__ == "__main__":

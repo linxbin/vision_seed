@@ -250,6 +250,12 @@ class ConfigScene(BaseScene):
         self.original_settings = dict(self.draft_settings)
         self._set_feedback("config.feedback_saved", "success")
 
+    def _commit_if_valid(self):
+        if not self._validate_and_update_questions(allow_empty=False):
+            return False
+        self._commit_settings()
+        return True
+
     def _apply_live_preferences(self):
         """即时应用语言/音效，保持配置界面所见即所得。"""
         self.manager.settings["language"] = self.draft_settings["language"]
@@ -350,14 +356,12 @@ class ConfigScene(BaseScene):
                 if event.key == pygame.K_ESCAPE:
                     self._cancel_changes()
                 elif event.key == pygame.K_RETURN:
-                    self._validate_and_update_questions(allow_empty=False)
-                    self._commit_settings()
-                    self.manager.set_scene("training")
+                    if self._commit_if_valid():
+                        self.manager.set_scene("training")
                 elif event.key == pygame.K_s:
                     if event.mod & pygame.KMOD_CTRL:
-                        self._validate_and_update_questions(allow_empty=False)
-                        self._commit_settings()
-                        self.manager.set_scene("menu")
+                        if self._commit_if_valid():
+                            self.manager.set_scene("menu")
                 elif event.key == pygame.K_m:
                     self.draft_settings["sound_enabled"] = not self.draft_settings["sound_enabled"]
                     self._apply_live_preferences()
@@ -390,13 +394,11 @@ class ConfigScene(BaseScene):
                     self._adjust_questions(1)
 
                 if self.start_button_rect.collidepoint(mouse_pos):
-                    self._validate_and_update_questions(allow_empty=False)
-                    self._commit_settings()
-                    self.manager.set_scene("training")
+                    if self._commit_if_valid():
+                        self.manager.set_scene("training")
                 elif self.save_back_button_rect.collidepoint(mouse_pos):
-                    self._validate_and_update_questions(allow_empty=False)
-                    self._commit_settings()
-                    self.manager.set_scene("menu")
+                    if self._commit_if_valid():
+                        self.manager.set_scene("menu")
                 elif self.cancel_button_rect.collidepoint(mouse_pos):
                     self._cancel_changes()
                 elif self.sound_toggle_rect.collidepoint(mouse_pos):
@@ -542,7 +544,7 @@ class ConfigScene(BaseScene):
         screen.blit(text_surf, (tip_rect.x + pad_x, tip_rect.y + pad_y))
 
     def draw(self, screen):
-        self._refresh_fonts()
+        self.refresh_fonts_if_needed()
         screen.fill(self.COLOR_BG)
         mouse_pos = pygame.mouse.get_pos()
 

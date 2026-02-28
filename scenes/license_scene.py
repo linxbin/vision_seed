@@ -189,7 +189,7 @@ class LicenseScene(BaseScene):
         screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
 
     def draw(self, screen):
-        self._refresh_fonts()
+        self.refresh_fonts_if_needed()
         screen.fill((21, 30, 48))
         mouse_pos = pygame.mouse.get_pos()
 
