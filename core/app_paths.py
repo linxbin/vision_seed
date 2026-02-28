@@ -40,3 +40,9 @@ def get_user_config_dir() -> str:
     config_dir = os.path.join(get_user_root_dir(), "config")
     os.makedirs(config_dir, exist_ok=True)
     return config_dir
+
+
+def get_user_license_dir() -> str:
+    license_dir = os.path.join(get_user_root_dir(), "license")
+    os.makedirs(license_dir, exist_ok=True)
+    return license_dir

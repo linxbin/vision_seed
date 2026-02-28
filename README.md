@@ -66,6 +66,18 @@ python main.py
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
+## 授权码（交易层）
+
+- 应用启动时会校验本地授权：未激活时进入授权页
+- 授权码为设备绑定格式（`VS1.*`），需要卖家根据用户设备哈希生成
+- 本地授权文件路径：`%LOCALAPPDATA%/VisionSeed/license/license.json`
+
+生成授权码（卖家侧）：
+
+```bash
+python tools/generate_license_token.py --license-id LIC_20260228_0001 --order-ref XIAN_YU_123456 --device-hash sha256:xxxxxxxx
+```
+
 ## 数据格式说明
 
 ### 训练记录

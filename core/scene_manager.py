@@ -3,6 +3,7 @@ from .sound_manager import SoundManager
 from .data_manager import DataManager
 from .preferences_manager import PreferencesManager
 from .language_manager import LanguageManager
+from .license_manager import LicenseManager
 
 
 class SceneManager:
@@ -37,6 +38,7 @@ class SceneManager:
         
         # 数据管理器
         self.data_manager = DataManager()
+        self.license_manager = LicenseManager()
 
     def apply_sound_preference(self):
         """将当前偏好中的音效开关应用到音效管理器。"""
