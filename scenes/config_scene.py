@@ -19,6 +19,7 @@ class ConfigScene(BaseScene):
         self.current_questions = self.manager.settings["total_questions"]
         self.current_sound_enabled = self.manager.settings.get("sound_enabled", True)
         self.current_language = self.manager.settings.get("language", "en-US")
+        self.current_adaptive_enabled = self.manager.settings.get("adaptive_enabled", True)
 
         self.input_active = False
         self.input_text = str(self.current_questions)
@@ -42,6 +43,7 @@ class ConfigScene(BaseScene):
         self.current_questions = self.manager.settings["total_questions"]
         self.current_sound_enabled = self.manager.settings.get("sound_enabled", True)
         self.current_language = self.manager.settings.get("language", "en-US")
+        self.current_adaptive_enabled = self.manager.settings.get("adaptive_enabled", True)
         self.input_text = str(self.current_questions)
         self.input_error = ""
         self.input_active = False
@@ -84,6 +86,7 @@ class ConfigScene(BaseScene):
 
         self.sound_toggle_rect = pygame.Rect(self.pref_panel_rect.x + 25, self.pref_panel_rect.y + 60, 180, 42)
         self.language_toggle_rect = pygame.Rect(self.pref_panel_rect.x + 215, self.pref_panel_rect.y + 60, 180, 42)
+        self.adaptive_toggle_rect = pygame.Rect(self.pref_panel_rect.x + 25, self.pref_panel_rect.y + 110, 370, 42)
 
         self.start_button_rect = pygame.Rect(self.width // 2 - 145, offset_y + 560, 130, 42)
         self.back_button_rect = pygame.Rect(self.width // 2 + 15, offset_y + 560, 130, 42)
@@ -105,6 +108,7 @@ class ConfigScene(BaseScene):
         self.manager.settings["total_questions"] = self.current_questions
         self.manager.settings["sound_enabled"] = self.current_sound_enabled
         self.manager.settings["language"] = self.current_language
+        self.manager.settings["adaptive_enabled"] = self.current_adaptive_enabled
         self.manager.apply_language_preference()
         self.manager.apply_sound_preference()
         self.manager.save_user_preferences()
@@ -113,6 +117,7 @@ class ConfigScene(BaseScene):
         """即时应用语言/音效，保持配置界面所见即所得。"""
         self.manager.settings["language"] = self.current_language
         self.manager.settings["sound_enabled"] = self.current_sound_enabled
+        self.manager.settings["adaptive_enabled"] = self.current_adaptive_enabled
         self.manager.apply_language_preference()
         self.manager.apply_sound_preference()
 
@@ -197,6 +202,9 @@ class ConfigScene(BaseScene):
                 elif event.key == pygame.K_l:
                     self._toggle_language()
                     self._apply_live_preferences()
+                elif event.key == pygame.K_a:
+                    self.current_adaptive_enabled = not self.current_adaptive_enabled
+                    self._apply_live_preferences()
                 elif event.key == pygame.K_UP:
                     self._set_level(max(1, self.current_level - 1))
                 elif event.key == pygame.K_DOWN:
@@ -238,6 +246,12 @@ class ConfigScene(BaseScene):
                         self.current_language = "en-US"
                     else:
                         self.current_language = "zh-CN"
+                    self._apply_live_preferences()
+                elif self.adaptive_toggle_rect.collidepoint(mouse_pos):
+                    if mouse_pos[0] < self.adaptive_toggle_rect.centerx:
+                        self.current_adaptive_enabled = True
+                    else:
+                        self.current_adaptive_enabled = False
                     self._apply_live_preferences()
 
     def _draw_panel(self, screen, rect, title, mouse_pos):
@@ -407,6 +421,15 @@ class ConfigScene(BaseScene):
             self.manager.t("config.lang_en"),
             self.manager.t("config.lang_zh"),
             self.current_language == "en-US",
+            mouse_pos,
+        )
+        self._draw_segmented_control(
+            screen,
+            self.adaptive_toggle_rect,
+            self.manager.t("config.adaptive_label"),
+            self.manager.t("config.on"),
+            self.manager.t("config.off"),
+            self.current_adaptive_enabled,
             mouse_pos,
         )
 

@@ -16,6 +16,8 @@ class ConfigValidationTests(unittest.TestCase):
                 "total_questions": -5,
                 "sound_enabled": 1,
                 "language": "invalid-lang",
+                "adaptive_enabled": "x",
+                "adaptive_cooldown_left": 999,
             }
             self.assertTrue(manager.save_preferences(raw))
             loaded = manager.load_preferences()
@@ -24,6 +26,8 @@ class ConfigValidationTests(unittest.TestCase):
             self.assertEqual(loaded["total_questions"], 0)
             self.assertTrue(loaded["sound_enabled"])
             self.assertEqual(loaded["language"], "en-US")
+            self.assertTrue(loaded["adaptive_enabled"])
+            self.assertEqual(loaded["adaptive_cooldown_left"], 10)
 
 
 if __name__ == "__main__":

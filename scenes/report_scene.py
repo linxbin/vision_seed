@@ -14,6 +14,7 @@ class ReportScene(BaseScene):
         self.layout_offset_y = 0
         self._reflow_layout()
         self.prev_session = None
+        self.adaptive_result = None
 
     def _refresh_fonts(self):
         self.title_font = self.create_font(52)
@@ -32,12 +33,12 @@ class ReportScene(BaseScene):
         left_x = offset_x + 130
         right_x = offset_x + 490
         self.cards = [
-            {"label_key": "report.total_questions", "field": "total", "x": left_x, "y": offset_y + 228, "w": card_w, "h": card_h},
-            {"label_key": "report.correct", "field": "correct", "x": right_x, "y": offset_y + 228, "w": card_w, "h": card_h},
-            {"label_key": "report.wrong", "field": "wrong", "x": left_x, "y": offset_y + 332, "w": card_w, "h": card_h},
-            {"label_key": "report.accuracy", "field": "accuracy", "x": right_x, "y": offset_y + 332, "w": card_w, "h": card_h},
-            {"label_key": "report.time_used", "field": "duration", "x": left_x, "y": offset_y + 436, "w": card_w, "h": card_h},
-            {"label_key": "report.max_combo", "field": "max_combo", "x": right_x, "y": offset_y + 436, "w": card_w, "h": card_h},
+            {"label_key": "report.total_questions", "field": "total", "x": left_x, "y": offset_y + 244, "w": card_w, "h": card_h},
+            {"label_key": "report.correct", "field": "correct", "x": right_x, "y": offset_y + 244, "w": card_w, "h": card_h},
+            {"label_key": "report.wrong", "field": "wrong", "x": left_x, "y": offset_y + 348, "w": card_w, "h": card_h},
+            {"label_key": "report.accuracy", "field": "accuracy", "x": right_x, "y": offset_y + 348, "w": card_w, "h": card_h},
+            {"label_key": "report.time_used", "field": "duration", "x": left_x, "y": offset_y + 452, "w": card_w, "h": card_h},
+            {"label_key": "report.max_combo", "field": "max_combo", "x": right_x, "y": offset_y + 452, "w": card_w, "h": card_h},
         ]
         self.retry_button_rect = pygame.Rect(offset_x + 250, offset_y + 610, 170, 44)
         self.menu_button_rect = pygame.Rect(offset_x + 480, offset_y + 610, 170, 44)
@@ -55,6 +56,7 @@ class ReportScene(BaseScene):
         self._reflow_layout()
 
     def on_enter(self):
+        self.adaptive_result = self.manager.evaluate_adaptive_level()
         sessions = self.manager.data_manager.get_all_sessions()
         self.prev_session = sessions[1] if len(sessions) > 1 else None
 
@@ -131,6 +133,27 @@ class ReportScene(BaseScene):
             minutes=target_minutes,
         )
 
+    def _adaptive_line(self):
+        result = self.adaptive_result or {}
+        code = str(result.get("reason_code", "DISABLED"))
+        old_level = int(result.get("old_level", self.manager.settings.get("start_level", 1)))
+        new_level = int(result.get("new_level", old_level))
+        cooldown = int(result.get("cooldown_left", 0))
+        avg_acc = result.get("avg_accuracy")
+        avg_sec = result.get("avg_seconds")
+
+        if code == "UP":
+            return self.manager.t("report.adaptive_up", old=old_level, new=new_level, acc=avg_acc, sec=avg_sec)
+        if code == "DOWN":
+            return self.manager.t("report.adaptive_down", old=old_level, new=new_level, acc=avg_acc, sec=avg_sec)
+        if code == "KEEP":
+            return self.manager.t("report.adaptive_keep", level=new_level, acc=avg_acc, sec=avg_sec)
+        if code == "COOLDOWN":
+            return self.manager.t("report.adaptive_cooldown", cooldown=cooldown, level=new_level)
+        if code == "INSUFFICIENT":
+            return self.manager.t("report.adaptive_insufficient")
+        return self.manager.t("report.adaptive_disabled")
+
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
         for event in events:
@@ -173,10 +196,13 @@ class ReportScene(BaseScene):
         next_plan_text = self._fit_text(next_plan_raw, self.hint_font, 760)
         suggestion = self.trend_font.render(suggestion_text, True, (130, 220, 175))
         next_plan = self.hint_font.render(next_plan_text, True, (188, 218, 255))
+        adaptive_text = self._fit_text(self._adaptive_line(), self.hint_font, 780)
+        adaptive_line = self.hint_font.render(adaptive_text, True, (168, 210, 236))
         suggestion_y = self.layout_offset_y + 178
         next_plan_y = self.layout_offset_y + 202
         screen.blit(suggestion, (self.width // 2 - suggestion.get_width() // 2, suggestion_y))
         screen.blit(next_plan, (self.width // 2 - next_plan.get_width() // 2, next_plan_y))
+        screen.blit(adaptive_line, (self.width // 2 - adaptive_line.get_width() // 2, self.layout_offset_y + 222))
 
         # 结果卡片
         for card in self.cards:

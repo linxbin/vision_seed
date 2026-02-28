@@ -4,5 +4,7 @@
   "sound_enabled": true,
   "language": "zh-CN",
   "fullscreen": false,
-  "onboarding_completed": false
+  "onboarding_completed": false,
+  "adaptive_enabled": true,
+  "adaptive_cooldown_left": 0
 }

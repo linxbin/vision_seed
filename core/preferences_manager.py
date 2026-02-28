@@ -44,6 +44,8 @@ class PreferencesManager:
             "language": "en-US",
             "fullscreen": False,
             "onboarding_completed": False,
+            "adaptive_enabled": True,
+            "adaptive_cooldown_left": 0,
         }
 
     def _ensure_preferences_file(self):
@@ -105,6 +107,12 @@ class PreferencesManager:
 
         merged["fullscreen"] = bool(merged.get("fullscreen", defaults["fullscreen"]))
         merged["onboarding_completed"] = bool(merged.get("onboarding_completed", defaults["onboarding_completed"]))
+        merged["adaptive_enabled"] = bool(merged.get("adaptive_enabled", defaults["adaptive_enabled"]))
+        try:
+            merged["adaptive_cooldown_left"] = int(merged.get("adaptive_cooldown_left", defaults["adaptive_cooldown_left"]))
+        except (TypeError, ValueError):
+            merged["adaptive_cooldown_left"] = defaults["adaptive_cooldown_left"]
+        merged["adaptive_cooldown_left"] = max(0, min(10, merged["adaptive_cooldown_left"]))
         return merged
 
     def load_preferences(self) -> Dict[str, Any]:

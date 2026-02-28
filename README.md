@@ -10,6 +10,7 @@ VisionSeed 是一个基于 Python + Pygame 的 E 字方向视觉训练应用，�
 - 题量配置：`0-1000`（含 0 题边界）
 - 历史记录：本地 JSON 持久化、分页查看、手动刷新
 - 用户偏好持久化：题量、难度、音效、语言、全屏
+- 自适应难度（V1）：基于最近 3 次正确率与单题用时自动升降级（可关闭）
 - 首次引导：首次启动提供 30 秒快速上手说明
 - 快捷训练模板：儿童/成人/恢复方案一键开训
 - 多语言：`en-US` / `zh-CN`，中文优先使用 `assets/SimHei.ttf`
@@ -121,6 +122,8 @@ python tools/generate_license_token.py --license-id LIC_20260228_0001 --order-re
 - `language`（`en-US` 或 `zh-CN`）
 - `fullscreen`（布尔值）
 - `onboarding_completed`（是否已完成首次引导）
+- `adaptive_enabled`（是否启用自适应难度）
+- `adaptive_cooldown_left`（自动调级冷却剩余次数）
 
 ## 已知限制
 

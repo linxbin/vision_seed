@@ -1,9 +1,10 @@
-from config import DEFAULT_TOTAL_QUESTIONS, DEFAULT_START_LEVEL
+from config import DEFAULT_TOTAL_QUESTIONS, DEFAULT_START_LEVEL, E_SIZE_LEVELS
 from .sound_manager import SoundManager
 from .data_manager import DataManager
 from .preferences_manager import PreferencesManager
 from .language_manager import LanguageManager
 from .license_manager import LicenseManager
+from .adaptive_manager import AdaptiveManager
 
 
 class SceneManager:
@@ -19,6 +20,8 @@ class SceneManager:
             "language": "en-US",
             "fullscreen": False,
             "onboarding_completed": False,
+            "adaptive_enabled": True,
+            "adaptive_cooldown_left": 0,
         }
 
         # 用户偏好管理器
@@ -40,6 +43,7 @@ class SceneManager:
         # 数据管理器
         self.data_manager = DataManager()
         self.license_manager = LicenseManager()
+        self.adaptive_manager = AdaptiveManager()
 
     def apply_sound_preference(self):
         """将当前偏好中的音效开关应用到音效管理器。"""
@@ -65,6 +69,8 @@ class SceneManager:
             "language": self.settings.get("language", "en-US"),
             "fullscreen": self.settings.get("fullscreen", False),
             "onboarding_completed": self.settings.get("onboarding_completed", False),
+            "adaptive_enabled": self.settings.get("adaptive_enabled", True),
+            "adaptive_cooldown_left": self.settings.get("adaptive_cooldown_left", 0),
         }
         return self.preferences_manager.save_preferences(payload)
 
@@ -80,6 +86,30 @@ class SceneManager:
         self.settings["start_level"] = selected["start_level"]
         self.settings["total_questions"] = selected["total_questions"]
         self.save_user_preferences()
+
+    def evaluate_adaptive_level(self):
+        sessions = self.data_manager.get_all_sessions()
+        result = self.adaptive_manager.evaluate(
+            sessions=sessions,
+            current_level=int(self.settings.get("start_level", 1)),
+            min_level=1,
+            max_level=len(E_SIZE_LEVELS),
+            enabled=bool(self.settings.get("adaptive_enabled", True)),
+            cooldown_left=int(self.settings.get("adaptive_cooldown_left", 0)),
+        )
+
+        old_level = int(self.settings.get("start_level", 1))
+        old_cooldown = int(self.settings.get("adaptive_cooldown_left", 0))
+        new_level = int(result.get("new_level", old_level))
+        new_cooldown = int(result.get("cooldown_left", old_cooldown))
+
+        self.settings["start_level"] = new_level
+        self.settings["adaptive_cooldown_left"] = new_cooldown
+
+        if new_level != old_level or new_cooldown != old_cooldown:
+            self.save_user_preferences()
+
+        return result
 
     def register(self, name, scene):
         self.scenes[name] = scene
