@@ -27,6 +27,15 @@ dist/
 *.log
 
 # ==============================
+# Test / Lint Caches
+# ==============================
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ==============================
 # Environment Variables
 # ==============================
 .env
@@ -50,3 +59,5 @@ Thumbs.db
 # ==============================
 data/records.json
 data/user_preferences.json
+data/*.json
+config/user_preferences.json
