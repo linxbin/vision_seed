@@ -1,150 +1,129 @@
-# VisionSeed 项目打包指南
+# VisionSeed 打包与发布指南
 
 ## 概述
 
-本项目提供了多种方式将 VisionSeed Python 应用打包成 Windows 11 可运行的独立程序，严格遵循专业软件工程标准。
+本文档说明如何将 VisionSeed 打包为 Windows 可分发版本，并确保运行时数据与用户隐私不随安装包分发。
 
-## 🔒 **重要隐私保护说明**
+当前基线版本：`v1.0.0`
 
-**训练记录绝不会被打包到分发版本中！**
-- 用户的个人训练数据（`data/records.json`）属于敏感隐私信息
-- 打包配置已明确排除 `data` 目录
-- 每个新用户首次运行程序时都会在用户目录创建全新的训练记录
-- 这确保了用户隐私安全和数据隔离
+## 打包前检查
 
-## 🎯 **训练难度等级配置**
+1. 确认测试通过：
 
-VisionSeed 提供 **8个难度等级**，对应不同的E字尺寸大小：
+```cmd
+python -m unittest discover -s tests -p "test_*.py"
+```
 
-| 等级 | E字尺寸(px) | 难度描述 |
-|------|-------------|----------|
-| 1    | 10          | 最小，最难 |
-| 2    | 20          | - |
-| 3    | 30          | 默认等级 |
-| 4    | 40          | - |
-| 5    | 50          | - |
-| 6    | 60          | - |
-| 7    | 70          | - |
-| 8    | 80          | 最大，最易 |
+2. 确认仓库干净：
 
-- **数值越大表示E字越大，越容易识别**
-- **默认训练等级为3级(30px)**
-- **所有尺寸都经过优化，在900x700屏幕上提供合适的视觉挑战**
+```cmd
+git status
+```
+
+3. 确认资产文件齐全：
+- `assets/correct.wav`
+- `assets/wrong.wav`
+- `assets/completed.wav`
+- `assets/SimHei.ttf`
+
+## 难度等级（当前版本）
+
+VisionSeed 当前为 **10 级难度**：
+
+| 等级 | E字尺寸(px) |
+|------|-------------|
+| 1    | 5           |
+| 2    | 10          |
+| 3    | 20          |
+| 4    | 30          |
+| 5    | 40          |
+| 6    | 50          |
+| 7    | 60          |
+| 8    | 70          |
+| 9    | 80          |
+| 10   | 85          |
 
 ## 打包方式
 
-### 方式一：安全打包脚本（推荐）
+### 方式一：安全脚本（推荐）
 
 ```cmd
 package_secure.bat
 ```
 
-特点：
-- 自动排除用户数据目录
-- 包含完整的隐私保护验证
-- 一键完成安全打包
-- 适合正式发布使用
+适合正式发布，流程更稳妥。
 
-### 方式二：手动PyInstaller命令
+### 方式二：直接执行 spec
 
 ```cmd
 pyinstaller visionseed.spec
 ```
 
-特点：
-- 使用预配置的安全打包配置
-- 明确指定要包含的资源目录
-- 排除 `data` 目录保护用户隐私
+## 产物结构
 
-## 输出文件结构
-
-打包完成后会生成以下目录：
-
-```
+```text
 项目根目录/
-├── dist/                    # 直接可运行的程序
-│   └── VisionSeed/         # 一体化发布目录
-│       ├── VisionSeed.exe  # 主程序
-│       ├── assets/         # 音效文件
-│       └── config/         # 配置模板（只读）
-│       # 注意：不包含 data/ 目录！
-│
-└── build/                  # 临时构建文件（可删除）
+├── dist/
+│   └── VisionSeed/
+│       ├── VisionSeed.exe
+│       ├── assets/
+│       └── config/
+└── build/
 ```
 
-## 运行要求
+说明：
+- `build/` 为中间产物，可删除
+- 运行时用户数据不会写回仓库目录
 
-目标机器需要满足以下条件：
+## 运行时数据位置
 
-### 最低配置
-- Windows 10/11 操作系统
-- DirectX 9.0c 或更高版本
-- 50MB 可用磁盘空间
+程序运行后在用户目录生成数据：
 
-### 推荐配置
-- Windows 11 专业版
-- 4GB RAM
-- 100MB 可用磁盘空间
-- 支持音频输出的声卡
+- `%LOCALAPPDATA%/VisionSeed/data/records.json`
+- `%LOCALAPPDATA%/VisionSeed/config/user_preferences.json`
+- `%LOCALAPPDATA%/VisionSeed/license/license.json`
 
-## 🛡️ **隐私与安全**
+这三个文件不应随安装包分发。
 
-### 数据保护原则
-- **零数据泄露**：分发版本不包含任何用户训练记录
-- **本地存储**：所有用户数据仅保存在用户目录 `%LOCALAPPDATA%/VisionSeed`
-- **用户控制**：用户拥有完全的数据导出和清除权限
-- **纯净启动**：每个新用户获得完全干净的初始状态
+## 隐私与安全要点
 
-## 数据文件说明
+- 训练记录属于用户本地数据，不包含在仓库分发内容中
+- 每个新用户首次运行时会初始化自己的本地配置和记录
+- 建议发布前对产物做基础安全扫描（杀软/EDR）
+- 建议对 `VisionSeed.exe` 做代码签名，减少系统拦截风险
 
-- `%LOCALAPPDATA%/VisionSeed/data/records.json`：训练记录（`schema_version=2`，兼容旧版本自动迁移）
-- `%LOCALAPPDATA%/VisionSeed/config/user_preferences.json`：用户偏好运行时文件（建议忽略版本控制）
-- `config/user_preferences.example.json`：用户偏好模板文件（用于初始化默认值）
+## 常见问题
 
-### 安全考虑
-- 所有用户数据保存在本地 `data` 目录
-- 程序不收集任何用户隐私信息  
-- 建议在企业环境中进行病毒扫描
-- 可以考虑代码签名提高可信度
+1. 打包失败（缺依赖）
 
-## 故障排除
+```text
+先执行 pip install -r requirements.txt
+```
 
-### 常见问题
+2. 运行时报 VC 运行库缺失
 
-1. **打包失败：找不到模块**
-   ```
-   解决：检查 requirements.txt 中的依赖是否完整
-   ```
+```text
+安装 Visual C++ Redistributable:
+https://aka.ms/vs/17/release/vc_redist.x64.exe
+```
 
-2. **程序运行时报错：DLL缺失**
-   ```
-   解决：确保目标机器安装了 Visual C++ 运行库
-   下载地址：https://aka.ms/vs/17/release/vc_redist.x64.exe
-   ```
+3. 没有声音
 
-3. **音效无法播放**
-   ```
-   解决：检查系统音频设置，确保不是静音状态
-   ```
+```text
+检查系统音频设备；若启动时音频初始化失败，程序会自动降级静音运行。
+```
 
-4. **程序窗口显示异常**
-   ```
-   解决：尝试调整Windows显示缩放设置为100%
-   ```
+4. 中文显示异常
 
-### 调试模式
+```text
+确认 assets/SimHei.ttf 在发布目录中存在。
+```
 
-如果需要调试信息，可以临时修改 `visionseed.spec` 中的 `console=True`，然后重新打包。
+## 发布建议（GitHub）
 
-## 版本管理建议
-
-建议在发布新版本时：
-
-1. 更新 `config/game.py` 中的版本号
-2. 使用语义化版本命名（如 v1.0.0）
-3. 记录重要的功能变更和修复
-4. **始终使用安全打包流程，确保用户隐私**
+1. 推送主分支：`git push origin main`
+2. 打版本标签：`git tag -a v1.0.0 -m "VisionSeed v1.0.0"` 后 `git push origin v1.0.0`
+3. 在 GitHub Release 页面发布版本说明
 
 ---
-*最后更新：2026年2月*
-*适用于 VisionSeed v1.0*
+最后更新：2026-02-28
