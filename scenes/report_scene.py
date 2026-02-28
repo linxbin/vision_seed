@@ -1,9 +1,13 @@
 import pygame
+import math
+import time
 from core.base_scene import BaseScene
 from config import E_SIZE_LEVELS
 
 
 class ReportScene(BaseScene):
+    ENTER_ANIMATION_SECONDS = 0.85
+    CARD_STAGGER_SECONDS = 0.08
 
     def __init__(self, manager):
         super().__init__(manager)
@@ -15,6 +19,8 @@ class ReportScene(BaseScene):
         self._reflow_layout()
         self.prev_session = None
         self.adaptive_result = None
+        self.enter_started_at = 0.0
+        self.final_result = {"correct": 0, "wrong": 0, "total": 0, "duration": 0.0, "max_combo": 0}
 
     def _refresh_fonts(self):
         self.title_font = self.create_font(52)
@@ -59,6 +65,36 @@ class ReportScene(BaseScene):
         self.adaptive_result = self.manager.evaluate_adaptive_level()
         sessions = self.manager.data_manager.get_all_sessions()
         self.prev_session = sessions[1] if len(sessions) > 1 else None
+        self.enter_started_at = time.time()
+        self.final_result = {
+            "correct": int(self.manager.current_result.get("correct", 0)),
+            "wrong": int(self.manager.current_result.get("wrong", 0)),
+            "total": int(self.manager.current_result.get("total", 0)),
+            "duration": float(self.manager.current_result.get("duration", 0.0)),
+            "max_combo": int(self.manager.current_result.get("max_combo", 0)),
+        }
+
+    def _animation_progress(self, now=None):
+        if self.enter_started_at <= 0:
+            return 1.0
+        current = time.time() if now is None else float(now)
+        elapsed = max(0.0, current - self.enter_started_at)
+        return max(0.0, min(1.0, elapsed / self.ENTER_ANIMATION_SECONDS))
+
+    def _card_progress(self, index, base_progress):
+        start = self.CARD_STAGGER_SECONDS * index
+        if base_progress <= start:
+            return 0.0
+        span = max(0.01, 1.0 - start)
+        return max(0.0, min(1.0, (base_progress - start) / span))
+
+    @staticmethod
+    def _lerp_int(value, progress):
+        return int(round(max(0.0, value * progress)))
+
+    @staticmethod
+    def _lerp_float(value, progress):
+        return round(max(0.0, value * progress), 2)
 
     def _accuracy_color(self, accuracy):
         if accuracy >= 80:
@@ -172,12 +208,18 @@ class ReportScene(BaseScene):
         self.refresh_fonts_if_needed()
         screen.fill((24, 32, 52))
 
-        correct = self.manager.current_result.get("correct", 0)
-        wrong = self.manager.current_result.get("wrong", 0)
-        total = self.manager.current_result.get("total", 0)
-        duration = self.manager.current_result.get("duration", 0.0)
-        max_combo = self.manager.current_result.get("max_combo", 0)
-        accuracy = round((correct / total) * 100, 1) if total > 0 else 0.0
+        progress = self._animation_progress()
+        correct = self._lerp_int(self.final_result.get("correct", 0), progress)
+        wrong = self._lerp_int(self.final_result.get("wrong", 0), progress)
+        total = self._lerp_int(self.final_result.get("total", 0), progress)
+        duration = self._lerp_float(self.final_result.get("duration", 0.0), progress)
+        max_combo = self._lerp_int(self.final_result.get("max_combo", 0), progress)
+        target_accuracy = (
+            round((self.final_result.get("correct", 0) / self.final_result.get("total", 0)) * 100, 1)
+            if self.final_result.get("total", 0) > 0
+            else 0.0
+        )
+        accuracy = round(target_accuracy * progress, 1)
         mouse_pos = pygame.mouse.get_pos()
 
         # 标题与结果等级
@@ -186,7 +228,13 @@ class ReportScene(BaseScene):
 
         badge_text = self._result_text(accuracy)
         badge_color = self._accuracy_color(accuracy)
+        pulse = 1.0 + math.sin(time.time() * 6.0) * 0.04 * progress
         badge = self.badge_font.render(badge_text, True, badge_color)
+        if pulse > 1.0:
+            badge = pygame.transform.smoothscale(
+                badge,
+                (max(1, int(badge.get_width() * pulse)), max(1, int(badge.get_height() * pulse))),
+            )
         screen.blit(badge, (self.width // 2 - badge.get_width() // 2, self.layout_offset_y + 145))
 
         # 建议区固定在卡片上方安全区，使用较小字号避免与卡片重叠
@@ -205,10 +253,16 @@ class ReportScene(BaseScene):
         screen.blit(adaptive_line, (self.width // 2 - adaptive_line.get_width() // 2, self.layout_offset_y + 222))
 
         # 结果卡片
-        for card in self.cards:
+        for idx, card in enumerate(self.cards):
+            card_progress = self._card_progress(idx, progress)
+            if card_progress <= 0:
+                continue
+
             rect = pygame.Rect(card["x"], card["y"], card["w"], card["h"])
-            pygame.draw.rect(screen, (38, 50, 78), rect, border_radius=10)
-            pygame.draw.rect(screen, (82, 110, 165), rect, 2, border_radius=10)
+            card_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+            alpha = int(90 + 165 * card_progress)
+            pygame.draw.rect(card_surface, (38, 50, 78, alpha), pygame.Rect(0, 0, rect.width, rect.height), border_radius=10)
+            pygame.draw.rect(card_surface, (82, 110, 165, alpha), pygame.Rect(0, 0, rect.width, rect.height), 2, border_radius=10)
 
             field = card["field"]
             if field == "total":
@@ -231,9 +285,10 @@ class ReportScene(BaseScene):
                 color = (170, 200, 255)
 
             text_surface = self.value_font.render(text, True, color)
-            text_x = rect.centerx - text_surface.get_width() // 2
-            text_y = rect.centery - text_surface.get_height() // 2
-            screen.blit(text_surface, (text_x, text_y))
+            text_y = rect.height // 2 - text_surface.get_height() // 2
+            card_surface.blit(text_surface, (rect.width // 2 - text_surface.get_width() // 2, text_y))
+            offset_y = int((1.0 - card_progress) * 18)
+            screen.blit(card_surface, (rect.x, rect.y + offset_y))
 
         # 趋势与建议
         if self.prev_session:
@@ -274,3 +329,9 @@ class ReportScene(BaseScene):
         # 快捷键提示
         hint = self.hint_font.render(self.manager.t("report.return_hint"), True, (180, 190, 210))
         screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.layout_offset_y + 665))
+
+        if progress < 1.0:
+            overlay = pygame.Surface((self.width, self.height))
+            overlay.fill((8, 12, 20))
+            overlay.set_alpha(int((1.0 - progress) * 170))
+            screen.blit(overlay, (0, 0))

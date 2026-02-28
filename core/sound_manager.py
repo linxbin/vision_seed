@@ -77,6 +77,19 @@ class SoundManager:
                 print(f"Failed to play completed sound: {e}")
                 return 0.0
         return 0.0
+
+    def play_report_ping(self, volume=0.35):
+        """播放报告页提示音（轻量），成功返回 True。"""
+        if not self.is_enabled or not self.correct_sound:
+            return False
+        try:
+            channel = self.correct_sound.play()
+            if channel:
+                channel.set_volume(max(0.0, min(1.0, float(volume))))
+            return True
+        except Exception as e:
+            print(f"Failed to play report ping: {e}")
+            return False
     
     def set_enabled(self, enabled):
         """设置音效开关"""
