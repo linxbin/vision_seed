@@ -204,6 +204,12 @@ class ConfigScene(BaseScene):
             370,
             self.PREF_TOGGLE_H,
         )
+        self.adaptive_desc_rect = pygame.Rect(
+            self.pref_panel_rect.x + 26,
+            self.pref_panel_rect.y + self.PREF_DESC_Y,
+            self.pref_panel_rect.width - 52,
+            18,
+        )
 
         total_button_width = self.ACTION_BUTTON_W * 3 + self.ACTION_BUTTON_GAP * 2
         button_start_x = self.width // 2 - total_button_width // 2
@@ -512,6 +518,29 @@ class ConfigScene(BaseScene):
         fb_surf = self.tiny_font.render(fb_text, True, color)
         screen.blit(fb_surf, (fb_rect.centerx - fb_surf.get_width() // 2, fb_rect.centery - fb_surf.get_height() // 2))
 
+    def _draw_tooltip(self, screen, text, mouse_pos):
+        text_surf = self.tiny_font.render(text, True, (240, 245, 255))
+        pad_x = 10
+        pad_y = 6
+        tip_w = text_surf.get_width() + pad_x * 2
+        tip_h = text_surf.get_height() + pad_y * 2
+
+        tip_x = mouse_pos[0] + 14
+        tip_y = mouse_pos[1] - tip_h - 12
+        if tip_x + tip_w > self.width - 8:
+            tip_x = self.width - tip_w - 8
+        if tip_x < 8:
+            tip_x = 8
+        if tip_y < 8:
+            tip_y = mouse_pos[1] + 14
+        if tip_y + tip_h > self.height - 8:
+            tip_y = self.height - tip_h - 8
+
+        tip_rect = pygame.Rect(tip_x, tip_y, tip_w, tip_h)
+        pygame.draw.rect(screen, (28, 42, 68), tip_rect, border_radius=7)
+        pygame.draw.rect(screen, (142, 176, 228), tip_rect, 2, border_radius=7)
+        screen.blit(text_surf, (tip_rect.x + pad_x, tip_rect.y + pad_y))
+
     def draw(self, screen):
         self._refresh_fonts()
         screen.fill(self.COLOR_BG)
@@ -667,9 +696,12 @@ class ConfigScene(BaseScene):
             self.draft_settings["adaptive_enabled"],
             mouse_pos,
         )
-        adaptive_text = self._fit_text(self.manager.t("config.adaptive_desc"), self.tiny_font, self.adaptive_toggle_rect.width - 8)
-        adaptive_desc = self.tiny_font.render(adaptive_text, True, (168, 192, 226))
-        screen.blit(adaptive_desc, (self.pref_panel_rect.x + 26, self.pref_panel_rect.y + self.PREF_DESC_Y))
+        adaptive_short = self.manager.t("config.adaptive_desc_short")
+        adaptive_desc = self.tiny_font.render(adaptive_short, True, (168, 192, 226))
+        screen.blit(adaptive_desc, (self.adaptive_desc_rect.x, self.adaptive_desc_rect.y))
+
+        if self.adaptive_desc_rect.collidepoint(mouse_pos) or self.adaptive_toggle_rect.collidepoint(mouse_pos):
+            self._draw_tooltip(screen, self.manager.t("config.adaptive_desc"), mouse_pos)
 
         # 底部状态与按钮
         current_size = E_SIZE_LEVELS[self.draft_settings["start_level"] - 1]
