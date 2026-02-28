@@ -20,7 +20,7 @@ class ConfigValidationTests(unittest.TestCase):
             self.assertTrue(manager.save_preferences(raw))
             loaded = manager.load_preferences()
 
-            self.assertEqual(loaded["start_level"], 8)
+            self.assertEqual(loaded["start_level"], 10)
             self.assertEqual(loaded["total_questions"], 0)
             self.assertTrue(loaded["sound_enabled"])
             self.assertEqual(loaded["language"], "en-US")

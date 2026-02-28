@@ -139,8 +139,7 @@ class TrainingScene(BaseScene):
         # 每次开训时应用最新音效偏好
         self.manager.apply_sound_preference()
         
-        # 根据设置的难度等级获取对应的E字大小
-        # start_level范围是1-8，对应E_SIZE_LEVELS索引0-7
+        # 根据设置的难度等级获取对应的E字大小（动态等级）
         level_index = self.manager.settings["start_level"] - 1
         self.base_size = E_SIZE_LEVELS[level_index]
         

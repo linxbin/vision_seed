@@ -5,7 +5,7 @@ VisionSeed 是一个基于 Python + Pygame 的 E 字方向视觉训练应用，�
 ## 当前功能
 
 - 训练模块：四方向识别（上/下/左/右），实时对错反馈（V/X + 音效）
-- 难度系统：8 级（10px 到 80px）
+- 难度系统：10 级（5px 到 85px）
 - 题量配置：`0-1000`（含 0 题边界）
 - 历史记录：本地 JSON 持久化、分页查看、手动刷新
 - 用户偏好持久化：题量、难度、音效、语言、全屏
@@ -96,7 +96,7 @@ python tools/generate_license_token.py --license-id LIC_20260228_0001 --order-re
 - `schema_version`
 - `timestamp`（ISO 字符串）
 - `session_id`
-- `difficulty_level`（1-8）
+- `difficulty_level`（1-10）
 - `e_size_px`
 - `total_questions`
 - `correct_count`

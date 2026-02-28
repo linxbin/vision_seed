@@ -1,7 +1,7 @@
 import pygame
 from datetime import datetime, timedelta
 from core.base_scene import BaseScene
-from config import SCREEN_WIDTH
+from config import SCREEN_WIDTH, E_SIZE_LEVELS
 
 
 class HistoryScene(BaseScene):
@@ -220,7 +220,7 @@ class HistoryScene(BaseScene):
                     self.current_page = 0
                     self._apply_filters()
                 elif self.level_inc_rect.collidepoint(mouse_pos):
-                    self.level_filter = min(8, self.level_filter + 1)
+                    self.level_filter = min(len(E_SIZE_LEVELS), self.level_filter + 1)
                     self.current_page = 0
                     self._apply_filters()
                 elif self.sort_time_rect.collidepoint(mouse_pos):

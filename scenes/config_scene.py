@@ -62,15 +62,18 @@ class ConfigScene(BaseScene):
         self.question_panel_rect = pygame.Rect(offset_x + 40, offset_y + 355, 380, 170)
         self.pref_panel_rect = pygame.Rect(offset_x + 440, offset_y + 355, 420, 170)
 
-        card_w = 78
-        card_h = 52
-        card_gap = 12
+        level_count = len(E_SIZE_LEVELS)
+        compact = level_count > 8
+        columns = 5 if compact else 4
+        card_w = 62 if compact else 78
+        card_h = 42 if compact else 52
+        card_gap = 8 if compact else 12
         start_x = self.level_panel_rect.x + 18
         start_y = self.level_panel_rect.y + 58
         self.level_cards = []
-        for i in range(8):
-            row = i // 4
-            col = i % 4
+        for i in range(level_count):
+            row = i // columns
+            col = i % columns
             x = start_x + col * (card_w + card_gap)
             y = start_y + row * (card_h + card_gap)
             self.level_cards.append((pygame.Rect(x, y, card_w, card_h), i + 1))
@@ -197,7 +200,7 @@ class ConfigScene(BaseScene):
                 elif event.key == pygame.K_UP:
                     self._set_level(max(1, self.current_level - 1))
                 elif event.key == pygame.K_DOWN:
-                    self._set_level(min(8, self.current_level + 1))
+                    self._set_level(min(len(E_SIZE_LEVELS), self.current_level + 1))
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 clicked_input = self.input_rect.collidepoint(mouse_pos)
@@ -295,6 +298,9 @@ class ConfigScene(BaseScene):
         self._draw_panel(screen, self.pref_panel_rect, self.manager.t("config.section_preferences"), mouse_pos)
 
         # 难度卡
+        compact = len(E_SIZE_LEVELS) > 8
+        level_font = self.small_font if compact else self.font
+        size_font = self.create_font(14) if compact else self.small_font
         for rect, level in self.level_cards:
             size_value = E_SIZE_LEVELS[level - 1]
             selected = level == self.current_level
@@ -314,10 +320,16 @@ class ConfigScene(BaseScene):
             if self.level_flash_frames > 0 and level == self.level_flash_level:
                 pygame.draw.rect(screen, (245, 225, 130), rect.inflate(4, 4), 2, border_radius=10)
 
-            ltxt = self.font.render(f"L{level}", True, (255, 255, 255))
-            stxt = self.small_font.render(f"{size_value}px", True, (224, 230, 242))
-            screen.blit(ltxt, (rect.centerx - ltxt.get_width() // 2, rect.y + 5))
-            screen.blit(stxt, (rect.centerx - stxt.get_width() // 2, rect.y + 29))
+            ltxt = level_font.render(f"L{level}", True, (255, 255, 255))
+            stxt = size_font.render(f"{size_value}px", True, (224, 230, 242))
+            if compact:
+                ltxt_y = rect.y + 2
+                stxt_y = rect.y + 22
+            else:
+                ltxt_y = rect.y + 5
+                stxt_y = rect.y + 29
+            screen.blit(ltxt, (rect.centerx - ltxt.get_width() // 2, ltxt_y))
+            screen.blit(stxt, (rect.centerx - stxt.get_width() // 2, stxt_y))
 
         # 预览信息
         preview_level = self.hovered_level if self.hovered_level is not None else self.current_level

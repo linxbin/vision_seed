@@ -1,5 +1,6 @@
 import pygame
 from core.base_scene import BaseScene
+from config import E_SIZE_LEVELS
 
 
 class ReportScene(BaseScene):
@@ -95,21 +96,23 @@ class ReportScene(BaseScene):
 
     def _get_suggestion(self, accuracy):
         level = self.manager.settings.get("start_level", 3)
+        max_level = len(E_SIZE_LEVELS)
         if accuracy >= 85:
             return self.manager.t("report.suggestion_raise", level=max(1, level - 1))
         if accuracy < 60:
-            return self.manager.t("report.suggestion_lower", level=min(8, level + 1))
+            return self.manager.t("report.suggestion_lower", level=min(max_level, level + 1))
         return self.manager.t("report.suggestion_keep", level=level)
 
     def _get_next_plan(self, accuracy, duration, total):
         current_level = self.manager.settings.get("start_level", 3)
+        max_level = len(E_SIZE_LEVELS)
         current_questions = self.manager.settings.get("total_questions", 30)
         avg_sec = (duration / total) if total > 0 else 2.0
 
         if accuracy >= 88 and avg_sec <= 2.0:
             next_level = max(1, current_level - 1)
         elif accuracy < 65:
-            next_level = min(8, current_level + 1)
+            next_level = min(max_level, current_level + 1)
         else:
             next_level = current_level
 
