@@ -118,6 +118,7 @@ class TrainingScene(BaseScene):
         self.progress_pos = (self.width // 2, self.height - 70)
         self.status_pos = (self.width // 2, self.height - 36)
         self.back_button_rect = pygame.Rect(self.width - 90, 15, 80, 30)
+        self.pause_button_rect = pygame.Rect(self.width - 180, 15, 80, 30)
         if getattr(self, "rect", None):
             self.rect.center = self.center_pos
 
@@ -134,6 +135,9 @@ class TrainingScene(BaseScene):
         self.max_combo = 0
         self.combo_display_frames = 0
         self.start_time = time.time()
+        self.paused_duration_seconds = 0.0
+        self.pause_started_at = 0.0
+        self.is_paused = False
         self.previous_direction = None
 
         # 每次开训时应用最新音效偏好
@@ -154,6 +158,35 @@ class TrainingScene(BaseScene):
             return
 
         self.new_question()
+
+    def _pause_training(self):
+        if self.is_paused:
+            return
+        self.is_paused = True
+        self.pause_started_at = time.time()
+
+    def _resume_training(self):
+        if not self.is_paused:
+            return
+        now = time.time()
+        paused_span = max(0.0, now - self.pause_started_at)
+        self.paused_duration_seconds += paused_span
+        if self.is_waiting_for_delay:
+            self.answer_delay_end_time += paused_span
+        self.pause_started_at = 0.0
+        self.is_paused = False
+
+    def _toggle_pause(self):
+        if self.is_paused:
+            self._resume_training()
+        else:
+            self._pause_training()
+
+    def _active_elapsed_seconds(self) -> float:
+        now = time.time()
+        paused_now = max(0.0, now - self.pause_started_at) if self.is_paused else 0.0
+        elapsed = now - self.start_time - self.paused_duration_seconds - paused_now
+        return max(0.0, elapsed)
 
     def new_question(self):
         directions = ["UP", "DOWN", "LEFT", "RIGHT"]
@@ -192,7 +225,7 @@ class TrainingScene(BaseScene):
 
     def _finish_training(self):
         """统一训练结束逻辑，确保边界值安全。"""
-        duration = round(time.time() - self.start_time, 2)
+        duration = round(self._active_elapsed_seconds(), 2)
         wrong = max(0, self.total - self.correct)
 
         self.manager.current_result["correct"] = self.correct
@@ -213,12 +246,26 @@ class TrainingScene(BaseScene):
 
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
+        focus_lost_event = getattr(pygame, "WINDOWFOCUSLOST", None)
         
         for event in events:
+            if focus_lost_event is not None and event.type == focus_lost_event:
+                self._pause_training()
+                continue
+
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_p:
+                    if getattr(event, "repeat", 0):
+                        continue
+                    self._toggle_pause()
+                    continue
 
                 if event.key == pygame.K_ESCAPE:
                     self.manager.set_scene("menu")
+                    continue
+
+                if self.is_paused:
+                    continue
 
                 if event.key in self.KEY_DIRECTION:
                     # 检查是否在等待延迟期间，如果是则忽略输入
@@ -264,9 +311,14 @@ class TrainingScene(BaseScene):
                 if event.button == 1:  # 左键点击
                     if self.back_button_rect.collidepoint(mouse_pos):
                         self.manager.set_scene("menu")
+                    elif self.pause_button_rect.collidepoint(mouse_pos):
+                        self._toggle_pause()
 
     def update(self):
         """更新训练场景的时间逻辑"""
+        if self.is_paused:
+            return
+
         current_time = time.time()
         
         # 更新粒子效果
@@ -314,6 +366,9 @@ class TrainingScene(BaseScene):
             (self.status_pos[0] - status_surface.get_width() // 2, self.status_pos[1]),
         )
 
+        pause_hint = self.back_button_font.render(self.manager.t("training.pause_hint"), True, (135, 155, 185))
+        screen.blit(pause_hint, (22, self.height - 34))
+
         if self.combo >= 2 and self.combo_display_frames > 0:
             combo_color = (245, 210, 110) if self.combo < 5 else (255, 170, 95)
             combo_text = self.small_font.render(self.manager.t("training.combo", combo=self.combo), True, combo_color)
@@ -339,3 +394,28 @@ class TrainingScene(BaseScene):
         text_x = self.back_button_rect.centerx - back_text.get_width() // 2
         text_y = self.back_button_rect.centery - back_text.get_height() // 2
         screen.blit(back_text, (text_x, text_y))
+
+        pause_hovered = self.pause_button_rect.collidepoint(mouse_pos)
+        pause_color = (80, 152, 109) if pause_hovered else (62, 124, 90)
+        pause_border = (154, 221, 184) if pause_hovered else (112, 182, 146)
+        pygame.draw.rect(screen, pause_color, self.pause_button_rect, border_radius=6)
+        pygame.draw.rect(screen, pause_border, self.pause_button_rect, 2, border_radius=6)
+        pause_key = "training.resume" if self.is_paused else "training.pause"
+        pause_text = self.back_button_font.render(self.manager.t(pause_key), True, (255, 255, 255))
+        pause_x = self.pause_button_rect.centerx - pause_text.get_width() // 2
+        pause_y = self.pause_button_rect.centery - pause_text.get_height() // 2
+        screen.blit(pause_text, (pause_x, pause_y))
+
+        if self.is_paused:
+            # 暂停态视觉反馈：不遮挡 E 字，使用外圈描边高亮
+            focus_rect = self.rect.inflate(26, 26)
+            pygame.draw.rect(screen, (112, 172, 242), focus_rect, 3, border_radius=10)
+            pygame.draw.rect(screen, (62, 104, 162), focus_rect.inflate(10, 10), 2, border_radius=12)
+
+            paused_rect = pygame.Rect(self.width // 2 - 120, 18, 240, 38)
+            pygame.draw.rect(screen, (42, 66, 102), paused_rect, border_radius=9)
+            pygame.draw.rect(screen, (150, 182, 232), paused_rect, 2, border_radius=9)
+            paused_text = self.back_button_font.render(self.manager.t("training.paused"), True, (240, 245, 255))
+            paused_x = paused_rect.centerx - paused_text.get_width() // 2
+            paused_y = paused_rect.centery - paused_text.get_height() // 2
+            screen.blit(paused_text, (paused_x, paused_y))

@@ -79,6 +79,28 @@ class TrainingScoringTests(unittest.TestCase):
         self.assertEqual(manager.current_result["total"], 0)
         self.assertEqual(len(manager.data_manager.saved), 1)
 
+    def test_pause_blocks_answer_until_resumed(self):
+        manager = _ManagerStub(total_questions=2, start_level=3)
+        scene = TrainingScene(manager)
+        scene.target_direction = "UP"
+
+        pause_event = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_p)
+        answer_event = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_UP)
+
+        scene.handle_events([pause_event])
+        self.assertTrue(scene.is_paused)
+
+        scene.handle_events([answer_event])
+        self.assertEqual(scene.current, 0)
+        self.assertEqual(scene.correct, 0)
+
+        scene.handle_events([pause_event])
+        self.assertFalse(scene.is_paused)
+
+        scene.handle_events([answer_event])
+        self.assertEqual(scene.current, 1)
+        self.assertEqual(scene.correct, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
