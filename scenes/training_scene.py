@@ -8,50 +8,52 @@ from config import E_SIZE_LEVELS, SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 class Particle:
-    """粒子效果类 - 用于显示✓和✗反馈"""
-    _FONT_CACHE = {}
-    
-    def __init__(self, x, y, is_correct):
+    """粒子效果类 - 支持火花与扩散环两种反馈。"""
+
+    def __init__(self, x, y, vx, vy, color, lifetime, size, kind="spark"):
         self.x = x
         self.y = y
-        self.is_correct = is_correct
-        self.size = 40
-        self.lifetime = 60  # 60帧后消失
-        self.font = self._get_font(self.size)
-        self.create_surface()
+        self.vx = vx
+        self.vy = vy
+        self.color = color
+        self.lifetime = lifetime
+        self.max_lifetime = max(1, lifetime)
+        self.size = float(size)
+        self.kind = kind
+        self.gravity = 0.16 if kind == "spark" else 0.0
+        self.drag = 0.96 if kind == "spark" else 1.0
 
-    @classmethod
-    def _get_font(cls, size):
-        if size not in cls._FONT_CACHE:
-            cls._FONT_CACHE[size] = pygame.font.SysFont(None, size)
-        return cls._FONT_CACHE[size]
-        
-    def create_surface(self):
-        """创建粒子表面"""
-        color = (0, 255, 0) if self.is_correct else (255, 0, 0)  # 绿色V或红色X
-        text = "V" if self.is_correct else "X"  # 使用ASCII字符确保兼容性
-        self.text_surface = self.font.render(text, True, color)
-        
     def update(self):
-        """更新粒子状态"""
         self.lifetime -= 1
-        # 轻微上移动画效果
-        self.y -= 1
-        
-    def draw(self, screen):
-        """绘制粒子 - 使用透明度淡出避免每帧重渲染文本。"""
+        self.x += self.vx
+        self.y += self.vy
+        self.vy += self.gravity
+        self.vx *= self.drag
+        self.vy *= self.drag
+        if self.kind == "ring":
+            self.size += 0.9
+        else:
+            self.size = max(1.0, self.size * 0.985)
+
+    def draw(self, screen, offset=(0, 0)):
         if self.lifetime <= 0:
             return
 
-        alpha = max(0, min(255, int((self.lifetime / 60) * 255)))
-        self.text_surface.set_alpha(alpha)
-        screen.blit(
-            self.text_surface,
-            (self.x - self.text_surface.get_width() // 2, self.y - self.text_surface.get_height() // 2),
+        fade = max(0.0, min(1.0, self.lifetime / self.max_lifetime))
+        color = (
+            int(self.color[0] * fade),
+            int(self.color[1] * fade),
+            int(self.color[2] * fade),
         )
-        
+        radius = max(1, int(self.size))
+        center = (int(self.x + offset[0]), int(self.y + offset[1]))
+        if self.kind == "ring":
+            width = 2 if radius > 4 else 1
+            pygame.draw.circle(screen, color, center, radius, width)
+        else:
+            pygame.draw.circle(screen, color, center, radius)
+
     def is_alive(self):
-        """检查粒子是否还存活"""
         return self.lifetime > 0
 
 
@@ -60,6 +62,7 @@ class TrainingScene(BaseScene):
     FINISH_TRANSITION_AUDIO_PADDING_SECONDS = 0.05
     FINISH_TRANSITION_MIN_SECONDS = 0.35
     FINISH_TRANSITION_MAX_SECONDS = 1.2
+    MAX_PARTICLES = 120
 
     KEY_DIRECTION = {
         pygame.K_UP: "UP",
@@ -94,6 +97,9 @@ class TrainingScene(BaseScene):
         self.finish_transition_ends_at = 0.0
         self.finish_transition_committed = False
         self.completed_sound_played = False
+        self.shake_frames = 0
+        self.shake_intensity = 0
+        self.shake_offset = (0, 0)
 
         # 粒子效果列表
         self.particles = []
@@ -147,6 +153,9 @@ class TrainingScene(BaseScene):
         self.finish_transition_ends_at = 0.0
         self.finish_transition_committed = False
         self.completed_sound_played = False
+        self.shake_frames = 0
+        self.shake_intensity = 0
+        self.shake_offset = (0, 0)
 
         # 0题模式：直接结束并生成报告，避免进入无意义训练循环
         if self.total <= 0:
@@ -183,6 +192,42 @@ class TrainingScene(BaseScene):
         paused_now = max(0.0, now - self.pause_started_at) if self.is_paused else 0.0
         elapsed = now - self.start_time - self.paused_duration_seconds - paused_now
         return max(0.0, elapsed)
+
+    def _add_particle(self, particle):
+        self.particles.append(particle)
+        if len(self.particles) > self.MAX_PARTICLES:
+            overflow = len(self.particles) - self.MAX_PARTICLES
+            del self.particles[:overflow]
+
+    def _start_screen_shake(self, frames, intensity):
+        self.shake_frames = max(self.shake_frames, frames)
+        self.shake_intensity = max(self.shake_intensity, intensity)
+
+    def _spawn_feedback_particles(self, is_correct, x, y):
+        if is_correct:
+            base_color = (78, 232, 132)
+            accent_color = (250, 212, 104)
+            count = 9 if self.combo < 3 else 13
+            speed = 2.5 if self.combo < 3 else 3.2
+            self._start_screen_shake(4 if self.combo < 3 else 7, 2 if self.combo < 3 else 4)
+        else:
+            base_color = (242, 102, 102)
+            accent_color = (255, 158, 118)
+            count = 10
+            speed = 3.0
+            self._start_screen_shake(6, 3)
+
+        for _ in range(count):
+            vx = random.uniform(-speed, speed)
+            vy = random.uniform(-speed - 1.0, -0.4)
+            size = random.uniform(2.0, 4.6)
+            life = random.randint(18, 34)
+            color = base_color if random.random() < 0.7 else accent_color
+            self._add_particle(Particle(x, y, vx, vy, color, life, size, kind="spark"))
+
+        if is_correct and self.combo >= 3:
+            ring_color = (250, 220, 130) if self.combo < 6 else (255, 182, 108)
+            self._add_particle(Particle(x, y, 0.0, 0.0, ring_color, 18, 10.0, kind="ring"))
 
     def new_question(self):
         directions = ["UP", "DOWN", "LEFT", "RIGHT"]
@@ -296,12 +341,7 @@ class TrainingScene(BaseScene):
 
                     self.current += 1
                     is_correct = (self.KEY_DIRECTION[event.key] == self.target_direction)
-                    
-                    # 创建粒子效果
-                    particle_x = self.rect.centerx
-                    particle_y = self.rect.centery - max(30, self.base_size // 2 + 10)
-                    self.particles.append(Particle(particle_x, particle_y, is_correct))
-                    
+
                     # 播放音效反馈
                     if self.manager.sound_manager:
                         if is_correct:
@@ -314,13 +354,13 @@ class TrainingScene(BaseScene):
                         self.combo += 1
                         self.max_combo = max(self.max_combo, self.combo)
                         self.combo_display_frames = 45
-
-                        # 高连击强化反馈：在主粒子两侧追加粒子
-                        if self.combo >= 3:
-                            self.particles.append(Particle(particle_x - 22, particle_y + 6, True))
-                            self.particles.append(Particle(particle_x + 22, particle_y + 6, True))
                     else:
                         self.combo = 0
+
+                    # 视觉反馈粒子在计分后生成，可根据连击强度变化
+                    particle_x = self.rect.centerx
+                    particle_y = self.rect.centery - max(30, self.base_size // 2 + 10)
+                    self._spawn_feedback_particles(is_correct, particle_x, particle_y)
 
                     if self.current >= self.total:
                         self._begin_finish_transition()
@@ -354,6 +394,17 @@ class TrainingScene(BaseScene):
         if self.combo_display_frames > 0:
             self.combo_display_frames -= 1
 
+        if self.shake_frames > 0:
+            self.shake_frames -= 1
+            jitter = self.shake_intensity
+            self.shake_offset = (
+                random.randint(-jitter, jitter),
+                random.randint(-jitter, jitter),
+            )
+            if self.shake_frames == 0:
+                self.shake_intensity = 0
+                self.shake_offset = (0, 0)
+
         if self.finish_transition_active:
             if current_time >= self.finish_transition_ends_at:
                 self._finalize_finish_transition()
@@ -376,7 +427,8 @@ class TrainingScene(BaseScene):
     def draw(self, screen):
         self.refresh_fonts_if_needed()
         screen.fill((0, 0, 0))
-        screen.blit(self.surface, self.rect)
+        ox, oy = self.shake_offset
+        screen.blit(self.surface, self.rect.move(ox, oy))
 
         progress = f"{self.current}/{self.total}"
         progress_surface = self.small_font.render(progress, True, (200, 200, 200))
@@ -405,7 +457,7 @@ class TrainingScene(BaseScene):
         
         # 绘制粒子效果（已经在update中处理了）
         for particle in self.particles:
-            particle.draw(screen)
+            particle.draw(screen, self.shake_offset)
         
         # 绘制返回按钮（右上角，强迫症级别的精确位置）
         mouse_pos = pygame.mouse.get_pos()
@@ -437,7 +489,7 @@ class TrainingScene(BaseScene):
 
         if self.is_paused:
             # 暂停态视觉反馈：不遮挡 E 字，使用外圈描边高亮
-            focus_rect = self.rect.inflate(26, 26)
+            focus_rect = self.rect.inflate(26, 26).move(ox, oy)
             pygame.draw.rect(screen, (112, 172, 242), focus_rect, 3, border_radius=10)
             pygame.draw.rect(screen, (62, 104, 162), focus_rect.inflate(10, 10), 2, border_radius=12)
 
