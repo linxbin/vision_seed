@@ -48,10 +48,11 @@ class LicenseScene(BaseScene):
         # 单行哈希展示区 + 右侧紧凑复制按钮
         self.hash_value_rect = pygame.Rect(self.panel_rect.x + 30, self.panel_rect.y + 146, panel_w - 176, 34)
         self.copy_hash_button_rect = pygame.Rect(self.hash_value_rect.right + 10, self.hash_value_rect.y, 106, 34)
-        self.input_rect = pygame.Rect(self.panel_rect.x + 30, self.panel_rect.y + 196, panel_w - 60, 46)
+        # 输入区整体下移，给“粘贴提示”与哈希显示区留出明确间距，避免重叠
+        self.input_rect = pygame.Rect(self.panel_rect.x + 30, self.panel_rect.y + 212, panel_w - 60, 46)
         self.paste_button_rect = pygame.Rect(self.input_rect.right - 96, self.input_rect.y + 6, 86, self.input_rect.height - 12)
-        self.activate_button_rect = pygame.Rect(self.panel_rect.x + 30, self.panel_rect.y + 250, 180, 44)
-        self.exit_button_rect = pygame.Rect(self.panel_rect.right - 210, self.panel_rect.y + 250, 180, 44)
+        self.activate_button_rect = pygame.Rect(self.panel_rect.x + 30, self.panel_rect.y + 266, 180, 44)
+        self.exit_button_rect = pygame.Rect(self.panel_rect.right - 210, self.panel_rect.y + 266, 180, 44)
 
     def on_resize(self, width, height):
         self.width = width
