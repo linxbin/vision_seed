@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional
 
 from games.accommodation import build_descriptor as build_accommodation_descriptor
+from games.simultaneous import build_eye_find_patterns_descriptor
 
 from .game_contract import GameDescriptor
 
@@ -22,6 +23,7 @@ class GameRegistry:
 
     def _register_builtin_games(self):
         self.register(build_accommodation_descriptor())
+        self.register(build_eye_find_patterns_descriptor())
 
     def register(self, game: GameDescriptor):
         self._games[game.game_id] = game

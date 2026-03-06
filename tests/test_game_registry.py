@@ -18,6 +18,11 @@ class GameRegistryTests(unittest.TestCase):
         self.assertEqual(game.category, "accommodation")
         self.assertEqual(game.name, "E Orientation Training")
 
+        eye_find = registry.get_game("simultaneous.eye_find_patterns")
+        self.assertIsNotNone(eye_find)
+        self.assertEqual(eye_find.category, "simultaneous")
+        self.assertEqual(eye_find.name, "Eye Find Patterns")
+
 
 if __name__ == "__main__":
     unittest.main()
