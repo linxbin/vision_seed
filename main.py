@@ -3,10 +3,10 @@ from config import SCREEN_WIDTH, SCREEN_HEIGHT, MIN_SCREEN_WIDTH, MIN_SCREEN_HEI
 from core.scene_manager import SceneManager
 from core.startup_health import run_startup_health_check, safe_init_audio
 from scenes.menu_scene import MenuScene
-from scenes.config_scene import ConfigScene
-from scenes.training_scene import TrainingScene
-from scenes.report_scene import ReportScene
-from scenes.history_scene import HistoryScene
+from games.accommodation.e_orientation.scenes.config_scene import ConfigScene
+from games.accommodation.e_orientation.scenes.training_scene import TrainingScene
+from games.accommodation.e_orientation.scenes.report_scene import ReportScene
+from games.accommodation.e_orientation.scenes.history_scene import HistoryScene
 from scenes.license_scene import LicenseScene
 from scenes.onboarding_scene import OnboardingScene
 from scenes.category_scene import CategoryScene

@@ -8,7 +8,7 @@ from unittest.mock import patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tests.ui_test_base import UITestCase
-from scenes.history_scene import HistoryScene
+from games.accommodation.e_orientation.scenes.history_scene import HistoryScene
 
 
 class TestHistorySceneUI(UITestCase):

@@ -6,7 +6,7 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
 import pygame
 
-from scenes.training_scene import TrainingScene
+from games.accommodation.e_orientation.scenes.training_scene import TrainingScene
 
 
 class _SoundStub:

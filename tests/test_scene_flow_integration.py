@@ -7,7 +7,7 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame
 
 from core.scene_manager import SceneManager
-from scenes.history_scene import HistoryScene
+from games.accommodation.e_orientation.scenes.history_scene import HistoryScene
 
 
 class _DummyScene:

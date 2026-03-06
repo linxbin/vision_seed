@@ -5,9 +5,9 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
 import pygame
 
-from scenes.config_scene import ConfigScene
-from scenes.e_training_menu_scene import ETrainingMenuScene
-from scenes.history_scene import HistoryScene
+from games.accommodation.e_orientation.scenes.config_scene import ConfigScene
+from games.accommodation.e_orientation.scenes.menu_scene import ETrainingMenuScene
+from games.accommodation.e_orientation.scenes.history_scene import HistoryScene
 
 
 class _ManagerStub:

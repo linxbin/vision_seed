@@ -7,7 +7,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tests.ui_test_base import UITestCase
-from scenes.config_scene import ConfigScene
+from games.accommodation.e_orientation.scenes.config_scene import ConfigScene
 
 
 class TestConfigSceneUI(UITestCase):

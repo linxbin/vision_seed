@@ -5,7 +5,7 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
 import pygame
 
-from scenes.report_scene import ReportScene
+from games.accommodation.e_orientation.scenes.report_scene import ReportScene
 
 
 class _AdaptiveStub:
