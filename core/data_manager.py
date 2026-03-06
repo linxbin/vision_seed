@@ -9,7 +9,7 @@ from core.app_paths import get_install_root, get_user_data_dir
 
 class DataManager:
     """数据管理器 - 负责训练记录的持久化存储和读取"""
-    CURRENT_SCHEMA_VERSION = 2
+    CURRENT_SCHEMA_VERSION = 3
     
     def __init__(self):
         self.data_dir = get_user_data_dir()
@@ -63,6 +63,11 @@ class DataManager:
 
     def _normalize_session(self, session: Dict[str, Any]) -> Dict[str, Any]:
         timestamp = session.get("timestamp", "")
+        game_id = session.get("game_id", "legacy_training")
+        if not isinstance(game_id, str) or not game_id.strip():
+            game_id = "legacy_training"
+        else:
+            game_id = game_id.strip()
         difficulty_level = self._safe_int(session.get("difficulty_level"), 1)
         difficulty_level = max(1, min(len(E_SIZE_LEVELS), difficulty_level))
 
@@ -96,6 +101,7 @@ class DataManager:
         return {
             "schema_version": self.CURRENT_SCHEMA_VERSION,
             "timestamp": timestamp,
+            "game_id": game_id,
             "session_id": session_id,
             "difficulty_level": difficulty_level,
             "e_size_px": e_size_px,

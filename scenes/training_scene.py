@@ -107,6 +107,11 @@ class TrainingScene(BaseScene):
         # 保持现有行为：构造后即可进入可用状态
         self.reset()
 
+    def _back_scene_name(self):
+        if getattr(self.manager, "active_game_id", None) == "accommodation.e_orientation":
+            return "game_host"
+        return "menu"
+
     def _refresh_fonts(self):
         self.small_font = self.create_font(40)
         self.back_button_font = self.create_font(24)
@@ -244,8 +249,10 @@ class TrainingScene(BaseScene):
     def _save_training_record(self, duration: float, wrong: int):
         """保存训练记录到数据管理器"""
         try:
+            game_id = getattr(self.manager, "active_game_id", None) or "legacy_training"
             session_data = {
                 "timestamp": datetime.now().isoformat(),
+                "game_id": game_id,
                 "difficulty_level": self.manager.settings["start_level"],
                 "e_size_px": self.base_size,
                 "total_questions": self.total,
@@ -279,6 +286,7 @@ class TrainingScene(BaseScene):
         self.manager.current_result["total"] = self.total
         self.manager.current_result["duration"] = duration
         self.manager.current_result["max_combo"] = self.max_combo
+        self.manager.current_result["game_id"] = getattr(self.manager, "active_game_id", None) or "legacy_training"
 
         # 保存训练记录
         self._save_training_record(duration, wrong)
@@ -286,7 +294,7 @@ class TrainingScene(BaseScene):
         # 防止在场景尚未完整注册时切换导致异常
         scenes = getattr(self.manager, "scenes", None)
         if isinstance(scenes, dict) and len(scenes) > 0 and "report" not in scenes:
-            self.manager.set_scene("menu")
+            self.manager.set_scene(self._back_scene_name())
         else:
             self.manager.set_scene("report")
 
@@ -323,7 +331,7 @@ class TrainingScene(BaseScene):
                     continue
 
                 if event.key == pygame.K_ESCAPE:
-                    self.manager.set_scene("menu")
+                    self.manager.set_scene(self._back_scene_name())
                     continue
 
                 if self.finish_transition_active:
@@ -374,7 +382,7 @@ class TrainingScene(BaseScene):
                     if self.finish_transition_active:
                         continue
                     if self.back_button_rect.collidepoint(mouse_pos):
-                        self.manager.set_scene("menu")
+                        self.manager.set_scene(self._back_scene_name())
                     elif self.pause_button_rect.collidepoint(mouse_pos):
                         self._toggle_pause()
 

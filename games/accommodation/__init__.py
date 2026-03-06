@@ -1,0 +1,1 @@
+from .game_e_orientation import build_descriptor

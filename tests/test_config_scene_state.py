@@ -13,18 +13,10 @@ class _ManagerStub:
         self.settings = {
             "start_level": 3,
             "total_questions": 30,
-            "sound_enabled": True,
-            "language": "en-US",
             "adaptive_enabled": True,
         }
         self.saved = 0
         self.last_scene = None
-
-    def apply_language_preference(self):
-        pass
-
-    def apply_sound_preference(self):
-        pass
 
     def save_user_preferences(self):
         self.saved += 1
@@ -53,15 +45,11 @@ class ConfigSceneStateTests(unittest.TestCase):
 
         scene.draft_settings["start_level"] = 5
         scene.draft_settings["total_questions"] = 40
-        scene.draft_settings["sound_enabled"] = False
-        scene.draft_settings["language"] = "zh-CN"
         scene.draft_settings["adaptive_enabled"] = False
         scene._commit_settings()
 
         self.assertEqual(manager.settings["start_level"], 5)
         self.assertEqual(manager.settings["total_questions"], 40)
-        self.assertFalse(manager.settings["sound_enabled"])
-        self.assertEqual(manager.settings["language"], "zh-CN")
         self.assertFalse(manager.settings["adaptive_enabled"])
         self.assertEqual(manager.saved, 1)
 
@@ -72,16 +60,11 @@ class ConfigSceneStateTests(unittest.TestCase):
 
         scene.draft_settings["start_level"] = 7
         scene.draft_settings["total_questions"] = 100
-        scene.draft_settings["sound_enabled"] = False
-        scene.draft_settings["language"] = "zh-CN"
         scene.draft_settings["adaptive_enabled"] = False
-        scene._apply_live_preferences()
         scene._cancel_changes()
 
         self.assertEqual(manager.settings["start_level"], 3)
         self.assertEqual(manager.settings["total_questions"], 30)
-        self.assertTrue(manager.settings["sound_enabled"])
-        self.assertEqual(manager.settings["language"], "en-US")
         self.assertTrue(manager.settings["adaptive_enabled"])
         self.assertEqual(manager.last_scene, "menu")
 
@@ -147,35 +130,24 @@ class ConfigSceneStateTests(unittest.TestCase):
         scene = ConfigScene(manager)
         scene.on_enter()
 
-        scene.draft_settings["sound_enabled"] = False
-        scene._apply_live_preferences()
-        self.assertFalse(manager.settings["sound_enabled"])
+        scene.draft_settings["adaptive_enabled"] = False
 
         event = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE, mod=0, unicode="")
         scene.handle_events([event])
 
-        self.assertTrue(manager.settings["sound_enabled"])
+        self.assertTrue(manager.settings["adaptive_enabled"])
         self.assertEqual(manager.last_scene, "menu")
         self.assertEqual(manager.saved, 0)
 
-    def test_toggle_shortcuts_sync_draft_and_manager(self):
+    def test_adaptive_shortcut_toggles_draft(self):
         manager = _ManagerStub()
         scene = ConfigScene(manager)
         scene.on_enter()
 
-        events = [
-            pygame.event.Event(pygame.KEYDOWN, key=pygame.K_m, mod=0, unicode="m"),
-            pygame.event.Event(pygame.KEYDOWN, key=pygame.K_l, mod=0, unicode="l"),
-            pygame.event.Event(pygame.KEYDOWN, key=pygame.K_a, mod=0, unicode="a"),
-        ]
+        events = [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_a, mod=0, unicode="a")]
         scene.handle_events(events)
 
-        self.assertFalse(scene.draft_settings["sound_enabled"])
-        self.assertEqual(scene.draft_settings["language"], "zh-CN")
         self.assertFalse(scene.draft_settings["adaptive_enabled"])
-        self.assertFalse(manager.settings["sound_enabled"])
-        self.assertEqual(manager.settings["language"], "zh-CN")
-        self.assertFalse(manager.settings["adaptive_enabled"])
 
     def test_level_arrow_keys_clamp_to_bounds(self):
         manager = _ManagerStub()

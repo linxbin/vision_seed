@@ -24,8 +24,8 @@ class TestMenuSceneUI(UITestCase):
     def test_scene_initialization(self):
         """测试菜单场景初始化状态"""
         self.assertIsNotNone(self.scene.manager)
-        self.assertEqual(len(self.scene.menu_options), 4)  # 4个主菜单选项
-        self.assertEqual(len(self.scene.templates), 3)    # 3个模板选项
+        self.assertEqual(len(self.scene.menu_options), 3)  # 训练入口 + 系统设置 + 退出
+        self.assertEqual(len(self.scene.templates), 0)
         
         # 验证菜单选项配置正确
         first_option = self.scene.menu_options[0]
@@ -80,20 +80,20 @@ class TestMenuSceneUI(UITestCase):
     
     def test_menu_click_navigation(self):
         """测试菜单点击导航"""
-        # 获取配置菜单选项的位置
-        config_option = None
+        # 获取首个训练分类入口的位置
+        first_option = None
         for option in self.scene.menu_options:
-            if option["scene"] == "config":
-                config_option = option
+            if option["scene"] == "training":
+                first_option = option
                 break
         
-        self.assertIsNotNone(config_option, "未找到配置菜单选项")
+        self.assertIsNotNone(first_option, "未找到训练入口")
         
-        # 设置鼠标位置在配置菜单上
-        click_pos = (config_option["rect"].centerx, config_option["rect"].centery)
+        # 设置鼠标位置在训练入口上
+        click_pos = (first_option["rect"].centerx, first_option["rect"].centery)
         self.set_mouse_position(*click_pos)
         
-        # 模拟点击配置菜单
+        # 模拟点击训练入口
         click_events = self.simulate_mouse_event(
             pygame.MOUSEBUTTONDOWN,
             click_pos,
@@ -104,7 +104,7 @@ class TestMenuSceneUI(UITestCase):
         result_frame = self.capture_frame(self.scene, click_events)
         
         # 验证场景切换逻辑被触发
-        self.mock_manager.set_scene.assert_called_with("config")
+        self.mock_manager.set_scene.assert_called_with("category")
 
 
 if __name__ == '__main__':

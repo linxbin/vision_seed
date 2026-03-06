@@ -9,6 +9,9 @@ from scenes.report_scene import ReportScene
 from scenes.history_scene import HistoryScene
 from scenes.license_scene import LicenseScene
 from scenes.onboarding_scene import OnboardingScene
+from scenes.category_scene import CategoryScene
+from scenes.game_host_scene import GameHostScene
+from scenes.system_settings_scene import SystemSettingsScene
 
 def main():
     pygame.init()
@@ -51,6 +54,9 @@ def main():
     manager.register("training", TrainingScene(manager))
     manager.register("report", ReportScene(manager))
     manager.register("history", HistoryScene(manager))
+    manager.register("category", CategoryScene(manager))
+    manager.register("game_host", GameHostScene(manager))
+    manager.register("system_settings", SystemSettingsScene(manager))
 
     has_license, _message = manager.license_manager.check_local_license()
     initial_scene = manager.decide_initial_scene(

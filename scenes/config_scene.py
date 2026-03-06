@@ -5,6 +5,7 @@ from config import E_SIZE_LEVELS, SCREEN_WIDTH, MIN_QUESTIONS, MAX_QUESTIONS
 
 
 class ConfigScene(BaseScene):
+    E_TRAINING_GAME_ID = "accommodation.e_orientation"
     BASE_WIDTH = SCREEN_WIDTH
     BASE_HEIGHT = 700
 
@@ -73,8 +74,6 @@ class ConfigScene(BaseScene):
         source = {
             "start_level": self.manager.settings["start_level"],
             "total_questions": self.manager.settings["total_questions"],
-            "sound_enabled": self.manager.settings.get("sound_enabled", True),
-            "language": self.manager.settings.get("language", "en-US"),
             "adaptive_enabled": self.manager.settings.get("adaptive_enabled", True),
         }
         self.original_settings = dict(source)
@@ -98,6 +97,8 @@ class ConfigScene(BaseScene):
         return (trimmed + ellipsis) if trimmed else ellipsis
 
     def on_enter(self):
+        if not self._ensure_scope():
+            return
         self._sync_state_from_manager()
         self.input_text = str(self.draft_settings["total_questions"])
         self.input_error = ""
@@ -105,6 +106,18 @@ class ConfigScene(BaseScene):
         self.feedback_message = ""
         self.feedback_variant = "info"
         self.feedback_frames = 0
+
+    def _ensure_scope(self):
+        game_id = getattr(self.manager, "active_game_id", None)
+        if isinstance(game_id, str) and game_id and game_id != self.E_TRAINING_GAME_ID:
+            self.manager.set_scene("menu")
+            return False
+        return True
+
+    def _return_scene_name(self):
+        if getattr(self.manager, "active_game_id", None) == self.E_TRAINING_GAME_ID:
+            return "game_host"
+        return "menu"
 
     def update(self):
         if self.level_flash_frames > 0:
@@ -185,28 +198,16 @@ class ConfigScene(BaseScene):
         self.minus_button_rect = pygame.Rect(self.input_rect.right + 14, self.input_rect.y, 40, 40)
         self.plus_button_rect = pygame.Rect(self.minus_button_rect.right + 10, self.input_rect.y, 40, 40)
 
-        # 偏好区三行布局：第一行音效/语言，第二行自适应，第三行说明
-        self.sound_toggle_rect = pygame.Rect(
-            self.pref_panel_rect.x + self.PREF_INSET_X,
-            self.pref_panel_rect.y + self.PREF_ROW1_Y,
-            self.PREF_TOGGLE_W,
-            self.PREF_TOGGLE_H,
-        )
-        self.language_toggle_rect = pygame.Rect(
-            self.pref_panel_rect.x + self.PREF_COL2_X,
-            self.pref_panel_rect.y + self.PREF_ROW1_Y,
-            self.PREF_TOGGLE_W,
-            self.PREF_TOGGLE_H,
-        )
+        # 偏好区仅保留自适应开关
         self.adaptive_toggle_rect = pygame.Rect(
             self.pref_panel_rect.x + self.PREF_INSET_X,
-            self.pref_panel_rect.y + self.PREF_ROW2_Y,
+            self.pref_panel_rect.y + self.PREF_ROW1_Y + 10,
             370,
             self.PREF_TOGGLE_H,
         )
         self.adaptive_desc_rect = pygame.Rect(
             self.pref_panel_rect.x + 26,
-            self.pref_panel_rect.y + self.PREF_DESC_Y,
+            self.pref_panel_rect.y + self.PREF_ROW1_Y + 60,
             self.pref_panel_rect.width - 52,
             18,
         )
@@ -241,11 +242,7 @@ class ConfigScene(BaseScene):
     def _commit_settings(self):
         self.manager.settings["start_level"] = self.draft_settings["start_level"]
         self.manager.settings["total_questions"] = self.draft_settings["total_questions"]
-        self.manager.settings["sound_enabled"] = self.draft_settings["sound_enabled"]
-        self.manager.settings["language"] = self.draft_settings["language"]
         self.manager.settings["adaptive_enabled"] = self.draft_settings["adaptive_enabled"]
-        self.manager.apply_language_preference()
-        self.manager.apply_sound_preference()
         self.manager.save_user_preferences()
         self.original_settings = dict(self.draft_settings)
         self._set_feedback("config.feedback_saved", "success")
@@ -256,28 +253,15 @@ class ConfigScene(BaseScene):
         self._commit_settings()
         return True
 
-    def _apply_live_preferences(self):
-        """即时应用语言/音效，保持配置界面所见即所得。"""
-        self.manager.settings["language"] = self.draft_settings["language"]
-        self.manager.settings["sound_enabled"] = self.draft_settings["sound_enabled"]
-        self.manager.settings["adaptive_enabled"] = self.draft_settings["adaptive_enabled"]
-        self.manager.apply_language_preference()
-        self.manager.apply_sound_preference()
-
     def _cancel_changes(self):
         if not self.original_settings:
-            self.manager.set_scene("menu")
+            self.manager.set_scene(self._return_scene_name())
             return
         self.manager.settings.update(self.original_settings)
-        self.manager.apply_language_preference()
-        self.manager.apply_sound_preference()
         self.draft_settings = dict(self.original_settings)
         self.input_text = str(self.draft_settings["total_questions"])
         self._set_feedback("config.feedback_canceled", "warning")
-        self.manager.set_scene("menu")
-
-    def _toggle_language(self):
-        self.draft_settings["language"] = "zh-CN" if self.draft_settings["language"] == "en-US" else "en-US"
+        self.manager.set_scene(self._return_scene_name())
 
     def _set_level(self, level):
         if self.draft_settings["start_level"] != level:
@@ -361,16 +345,9 @@ class ConfigScene(BaseScene):
                 elif event.key == pygame.K_s:
                     if event.mod & pygame.KMOD_CTRL:
                         if self._commit_if_valid():
-                            self.manager.set_scene("menu")
-                elif event.key == pygame.K_m:
-                    self.draft_settings["sound_enabled"] = not self.draft_settings["sound_enabled"]
-                    self._apply_live_preferences()
-                elif event.key == pygame.K_l:
-                    self._toggle_language()
-                    self._apply_live_preferences()
+                            self.manager.set_scene(self._return_scene_name())
                 elif event.key == pygame.K_a:
                     self.draft_settings["adaptive_enabled"] = not self.draft_settings["adaptive_enabled"]
-                    self._apply_live_preferences()
                 elif event.key == pygame.K_UP:
                     self._set_level(max(1, self.draft_settings["start_level"] - 1))
                 elif event.key == pygame.K_DOWN:
@@ -398,27 +375,14 @@ class ConfigScene(BaseScene):
                         self.manager.set_scene("training")
                 elif self.save_back_button_rect.collidepoint(mouse_pos):
                     if self._commit_if_valid():
-                        self.manager.set_scene("menu")
+                        self.manager.set_scene(self._return_scene_name())
                 elif self.cancel_button_rect.collidepoint(mouse_pos):
                     self._cancel_changes()
-                elif self.sound_toggle_rect.collidepoint(mouse_pos):
-                    if mouse_pos[0] < self.sound_toggle_rect.centerx:
-                        self.draft_settings["sound_enabled"] = True
-                    else:
-                        self.draft_settings["sound_enabled"] = False
-                    self._apply_live_preferences()
-                elif self.language_toggle_rect.collidepoint(mouse_pos):
-                    if mouse_pos[0] < self.language_toggle_rect.centerx:
-                        self.draft_settings["language"] = "en-US"
-                    else:
-                        self.draft_settings["language"] = "zh-CN"
-                    self._apply_live_preferences()
                 elif self.adaptive_toggle_rect.collidepoint(mouse_pos):
                     if mouse_pos[0] < self.adaptive_toggle_rect.centerx:
                         self.draft_settings["adaptive_enabled"] = True
                     else:
                         self.draft_settings["adaptive_enabled"] = False
-                    self._apply_live_preferences()
 
     def _draw_panel(self, screen, rect, title, mouse_pos):
         hovered = rect.collidepoint(mouse_pos)
@@ -670,25 +634,7 @@ class ConfigScene(BaseScene):
             err = self.tiny_font.render(self.input_error, True, (245, 138, 138))
             screen.blit(err, (self.question_panel_rect.x + 26, self.question_panel_rect.y + 146))
 
-        # 偏好分段开关
-        self._draw_segmented_control(
-            screen,
-            self.sound_toggle_rect,
-            self.manager.t("config.sound_label"),
-            self.manager.t("config.on"),
-            self.manager.t("config.off"),
-            self.draft_settings["sound_enabled"],
-            mouse_pos,
-        )
-        self._draw_segmented_control(
-            screen,
-            self.language_toggle_rect,
-            self.manager.t("config.lang_label"),
-            self.manager.t("config.lang_en"),
-            self.manager.t("config.lang_zh"),
-            self.draft_settings["language"] == "en-US",
-            mouse_pos,
-        )
+        # 偏好分段开关（仅自适应）
         self._draw_segmented_control(
             screen,
             self.adaptive_toggle_rect,

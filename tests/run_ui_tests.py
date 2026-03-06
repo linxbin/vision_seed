@@ -23,6 +23,7 @@ def discover_and_run_ui_tests():
         'test_training_scene_ui',
         'test_config_scene_ui',
         'test_menu_scene_ui',
+        'test_system_settings_scene',
         'test_report_scene_ui',
         'test_history_scene_ui',
         'test_onboarding_scene_ui',
@@ -34,14 +35,14 @@ def discover_and_run_ui_tests():
             module = __import__(f'tests.{module_name}', fromlist=[''])
             tests = loader.loadTestsFromModule(module)
             suite.addTests(tests)
-            print(f"✓ 已添加测试模块: {module_name}")
+            print(f"[OK] 已添加测试模块: {module_name}")
         except ImportError as e:
-            print(f"✗ 无法导入测试模块 {module_name}: {e}")
+            print(f"[ERR] 无法导入测试模块 {module_name}: {e}")
         except Exception as e:
-            print(f"✗ 加载测试模块 {module_name} 时出错: {e}")
+            print(f"[ERR] 加载测试模块 {module_name} 时出错: {e}")
     
     if suite.countTestCases() == 0:
-        print("⚠️  没有找到任何UI测试用例")
+        print("[WARN] 没有找到任何UI测试用例")
         return False
     
     # 运行测试

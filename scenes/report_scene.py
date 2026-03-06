@@ -24,6 +24,7 @@ class ReportScene(BaseScene):
 
     def _refresh_fonts(self):
         self.title_font = self.create_font(52)
+        self.game_font = self.create_font(20)
         self.badge_font = self.create_font(30)
         self.label_font = self.create_font(24)
         self.value_font = self.create_font(36)
@@ -72,6 +73,7 @@ class ReportScene(BaseScene):
             "total": int(self.manager.current_result.get("total", 0)),
             "duration": float(self.manager.current_result.get("duration", 0.0)),
             "max_combo": int(self.manager.current_result.get("max_combo", 0)),
+            "game_id": str(self.manager.current_result.get("game_id", "legacy_training")),
         }
 
     def _animation_progress(self, now=None):
@@ -190,19 +192,38 @@ class ReportScene(BaseScene):
             return self.manager.t("report.adaptive_insufficient")
         return self.manager.t("report.adaptive_disabled")
 
+    def _retry_scene_name(self):
+        game_id = getattr(self.manager, "active_game_id", None)
+        if game_id == "accommodation.e_orientation":
+            return "training"
+        if isinstance(game_id, str) and game_id:
+            return "game_host"
+        return "training"
+
+    def _back_scene_name(self):
+        if getattr(self.manager, "active_game_id", None) == "accommodation.e_orientation":
+            return "game_host"
+        return "menu"
+
+    def _display_game_id(self):
+        game_id = self.final_result.get("game_id", "")
+        if not game_id:
+            game_id = "legacy_training"
+        return f"Game: {game_id}"
+
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
         for event in events:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    self.manager.set_scene("training")
+                    self.manager.set_scene(self._retry_scene_name())
                 elif event.key == pygame.K_ESCAPE:
-                    self.manager.set_scene("menu")
+                    self.manager.set_scene(self._back_scene_name())
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.retry_button_rect.collidepoint(mouse_pos):
-                    self.manager.set_scene("training")
+                    self.manager.set_scene(self._retry_scene_name())
                 elif self.menu_button_rect.collidepoint(mouse_pos):
-                    self.manager.set_scene("menu")
+                    self.manager.set_scene(self._back_scene_name())
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
@@ -225,6 +246,8 @@ class ReportScene(BaseScene):
         # 标题与结果等级
         title = self.title_font.render(self.manager.t("report.title"), True, (255, 255, 255))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, self.layout_offset_y + 80))
+        game_label = self.game_font.render(self._display_game_id(), True, (166, 188, 220))
+        screen.blit(game_label, (self.width // 2 - game_label.get_width() // 2, self.layout_offset_y + 130))
 
         badge_text = self._result_text(accuracy)
         badge_color = self._accuracy_color(accuracy)

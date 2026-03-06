@@ -6,6 +6,7 @@ from config import SCREEN_WIDTH, E_SIZE_LEVELS
 
 class HistoryScene(BaseScene):
     """历史记录场景 - 支持筛选、排序与分页查看。"""
+    E_TRAINING_GAME_ID = "accommodation.e_orientation"
 
     def __init__(self, manager):
         super().__init__(manager)
@@ -59,7 +60,21 @@ class HistoryScene(BaseScene):
         self._reflow_layout()
 
     def on_enter(self):
+        if not self._ensure_scope():
+            return
         self._load_records()
+
+    def _ensure_scope(self):
+        game_id = getattr(self.manager, "active_game_id", None)
+        if isinstance(game_id, str) and game_id and game_id != self.E_TRAINING_GAME_ID:
+            self.manager.set_scene("menu")
+            return False
+        return True
+
+    def _return_scene_name(self):
+        if getattr(self.manager, "active_game_id", None) == self.E_TRAINING_GAME_ID:
+            return "game_host"
+        return "menu"
 
     def _load_records(self):
         try:
@@ -191,7 +206,7 @@ class HistoryScene(BaseScene):
         for event in events:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    self.manager.set_scene("menu")
+                    self.manager.set_scene(self._return_scene_name())
                 elif event.key == pygame.K_LEFT:
                     self.current_page = max(0, self.current_page - 1)
                 elif event.key == pygame.K_RIGHT:
@@ -200,7 +215,7 @@ class HistoryScene(BaseScene):
                     self._load_records()
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.back_button_rect.collidepoint(mouse_pos):
-                    self.manager.set_scene("menu")
+                    self.manager.set_scene(self._return_scene_name())
                     return
 
                 if self.date_all_rect.collidepoint(mouse_pos):

@@ -5,6 +5,7 @@ from .preferences_manager import PreferencesManager
 from .language_manager import LanguageManager
 from .license_manager import LicenseManager
 from .adaptive_manager import AdaptiveManager
+from .game_registry import GameRegistry
 
 
 class SceneManager:
@@ -12,6 +13,8 @@ class SceneManager:
         self.scene = None
         self.scenes = {}
         self.screen_size = None
+        self.active_category = None
+        self.active_game_id = None
 
         self.settings = {
             "total_questions": DEFAULT_TOTAL_QUESTIONS,
@@ -33,7 +36,8 @@ class SceneManager:
         # ⭐ 当前训练结果统一存储
         self.current_result = {
             "correct": 0,
-            "total": 0
+            "total": 0,
+            "game_id": "legacy_training",
         }
         
         # 音效管理器
@@ -44,6 +48,7 @@ class SceneManager:
         self.data_manager = DataManager()
         self.license_manager = LicenseManager()
         self.adaptive_manager = AdaptiveManager()
+        self.game_registry = GameRegistry()
 
     def apply_sound_preference(self):
         """将当前偏好中的音效开关应用到音效管理器。"""
