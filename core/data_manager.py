@@ -223,10 +223,17 @@ class DataManager:
         """获取所有训练会话记录"""
         data = self._read_json()
         return data.get('sessions', [])
+
+    def get_sessions_by_game(self, game_id: str) -> List[Dict[str, Any]]:
+        """按 game_id 获取训练会话记录。"""
+        if not isinstance(game_id, str) or not game_id.strip():
+            return self.get_all_sessions()
+        normalized = game_id.strip()
+        return [session for session in self.get_all_sessions() if session.get("game_id") == normalized]
     
-    def get_latest_session(self) -> Dict[str, Any]:
-        """获取最新的训练会话记录"""
-        sessions = self.get_all_sessions()
+    def get_latest_session(self, game_id: str = None) -> Dict[str, Any]:
+        """获取最新的训练会话记录，可按 game_id 过滤。"""
+        sessions = self.get_sessions_by_game(game_id) if game_id else self.get_all_sessions()
         return sessions[0] if sessions else {}
     
     def get_session_count(self) -> int:

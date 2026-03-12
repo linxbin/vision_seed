@@ -12,30 +12,38 @@ class GameHostScene(BaseScene):
         if not game_id:
             self.active_game_scene = None
             self.active_game_id = None
-            return
+            return False
 
         if self.active_game_scene is not None and game_id == self.active_game_id:
-            return
+            return False
 
         game = self.manager.game_registry.get_game(game_id)
         if not game:
             self.active_game_scene = None
             self.active_game_id = None
-            return
+            return False
 
         self.active_game_scene = game.factory(self.manager)
         self.active_game_id = game_id
         if self.manager.screen_size and hasattr(self.active_game_scene, "on_resize"):
             self.active_game_scene.on_resize(*self.manager.screen_size)
-        reset = getattr(self.active_game_scene, "reset", None)
-        if callable(reset):
-            reset()
+        return True
 
     def on_enter(self):
         self._mount_if_needed()
+        if not self.active_game_scene:
+            return
+        reset = getattr(self.active_game_scene, "reset", None)
+        if callable(reset):
+            reset()
+            return
+        on_enter = getattr(self.active_game_scene, "on_enter", None)
+        if callable(on_enter):
+            on_enter()
 
     def on_resize(self, width, height):
-        if self.active_game_scene:
+        self._mount_if_needed()
+        if self.active_game_scene and hasattr(self.active_game_scene, "on_resize"):
             self.active_game_scene.on_resize(width, height)
 
     def handle_events(self, events):

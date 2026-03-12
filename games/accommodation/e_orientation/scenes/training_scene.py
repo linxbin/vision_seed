@@ -3,6 +3,7 @@ import random
 import time
 from datetime import datetime
 from core.base_scene import BaseScene
+from ..services import ETrainingRecordsService
 from core.e_generator import EGenerator
 from config import E_SIZE_LEVELS, SCREEN_WIDTH, SCREEN_HEIGHT
 
@@ -74,6 +75,8 @@ class TrainingScene(BaseScene):
     def __init__(self, manager):
         super().__init__(manager)
         self._refresh_fonts()
+
+        self.records_service = ETrainingRecordsService(self.manager.data_manager)
 
         # 自适应布局参数（基于屏幕尺寸）
         self.width = SCREEN_WIDTH
@@ -262,7 +265,7 @@ class TrainingScene(BaseScene):
                 "accuracy_rate": round((self.correct / self.total) * 100, 1) if self.total > 0 else 0.0
             }
             
-            success = self.manager.data_manager.save_training_session(session_data)
+            success = self.records_service.save_session(session_data)
             if success:
                 print(f"Training record saved successfully: {session_data['timestamp']}")
             else:
@@ -291,12 +294,7 @@ class TrainingScene(BaseScene):
         # 保存训练记录
         self._save_training_record(duration, wrong)
 
-        # 防止在场景尚未完整注册时切换导致异常
-        scenes = getattr(self.manager, "scenes", None)
-        if isinstance(scenes, dict) and len(scenes) > 0 and "report" not in scenes:
-            self.manager.set_scene(self._back_scene_name())
-        else:
-            self.manager.set_scene("report")
+        self.manager.set_scene("report")
 
     def _begin_finish_transition(self):
         if self.finish_transition_active or self.finish_transition_committed:

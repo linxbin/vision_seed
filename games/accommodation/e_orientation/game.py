@@ -1,9 +1,9 @@
 from core.game_contract import GameDescriptor
-from .scenes.menu_scene import ETrainingMenuScene
+from .scenes.root_scene import ETrainingRootScene
 
 
 def create_scene(manager):
-    return ETrainingMenuScene(manager)
+    return ETrainingRootScene(manager)
 
 
 def build_descriptor():

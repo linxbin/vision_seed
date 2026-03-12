@@ -2,6 +2,7 @@ import pygame
 import math
 import time
 from core.base_scene import BaseScene
+from ..services import ETrainingRecordsService
 from config import E_SIZE_LEVELS
 
 
@@ -21,6 +22,7 @@ class ReportScene(BaseScene):
         self.adaptive_result = None
         self.enter_started_at = 0.0
         self.final_result = {"correct": 0, "wrong": 0, "total": 0, "duration": 0.0, "max_combo": 0}
+        self.records_service = ETrainingRecordsService(self.manager.data_manager)
 
     def _refresh_fonts(self):
         self.title_font = self.create_font(52)
@@ -64,8 +66,7 @@ class ReportScene(BaseScene):
 
     def on_enter(self):
         self.adaptive_result = self.manager.evaluate_adaptive_level()
-        sessions = self.manager.data_manager.get_all_sessions()
-        self.prev_session = sessions[1] if len(sessions) > 1 else None
+        self.prev_session = self.records_service.get_previous_session()
         self.enter_started_at = time.time()
         self.final_result = {
             "correct": int(self.manager.current_result.get("correct", 0)),

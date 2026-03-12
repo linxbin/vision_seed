@@ -93,7 +93,8 @@ class SceneManager:
         self.save_user_preferences()
 
     def evaluate_adaptive_level(self):
-        sessions = self.data_manager.get_all_sessions()
+        game_id = getattr(self, "active_game_id", None)
+        sessions = self.data_manager.get_sessions_by_game(game_id) if game_id else self.data_manager.get_all_sessions()
         result = self.adaptive_manager.evaluate(
             sessions=sessions,
             current_level=int(self.settings.get("start_level", 1)),

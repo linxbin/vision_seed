@@ -1,1 +1,1 @@
-# Game services
+from .records_service import ETrainingRecordsService

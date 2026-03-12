@@ -3,22 +3,19 @@ from config import SCREEN_WIDTH, SCREEN_HEIGHT, MIN_SCREEN_WIDTH, MIN_SCREEN_HEI
 from core.scene_manager import SceneManager
 from core.startup_health import run_startup_health_check, safe_init_audio
 from scenes.menu_scene import MenuScene
-from games.accommodation.e_orientation.scenes.config_scene import ConfigScene
-from games.accommodation.e_orientation.scenes.training_scene import TrainingScene
-from games.accommodation.e_orientation.scenes.report_scene import ReportScene
-from games.accommodation.e_orientation.scenes.history_scene import HistoryScene
 from scenes.license_scene import LicenseScene
 from scenes.onboarding_scene import OnboardingScene
 from scenes.category_scene import CategoryScene
 from scenes.game_host_scene import GameHostScene
 from scenes.system_settings_scene import SystemSettingsScene
 
+
 def main():
     pygame.init()
 
     run_startup_health_check()
     audio_ok = safe_init_audio()
-    
+
     display_flags = pygame.RESIZABLE
 
     def clamp_window_size(size):
@@ -50,10 +47,6 @@ def main():
     manager.register("menu", MenuScene(manager))
     manager.register("license", LicenseScene(manager))
     manager.register("onboarding", OnboardingScene(manager))
-    manager.register("config", ConfigScene(manager))
-    manager.register("training", TrainingScene(manager))
-    manager.register("report", ReportScene(manager))
-    manager.register("history", HistoryScene(manager))
     manager.register("category", CategoryScene(manager))
     manager.register("game_host", GameHostScene(manager))
     manager.register("system_settings", SystemSettingsScene(manager))

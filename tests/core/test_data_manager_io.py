@@ -57,3 +57,40 @@ class DataManagerIOTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_get_sessions_by_game_filters_namespace(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with patch("core.data_manager.get_user_data_dir", return_value=tmp_dir), patch(
+                "core.data_manager.get_install_root", return_value=tmp_dir
+            ):
+                manager = DataManager()
+                manager.save_training_session({
+                    "timestamp": "2026-02-27T00:00:00",
+                    "game_id": "accommodation.e_orientation",
+                    "difficulty_level": 3,
+                    "total_questions": 10,
+                    "correct_count": 7,
+                    "wrong_count": 3,
+                    "duration_seconds": 12.3,
+                })
+                manager.save_training_session({
+                    "timestamp": "2026-02-27T01:00:00",
+                    "game_id": "simultaneous.eye_find_patterns",
+                    "difficulty_level": 2,
+                    "total_questions": 8,
+                    "correct_count": 6,
+                    "wrong_count": 2,
+                    "duration_seconds": 20.0,
+                })
+
+                e_sessions = manager.get_sessions_by_game("accommodation.e_orientation")
+                eye_sessions = manager.get_sessions_by_game("simultaneous.eye_find_patterns")
+
+                self.assertEqual(len(e_sessions), 1)
+                self.assertEqual(len(eye_sessions), 1)
+                self.assertEqual(e_sessions[0]["game_id"], "accommodation.e_orientation")
+                self.assertEqual(
+                    manager.get_latest_session("simultaneous.eye_find_patterns")["game_id"],
+                    "simultaneous.eye_find_patterns",
+                )

@@ -1,11 +1,10 @@
 import math
-import random
 import time
 
 import pygame
 
 from core.base_scene import BaseScene
-from ..services.scoring_service import EyeFindScoringService
+from ..services import EyeFindPatternService, EyeFindScoringService, EyeFindSessionService
 
 
 class EyeFindPatternsScene(BaseScene):
@@ -23,8 +22,6 @@ class EyeFindPatternsScene(BaseScene):
     SESSION_SECONDS = 300
     ATTEMPT_SECONDS = 30
     OVERLAP_TOLERANCE = 8
-    RED_FILTER = (255, 102, 102, 204)
-    BLUE_FILTER = (102, 102, 255, 204)
 
     def __init__(self, manager):
         super().__init__(manager)
@@ -37,11 +34,9 @@ class EyeFindPatternsScene(BaseScene):
         self.filter_direction = self.FILTER_LR
         self.show_filter_picker = False
 
+        self.pattern_service = EyeFindPatternService()
         self.scoring = EyeFindScoringService()
-        self.session_started_at = 0.0
-        self.attempt_started_at = 0.0
-        self.session_elapsed = 0.0
-        self.attempt_elapsed = 0.0
+        self.session = EyeFindSessionService(self.SESSION_SECONDS, self.ATTEMPT_SECONDS)
         self.final_stats = {}
 
         self.left_center = (0, 0)
@@ -104,10 +99,7 @@ class EyeFindPatternsScene(BaseScene):
         self.show_filter_picker = False
         self.feedback_text = ""
         self.scoring.reset()
-        self.session_started_at = 0.0
-        self.attempt_started_at = 0.0
-        self.session_elapsed = 0.0
-        self.attempt_elapsed = 0.0
+        self.session.reset()
         self._new_pattern(reset_position=True)
 
     def _exit_to_main_menu(self):
@@ -116,23 +108,13 @@ class EyeFindPatternsScene(BaseScene):
     def _start_game(self):
         self.state = self.STATE_PLAY
         self.scoring.reset()
-        now = time.time()
-        self.session_started_at = now
-        self.attempt_started_at = now
-        self.session_elapsed = 0.0
-        self.attempt_elapsed = 0.0
+        self.session.start()
         self.feedback_text = ""
         self._new_pattern(reset_position=True)
 
     def _finish_game(self):
         self.state = self.STATE_RESULT
-        self.final_stats = {
-            "duration": int(max(0.0, self.session_elapsed)),
-            "success": int(self.scoring.success_count),
-            "score": int(self.scoring.score),
-            "mode": self.mode,
-            "filter_direction": self.filter_direction,
-        }
+        self.final_stats = self.session.build_final_stats(self.scoring, self.mode, self.filter_direction)
         self.scoring.reset()
 
     def _set_feedback(self, key, color):
@@ -140,58 +122,16 @@ class EyeFindPatternsScene(BaseScene):
         self.feedback_color = color
         self.feedback_until = time.time() + 1.2
 
-    def _pattern_surface(self, pattern_id, size, color):
-        surf = pygame.Surface((size, size), pygame.SRCALPHA)
-        cx = size // 2
-        cy = size // 2
-        if pattern_id == "star":
-            points = []
-            for i in range(10):
-                angle = -math.pi / 2 + i * math.pi / 5
-                radius = size * (0.38 if i % 2 == 0 else 0.18)
-                points.append((cx + int(math.cos(angle) * radius), cy + int(math.sin(angle) * radius)))
-            pygame.draw.polygon(surf, color, points)
-        elif pattern_id == "cat":
-            pygame.draw.circle(surf, color, (cx, cy + 8), int(size * 0.26))
-            pygame.draw.polygon(surf, color, [(cx - 44, cy - 18), (cx - 18, cy - 48), (cx - 8, cy - 14)])
-            pygame.draw.polygon(surf, color, [(cx + 44, cy - 18), (cx + 18, cy - 48), (cx + 8, cy - 14)])
-            pygame.draw.circle(surf, (50, 58, 72, 255), (cx - 16, cy + 8), 4)
-            pygame.draw.circle(surf, (50, 58, 72, 255), (cx + 16, cy + 8), 4)
-        elif pattern_id == "butterfly":
-            pygame.draw.ellipse(surf, color, pygame.Rect(cx - 56, cy - 34, 46, 54))
-            pygame.draw.ellipse(surf, color, pygame.Rect(cx + 10, cy - 34, 46, 54))
-            pygame.draw.ellipse(surf, color, pygame.Rect(cx - 50, cy + 6, 40, 48))
-            pygame.draw.ellipse(surf, color, pygame.Rect(cx + 10, cy + 6, 40, 48))
-            pygame.draw.rect(surf, (72, 82, 102, 255), pygame.Rect(cx - 5, cy - 24, 10, 68), border_radius=6)
-        else:
-            pygame.draw.circle(surf, color, (cx, cy), int(size * 0.28))
-            pygame.draw.circle(surf, (255, 255, 255, 120), (cx - 12, cy - 10), int(size * 0.09))
-        return surf
-
     def _new_pattern(self, reset_position):
-        self.pattern_id = random.choice(["star", "cat", "butterfly", "moon"])
-        self.pattern_color = random.choice(
-            [(255, 214, 140, 255), (154, 227, 168, 255), (160, 205, 255, 255), (252, 174, 174, 255)]
-        )
-        self.pattern_surface = self._pattern_surface(self.pattern_id, 140, self.pattern_color)
+        pattern = self.pattern_service.next_pattern(size=140)
+        self.pattern_id = pattern["pattern_id"]
+        self.pattern_color = pattern["color"]
+        self.pattern_surface = pattern["surface"]
         if reset_position:
-            self.left_center = (self.width // 2 - 140, self.height // 2 + 10)
-            self.right_center = (
-                self.left_center[0] + random.choice([90, 120, 150, 180]),
-                self.left_center[1] + random.choice([-20, -10, 0, 10, 20]),
-            )
+            self.left_center, self.right_center = self.pattern_service.reset_positions(self.width, self.height)
 
     def _apply_filter(self, base, side):
-        if self.mode != self.MODE_GLASSES:
-            return base
-        is_left_red = self.filter_direction == self.FILTER_LR
-        use_red = (side == "left" and is_left_red) or (side == "right" and not is_left_red)
-        color = self.RED_FILTER if use_red else self.BLUE_FILTER
-        overlay = pygame.Surface(base.get_size(), pygame.SRCALPHA)
-        overlay.fill(color)
-        result = base.copy()
-        result.blit(overlay, (0, 0))
-        return result
+        return self.pattern_service.apply_filter(base, self.mode, self.filter_direction, side, self.MODE_GLASSES, self.FILTER_LR)
 
     def _is_overlapped(self):
         dx = self.left_center[0] - self.right_center[0]
@@ -204,9 +144,7 @@ class EyeFindPatternsScene(BaseScene):
             self._set_feedback("eye_find.success", (90, 226, 132))
             if gained > EyeFindScoringService.BASE_SCORE:
                 self.feedback_text = f"{self.feedback_text}  +{gained}"
-            now = time.time()
-            self.attempt_started_at = now
-            self.attempt_elapsed = 0.0
+            self.session.restart_attempt()
             self._new_pattern(reset_position=True)
         else:
             self.scoring.on_failure()
@@ -332,16 +270,14 @@ class EyeFindPatternsScene(BaseScene):
     def update(self):
         now = time.time()
         if self.state == self.STATE_PLAY:
-            self.session_elapsed = now - self.session_started_at
-            self.attempt_elapsed = now - self.attempt_started_at
-            if self.session_elapsed >= self.SESSION_SECONDS:
+            self.session_elapsed, self.attempt_elapsed = self.session.tick(now)
+            if self.session.is_session_complete():
                 self._finish_game()
                 return
-            if self.attempt_elapsed >= self.ATTEMPT_SECONDS:
+            if self.session.is_attempt_timed_out():
                 self.scoring.on_failure()
                 self._set_feedback("eye_find.fail", (238, 118, 118))
-                self.attempt_started_at = now
-                self.attempt_elapsed = 0.0
+                self.session.restart_attempt(now)
         if self.feedback_text and now > self.feedback_until:
             self.feedback_text = ""
 

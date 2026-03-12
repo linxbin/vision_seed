@@ -1,6 +1,7 @@
 import pygame
 from datetime import datetime, timedelta
 from core.base_scene import BaseScene
+from ..services import ETrainingRecordsService
 from config import SCREEN_WIDTH, E_SIZE_LEVELS
 
 
@@ -28,6 +29,7 @@ class HistoryScene(BaseScene):
         self.level_filter = 0     # 0 means all
         self.sort_mode = "time"   # time / accuracy
 
+        self.records_service = ETrainingRecordsService(self.manager.data_manager)
         self._reflow_layout()
 
     def _refresh_fonts(self):
@@ -78,7 +80,7 @@ class HistoryScene(BaseScene):
 
     def _load_records(self):
         try:
-            self.raw_records = self.manager.data_manager.get_all_sessions()
+            self.raw_records = self.records_service.get_sessions()
         except Exception as e:
             print(f"Error loading records: {e}")
             self.raw_records = []
