@@ -11,6 +11,12 @@ from config import E_SIZE_LEVELS
 class ReportScene(BaseScene):
     ENTER_ANIMATION_SECONDS = 0.85
     CARD_STAGGER_SECONDS = 0.08
+    BUTTON_HEIGHT = 44
+    BUTTON_MIN_WIDTH = 170
+    BUTTON_GROUP_GAP = 24
+    BUTTON_HORIZONTAL_PADDING = 18
+    BUTTON_ICON_SIZE = 18
+    BUTTON_ICON_GAP = 8
 
     def __init__(self, manager):
         super().__init__(manager)
@@ -35,10 +41,27 @@ class ReportScene(BaseScene):
         self.hint_font = self.create_font(20)
         self.trend_font = self.create_font(20)
         self.suggestion_font = self.create_font(22)
+        if hasattr(self, "width") and hasattr(self, "height"):
+            self._reflow_layout()
+
+    def _button_content_width(self, text, icon_name=None):
+        content_width = self.label_font.size(text)[0]
+        if icon_name:
+            content_width += self.BUTTON_ICON_SIZE
+            if text:
+                content_width += self.BUTTON_ICON_GAP
+        return content_width
+
+    def _button_width(self, text, icon_name=None):
+        return max(
+            self.BUTTON_MIN_WIDTH,
+            self._button_content_width(text, icon_name) + self.BUTTON_HORIZONTAL_PADDING * 2,
+        )
 
     def _create_ui(self):
         offset_x = self.layout_offset_x
         offset_y = self.layout_offset_y
+        base_width = 900
         card_w = 280
         card_h = 82
         left_x = offset_x + 130
@@ -51,8 +74,18 @@ class ReportScene(BaseScene):
             {"label_key": "report.time_used", "field": "duration", "x": left_x, "y": offset_y + 452, "w": card_w, "h": card_h},
             {"label_key": "report.max_combo", "field": "max_combo", "x": right_x, "y": offset_y + 452, "w": card_w, "h": card_h},
         ]
-        self.retry_button_rect = pygame.Rect(offset_x + 250, offset_y + 610, 170, 44)
-        self.menu_button_rect = pygame.Rect(offset_x + 480, offset_y + 610, 170, 44)
+        retry_width = self._button_width(self.manager.t("report.retry"), "check")
+        menu_width = self._button_width(self.manager.t("report.back_menu"), "cross")
+        button_group_width = retry_width + menu_width + self.BUTTON_GROUP_GAP
+        button_start_x = offset_x + (base_width - button_group_width) // 2
+        button_y = offset_y + 610
+        self.retry_button_rect = pygame.Rect(button_start_x, button_y, retry_width, self.BUTTON_HEIGHT)
+        self.menu_button_rect = pygame.Rect(
+            self.retry_button_rect.right + self.BUTTON_GROUP_GAP,
+            button_y,
+            menu_width,
+            self.BUTTON_HEIGHT,
+        )
 
     def _reflow_layout(self):
         base_width = 900
@@ -127,9 +160,12 @@ class ReportScene(BaseScene):
         text_color = PlatformTheme.TEXT_PRIMARY if not light_foreground else (255, 255, 255)
         icon_name = "check" if rect == self.retry_button_rect else "cross"
         icon_suffix = "light" if light_foreground else "dark"
-        icon = load_image_if_exists(project_path("assets", "ui", f"{icon_name}_{icon_suffix}.png"), (18, 18))
+        icon = load_image_if_exists(
+            project_path("assets", "ui", f"{icon_name}_{icon_suffix}.png"),
+            (self.BUTTON_ICON_SIZE, self.BUTTON_ICON_SIZE),
+        )
         text_surface = self.label_font.render(text, True, text_color)
-        gap = 8 if icon is not None else 0
+        gap = self.BUTTON_ICON_GAP if icon is not None else 0
         content_width = text_surface.get_width() + (icon.get_width() + gap if icon is not None else 0)
         text_x = rect.centerx - content_width // 2
         if icon is not None:

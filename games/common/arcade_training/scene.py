@@ -356,7 +356,8 @@ class PrecisionAimMechanic(BaseArcadeMechanic):
 
     def update(self, now):
         progress = min(1.0, self.scene.round_elapsed / max(1.0, self.scene.config.round_seconds))
-        self.current_radius = max(12, int(self.base_radius - self.base_radius * 0.45 * progress))
+        shrink_progress = progress ** 0.78
+        self.current_radius = max(10, int(self.base_radius * (1.0 - 0.62 * shrink_progress)))
 
     def draw(self, screen):
         rings = [self.current_radius, int(self.current_radius * 0.68), int(self.current_radius * 0.35)]

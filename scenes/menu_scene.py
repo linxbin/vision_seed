@@ -166,7 +166,6 @@ class MenuScene(BaseScene):
 
         if not self._compact_recommendation:
             badge_rect = pygame.Rect(self.recommend_panel.right - 112, self.recommend_panel.y + 14, 96, 28)
-            draw_chip_label(screen, badge_rect, self.badge_font, "Today", hovered=False)
 
         hint = self.meta_font.render(self.recommendation_hint, True, PlatformTheme.TEXT_MUTED)
         screen.blit(hint, (self.recommend_panel.x + 16, self.recommend_panel.y + 48))

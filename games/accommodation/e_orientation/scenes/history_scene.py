@@ -18,7 +18,7 @@ class HistoryScene(BaseScene):
         self.height = 700
         self.layout_offset_x = 0
 
-        self.back_button_rect = pygame.Rect(self.width - 80, 20, 60, 30)
+        self.back_button_rect = pygame.Rect(self.width - 98, 20, 78, 34)
         self.records_per_page = 8
         self.current_page = 0
         self.total_pages = 1
@@ -54,7 +54,7 @@ class HistoryScene(BaseScene):
     def _reflow_layout(self):
         base_width = SCREEN_WIDTH
         self.layout_offset_x = max(0, (self.width - base_width) // 2)
-        self.back_button_rect = pygame.Rect(self.width - 80, 20, 60, 30)
+        self.back_button_rect = pygame.Rect(self.width - 98, 20, 78, 34)
         self._create_filter_controls()
 
     def on_resize(self, width, height):

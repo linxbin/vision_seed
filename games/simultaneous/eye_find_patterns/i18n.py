@@ -71,6 +71,6 @@ TRANSLATIONS = {
         "eye_find.result.reset_tip": "积分已清零",
         "eye_find.result.eye_tip": "护眼口诀：看远20秒，放松眼睛。",
         "eye_find.result.continue": "继续游戏",
-        "eye_find.result.exit": "退出游戏（返回主菜单）",
+        "eye_find.result.exit": "退出游戏",
     },
 }

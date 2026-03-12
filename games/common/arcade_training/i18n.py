@@ -39,6 +39,6 @@ TRANSLATIONS = {
         "arcade.result.difficulty": "难度等级：L{level}",
         "arcade.result.metric": "{label}：{value}",
         "arcade.result.continue": "继续游戏",
-        "arcade.result.exit": "退出游戏（返回主菜单）",
+        "arcade.result.exit": "退出游戏",
     },
 }
