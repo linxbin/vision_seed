@@ -1,0 +1,7 @@
+interface:
+  display_name: "Pygame QA and Bugfix"
+  short_description: "Diagnose and verify VisionSeed gameplay bugs"
+  icon_small: "./assets/icon-small.svg"
+  icon_large: "./assets/icon-large.svg"
+  brand_color: "#B24747"
+  default_prompt: "Use $pygame-qa-and-bugfix to debug VisionSeed routing, HUD, localization, records, and gameplay regressions with tests."
