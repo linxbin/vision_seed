@@ -42,11 +42,33 @@ class EyeFindServicesTests(unittest.TestCase):
     def test_pattern_filter_only_applies_in_glasses_mode(self):
         service = EyeFindPatternService()
         base = pygame.Surface((8, 8), pygame.SRCALPHA)
-        base.fill((100, 100, 100, 255))
+        base.fill((0, 0, 0, 0))
+        pygame.draw.circle(base, (100, 100, 100, 255), (4, 4), 2)
         naked = service.apply_filter(base, "naked", "left_red_right_blue", "left", "glasses", "left_red_right_blue")
         self.assertEqual(naked.get_at((0, 0)), base.get_at((0, 0)))
         filtered = service.apply_filter(base, "glasses", "left_red_right_blue", "left", "glasses", "left_red_right_blue")
         self.assertNotEqual(filtered.get_at((0, 0)), base.get_at((0, 0)))
+        self.assertEqual(filtered.get_at((0, 0))[3], 0)
+        self.assertEqual(filtered.get_at((4, 4))[:3], (255, 0, 0))
+        self.assertEqual(filtered.get_at((4, 4))[3], 255)
+        self.assertEqual(service.GLASSES_BACKGROUND, (255, 19, 255, 179))
+        self.assertEqual(service.RED_FILTER, (255, 0, 0, 255))
+        self.assertEqual(service.BLUE_FILTER, (0, 0, 255, 255))
+
+    def test_overlapped_red_and_blue_patterns_blend_instead_of_cover(self):
+        service = EyeFindPatternService()
+        base = pygame.Surface((8, 8), pygame.SRCALPHA)
+        base.fill((0, 0, 0, 0))
+        pygame.draw.circle(base, (255, 255, 255, 255), (4, 4), 2)
+        red = service.apply_filter(base, "glasses", "left_red_right_blue", "left", "glasses", "left_red_right_blue")
+        blue = service.apply_filter(base, "glasses", "left_red_right_blue", "right", "glasses", "left_red_right_blue")
+        merged = service.blend_filtered_patterns((8, 8), red, red.get_rect(), blue, blue.get_rect())
+        pixel = merged.get_at((4, 4))
+        self.assertNotEqual(pixel[:3], (255, 12, 6))
+        self.assertNotEqual(pixel[:3], (0, 9, 255))
+        self.assertLess(pixel[0], 32)
+        self.assertLess(pixel[2], 32)
+        self.assertGreater(pixel[3], 0)
 
 
 if __name__ == "__main__":

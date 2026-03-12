@@ -47,6 +47,8 @@ class EyeFindPatternsScene(BaseScene):
         self.pattern_surface = pygame.Surface((1, 1), pygame.SRCALPHA)
         self.pattern_id = "star"
         self.pattern_color = (255, 214, 140, 255)
+        self.session_elapsed = 0.0
+        self.attempt_elapsed = 0.0
         self.feedback_text = ""
         self.feedback_color = (255, 255, 255)
         self.feedback_until = 0.0
@@ -99,6 +101,8 @@ class EyeFindPatternsScene(BaseScene):
         self.filter_direction = self.FILTER_LR
         self.show_filter_picker = False
         self.feedback_text = ""
+        self.session_elapsed = 0.0
+        self.attempt_elapsed = 0.0
         self.scoring.reset()
         self.session.reset()
         self._new_pattern(reset_position=True)
@@ -110,6 +114,8 @@ class EyeFindPatternsScene(BaseScene):
         self.state = self.STATE_PLAY
         self.scoring.reset()
         self.session.start()
+        self.session_elapsed = 0.0
+        self.attempt_elapsed = 0.0
         self.feedback_text = ""
         self._new_pattern(reset_position=True)
 
@@ -152,6 +158,21 @@ class EyeFindPatternsScene(BaseScene):
             self._set_feedback("eye_find.fail", (238, 118, 118))
 
     def _draw_gradient_bg(self, screen):
+        if self.state == self.STATE_PLAY and self.mode == self.MODE_GLASSES:
+            top = (230, 243, 255)
+            bottom = (215, 236, 252)
+            for y in range(self.height):
+                t = y / max(1, self.height - 1)
+                color = (
+                    int(top[0] * (1 - t) + bottom[0] * t),
+                    int(top[1] * (1 - t) + bottom[1] * t),
+                    int(top[2] * (1 - t) + bottom[2] * t),
+                )
+                pygame.draw.line(screen, color, (0, y), (self.width, y))
+            overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            overlay.fill(self.pattern_service.GLASSES_BACKGROUND)
+            screen.blit(overlay, (0, 0))
+            return
         top = (230, 243, 255)
         bottom = (215, 236, 252)
         for y in range(self.height):
@@ -173,12 +194,17 @@ class EyeFindPatternsScene(BaseScene):
         suffix = "light" if light else "dark"
         return load_image_if_exists(project_path("assets", "ui", f"{icon_name}_{suffix}.png"), size)
 
-    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), icon_name=None):
+    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), icon_name=None, selected=False):
         hovered = rect.collidepoint(pygame.mouse.get_pos())
         fill = tuple(min(255, c + 18) for c in color) if hovered else color
         border = (255, 255, 255) if hovered else (202, 223, 246)
+        if selected:
+            glow_rect = rect.inflate(10, 10)
+            pygame.draw.rect(screen, (255, 248, 196), glow_rect, border_radius=14)
+            fill = tuple(min(255, c + 24) for c in color)
+            border = (255, 244, 160)
         pygame.draw.rect(screen, fill, rect, border_radius=10)
-        pygame.draw.rect(screen, border, rect, 2, border_radius=10)
+        pygame.draw.rect(screen, border, rect, 3 if selected else 2, border_radius=10)
         if text:
             text_surface = self.option_font.render(text, True, text_color)
             use_light_icon = sum(text_color) > 500
@@ -193,6 +219,28 @@ class EyeFindPatternsScene(BaseScene):
                 text_surface,
                 (start_x, rect.centery - text_surface.get_height() // 2),
             )
+        if selected:
+            pygame.draw.circle(screen, (255, 250, 210), (rect.right - 18, rect.centery), 9)
+            pygame.draw.circle(screen, (200, 84, 54), (rect.right - 18, rect.centery), 4)
+
+    def _draw_filter_option(self, screen, rect, text, left_color, right_color, selected):
+        self._draw_button(screen, rect, "", (244, 247, 255), text_color=(62, 72, 98), selected=selected)
+        preview_rect = pygame.Rect(rect.x + 16, rect.y + 10, 56, rect.height - 20)
+        left_rect = pygame.Rect(preview_rect.x, preview_rect.y, preview_rect.width // 2, preview_rect.height)
+        right_rect = pygame.Rect(left_rect.right, preview_rect.y, preview_rect.width - left_rect.width, preview_rect.height)
+        pygame.draw.rect(screen, left_color, left_rect, border_top_left_radius=8, border_bottom_left_radius=8)
+        pygame.draw.rect(screen, right_color, right_rect, border_top_right_radius=8, border_bottom_right_radius=8)
+        pygame.draw.rect(screen, (255, 255, 255), preview_rect, 2, border_radius=8)
+        text_surface = self.small_font.render(text, True, (62, 72, 98))
+        text_x = preview_rect.right + 16
+        text_y = rect.centery - text_surface.get_height() // 2
+        max_text_width = rect.right - 40 - text_x
+        if text_surface.get_width() > max_text_width:
+            text_surface = pygame.transform.smoothscale(
+                text_surface,
+                (max(1, max_text_width), text_surface.get_height()),
+            )
+        screen.blit(text_surface, (text_x, text_y))
 
     def _format_time(self, sec):
         s = max(0, int(sec))
@@ -325,8 +373,22 @@ class EyeFindPatternsScene(BaseScene):
             pygame.draw.rect(screen, (116, 148, 196), self.filter_modal, 2, border_radius=12)
             msg = self.body_font.render(self.manager.t("eye_find.filter.pick"), True, (52, 76, 110))
             screen.blit(msg, (self.filter_modal.centerx - msg.get_width() // 2, self.filter_modal.y + 24))
-            self._draw_button(screen, self.filter_lr, self.manager.t("eye_find.filter.lr"), (236, 150, 150))
-            self._draw_button(screen, self.filter_rl, self.manager.t("eye_find.filter.rl"), (150, 168, 236))
+            self._draw_filter_option(
+                screen,
+                self.filter_lr,
+                self.manager.t("eye_find.filter.lr"),
+                (255, 0, 0),
+                (0, 0, 255),
+                self.filter_direction == self.FILTER_LR,
+            )
+            self._draw_filter_option(
+                screen,
+                self.filter_rl,
+                self.manager.t("eye_find.filter.rl"),
+                (0, 0, 255),
+                (255, 0, 0),
+                self.filter_direction == self.FILTER_RL,
+            )
             self._draw_button(screen, self.filter_start, self.manager.t("eye_find.filter.start"), (86, 150, 108), icon_name="check")
 
     def _draw_help(self, screen):
@@ -343,43 +405,55 @@ class EyeFindPatternsScene(BaseScene):
         self._draw_button(screen, self.help_ok, self.manager.t("eye_find.help.ok"), (242, 214, 126), text_color=(104, 84, 42), icon_name="check")
 
     def _draw_play(self, screen):
+        is_glasses_mode = self.mode == self.MODE_GLASSES
+        hud_primary = (42, 12, 72) if is_glasses_mode else (55, 82, 122)
+        hud_secondary = (88, 28, 92) if is_glasses_mode else (86, 104, 130)
+        hud_alert = (132, 18, 32) if is_glasses_mode else (222, 74, 74)
+        tip_color = (82, 22, 76) if is_glasses_mode else (106, 70, 70)
+        direction_color = (32, 16, 112) if is_glasses_mode else (76, 96, 142)
+        confirm_color = (52, 124, 82) if is_glasses_mode else (72, 148, 102)
+        back_color = (62, 52, 128) if is_glasses_mode else (86, 116, 170)
+
         mode_text = self.manager.t("eye_find.mode.naked") if self.mode == self.MODE_NAKED else self.manager.t("eye_find.mode.glasses")
-        mode_surface = self.body_font.render(mode_text, True, (55, 82, 122))
+        mode_surface = self.body_font.render(mode_text, True, hud_primary)
         screen.blit(mode_surface, (24, 18))
 
         remaining = max(0, self.SESSION_SECONDS - self.session_elapsed)
-        timer_color = (222, 74, 74) if remaining <= 30 else (55, 82, 122)
+        timer_color = hud_alert if remaining <= 30 else hud_primary
         timer_surface = self.body_font.render(self.manager.t("eye_find.time", sec=self._format_time(remaining)), True, timer_color)
         screen.blit(timer_surface, (self.width // 2 - timer_surface.get_width() // 2, 14))
 
-        score_surface = self.body_font.render(self.manager.t("eye_find.score", score=self.scoring.score), True, (55, 82, 122))
+        score_surface = self.body_font.render(self.manager.t("eye_find.score", score=self.scoring.score), True, hud_primary)
         screen.blit(score_surface, (self.width // 2 - score_surface.get_width() // 2, 44))
 
-        if self.mode == self.MODE_GLASSES:
-            glasses = self.small_font.render(self.manager.t("eye_find.glasses_tip"), True, (106, 70, 70))
+        if is_glasses_mode:
+            glasses = self.small_font.render(self.manager.t("eye_find.glasses_tip"), True, tip_color)
             filter_text_key = "eye_find.filter.lr" if self.filter_direction == self.FILTER_LR else "eye_find.filter.rl"
-            direction = self.small_font.render(self.manager.t(filter_text_key), True, (76, 96, 142))
+            direction = self.small_font.render(self.manager.t(filter_text_key), True, direction_color)
             screen.blit(glasses, (24, 50))
             screen.blit(direction, (24, 74))
 
-        pygame.draw.rect(screen, (244, 250, 255), self.play_area, border_radius=12)
-        pygame.draw.rect(screen, (188, 210, 236), self.play_area, 2, border_radius=12)
-
         left = self._apply_filter(self.pattern_surface, "left")
         right = self._apply_filter(self.pattern_surface, "right")
-        screen.blit(left, left.get_rect(center=self.left_center))
-        screen.blit(right, right.get_rect(center=self.right_center))
+        blend_layer = self.pattern_service.blend_filtered_patterns(
+            (self.width, self.height),
+            left,
+            left.get_rect(center=self.left_center),
+            right,
+            right.get_rect(center=self.right_center),
+        )
+        screen.blit(blend_layer, (0, 0))
 
-        guide = self.small_font.render(self.manager.t("eye_find.play.guide"), True, (86, 104, 130))
+        guide = self.small_font.render(self.manager.t("eye_find.play.guide"), True, hud_secondary)
         screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, self.play_area.bottom + 8))
 
         attempt_left = max(0, int(self.ATTEMPT_SECONDS - self.attempt_elapsed))
-        attempt_color = (222, 74, 74) if attempt_left <= 8 else (95, 115, 142)
+        attempt_color = hud_alert if attempt_left <= 8 else hud_secondary
         attempt_surface = self.small_font.render(self.manager.t("eye_find.attempt_time", sec=attempt_left), True, attempt_color)
         screen.blit(attempt_surface, (self.play_area.centerx - attempt_surface.get_width() // 2, self.play_area.bottom + 30))
 
-        self._draw_button(screen, self.btn_confirm, self.manager.t("eye_find.confirm"), (72, 148, 102), icon_name="check")
-        self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow")
+        self._draw_button(screen, self.btn_confirm, self.manager.t("eye_find.confirm"), confirm_color, icon_name="check")
+        self._draw_button(screen, self.btn_home, self.manager.t("common.back"), back_color, icon_name="back_arrow")
 
         if self.feedback_text:
             fb = self.body_font.render(self.feedback_text, True, self.feedback_color)

@@ -100,6 +100,16 @@ class EyeFindPatternsTests(unittest.TestCase):
             scene.handle_events([event])
         self.assertEqual(scene.state, scene.STATE_HOME)
 
+    def test_glasses_mode_uses_configured_background_color_in_play(self):
+        manager = _ManagerStub()
+        scene = EyeFindPatternsScene(manager)
+        scene.mode = scene.MODE_GLASSES
+        scene._start_game()
+        scene.mode = scene.MODE_GLASSES
+        screen = pygame.Surface((scene.width, scene.height))
+        scene.draw(screen)
+        self.assertEqual(screen.get_at((4, 4))[:3], (248, 86, 255))
+
 
 if __name__ == "__main__":
     unittest.main()
