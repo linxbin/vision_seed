@@ -1,6 +1,7 @@
 import pygame
 import math
 import time
+from core.asset_loader import load_image_if_exists, project_path
 from core.base_scene import BaseScene
 from core.ui_theme import PlatformTheme, draw_platform_background
 from ..services import ETrainingRecordsService
@@ -122,8 +123,18 @@ class ReportScene(BaseScene):
         pygame.draw.rect(screen, fill, rect, border_radius=8)
         pygame.draw.rect(screen, border, rect, 2, border_radius=8)
 
-        text_surface = self.label_font.render(text, True, PlatformTheme.TEXT_PRIMARY if base_color[0] > 180 else (255, 255, 255))
-        text_x = rect.centerx - text_surface.get_width() // 2
+        light_foreground = base_color[0] <= 180
+        text_color = PlatformTheme.TEXT_PRIMARY if not light_foreground else (255, 255, 255)
+        icon_name = "check" if rect == self.retry_button_rect else "cross"
+        icon_suffix = "light" if light_foreground else "dark"
+        icon = load_image_if_exists(project_path("assets", "ui", f"{icon_name}_{icon_suffix}.png"), (18, 18))
+        text_surface = self.label_font.render(text, True, text_color)
+        gap = 8 if icon is not None else 0
+        content_width = text_surface.get_width() + (icon.get_width() + gap if icon is not None else 0)
+        text_x = rect.centerx - content_width // 2
+        if icon is not None:
+            screen.blit(icon, (text_x, rect.centery - icon.get_height() // 2))
+            text_x += icon.get_width() + gap
         text_y = rect.centery - text_surface.get_height() // 2
         screen.blit(text_surface, (text_x, text_y))
 

@@ -24,6 +24,8 @@ class EyeFindServicesTests(unittest.TestCase):
         self.assertEqual(pattern["surface"].get_size(), (140, 140))
         left, right = service.reset_positions(900, 700)
         self.assertNotEqual(left, right)
+        self.assertIn("fish", service.PATTERN_IDS)
+        self.assertIn("rocket", service.PATTERN_IDS)
 
     def test_session_service_tracks_attempt_and_session(self):
         service = EyeFindSessionService(300, 30)

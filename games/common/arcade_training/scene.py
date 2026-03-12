@@ -6,6 +6,7 @@ from datetime import datetime
 
 import pygame
 
+from core.asset_loader import load_image_if_exists, project_path
 from core.base_scene import BaseScene
 
 
@@ -72,6 +73,12 @@ class CatchFruitMechanic(BaseArcadeMechanic):
         self.end_size = 36
         self.clear_hits = 0
         self.smallest_caught = None
+        self.fruit_asset_name = "apple"
+        self.fruit_assets = {
+            name: project_path("games", "accommodation", "catch_fruit", "assets", "objects", f"{name}.png")
+            for name in ("apple", "banana", "orange", "strawberry", "grapes", "watermelon")
+        }
+        self.basket_asset = project_path("games", "accommodation", "catch_fruit", "assets", "objects", "basket.png")
 
     def start_round(self):
         super().start_round()
@@ -79,6 +86,7 @@ class CatchFruitMechanic(BaseArcadeMechanic):
         self.fruit_x = random.randint(self.scene.play_area.left + 60, self.scene.play_area.right - 60)
         self.fruit_y = self.scene.play_area.top + 24
         self.fruit_speed = random.uniform(3.2, 4.8) + self.scene.config.difficulty_level * 0.25
+        self.fruit_asset_name = random.choice(tuple(self.fruit_assets.keys()))
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEMOTION:
@@ -112,17 +120,25 @@ class CatchFruitMechanic(BaseArcadeMechanic):
     def draw(self, screen):
         basket = pygame.Rect(0, 0, 132, 28)
         basket.center = (int(self.basket_x), self.scene.play_area.bottom - 26)
-        pygame.draw.rect(screen, (176, 118, 62), basket, border_radius=14)
-        pygame.draw.rect(screen, (238, 213, 184), basket, 2, border_radius=14)
+        basket_surface = load_image_if_exists(self.basket_asset, (148, 52))
+        if basket_surface is not None:
+            screen.blit(basket_surface, basket_surface.get_rect(center=basket.center))
+        else:
+            pygame.draw.rect(screen, (176, 118, 62), basket, border_radius=14)
+            pygame.draw.rect(screen, (238, 213, 184), basket, 2, border_radius=14)
 
         clarity = self._clarity()
         size = self._current_size()
         halo = pygame.Surface((size * 3, size * 3), pygame.SRCALPHA)
         pygame.draw.circle(halo, (255, 223, 142, int(150 * (1.0 - clarity))), (halo.get_width() // 2, halo.get_height() // 2), size)
         screen.blit(halo, halo.get_rect(center=(int(self.fruit_x), int(self.fruit_y))))
-        pygame.draw.circle(screen, (255, 98, 86), (int(self.fruit_x), int(self.fruit_y)), size // 2)
-        pygame.draw.circle(screen, (255, 230, 214), (int(self.fruit_x), int(self.fruit_y)), size // 2, 2)
-        pygame.draw.line(screen, (124, 168, 92), (self.fruit_x, self.fruit_y - size // 2), (self.fruit_x + 8, self.fruit_y - size // 2 - 16), 3)
+        fruit_surface = load_image_if_exists(self.fruit_assets[self.fruit_asset_name], (size, size))
+        if fruit_surface is not None:
+            screen.blit(fruit_surface, fruit_surface.get_rect(center=(int(self.fruit_x), int(self.fruit_y))))
+        else:
+            pygame.draw.circle(screen, (255, 98, 86), (int(self.fruit_x), int(self.fruit_y)), size // 2)
+            pygame.draw.circle(screen, (255, 230, 214), (int(self.fruit_x), int(self.fruit_y)), size // 2, 2)
+            pygame.draw.line(screen, (124, 168, 92), (self.fruit_x, self.fruit_y - size // 2), (self.fruit_x + 8, self.fruit_y - size // 2 - 16), 3)
 
     def training_metrics(self, scene):
         return {"smallest_caught_size_px": int(self.smallest_caught or self.start_size), "clear_window_hits": int(self.clear_hits)}
@@ -641,6 +657,10 @@ class ArcadeTrainingScene(BaseScene):
         pygame.draw.rect(screen, color, pygame.Rect(int(x + head_r * 2), int(y + head_r - 3 * scale), int(24 * scale), int(6 * scale)), border_radius=3)
         pygame.draw.rect(screen, color, pygame.Rect(int(x + head_r * 2 + 12 * scale), int(y + head_r - 3 * scale), int(4 * scale), int(14 * scale)), border_radius=2)
 
+    def _load_ui_icon(self, icon_name, light=False, size=(18, 18)):
+        suffix = "light" if light else "dark"
+        return load_image_if_exists(project_path("assets", "ui", f"{icon_name}_{suffix}.png"), size)
+
     def _draw_help_illustration(self, screen):
         card = pygame.Rect(self.width // 2 - 180, 154, 360, 118)
         pygame.draw.rect(screen, (248, 252, 255), card, border_radius=18)
@@ -707,13 +727,20 @@ class ArcadeTrainingScene(BaseScene):
         }
         return badges.get(self.config.mechanic_type, 'PLAY')
 
-    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255)):
+    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), icon_name=None):
         hovered = rect.collidepoint(pygame.mouse.get_pos())
         fill = tuple(min(255, c + 16) for c in color) if hovered else color
         pygame.draw.rect(screen, fill, rect, border_radius=12)
         pygame.draw.rect(screen, (255, 255, 255), rect, 2, border_radius=12)
         label = self.option_font.render(text, True, text_color)
-        screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
+        icon = self._load_ui_icon(icon_name, light=sum(text_color) > 500, size=(18, 18)) if icon_name else None
+        gap = 8 if icon is not None else 0
+        content_width = label.get_width() + (icon.get_width() + gap if icon is not None else 0)
+        start_x = rect.centerx - content_width // 2
+        if icon is not None:
+            screen.blit(icon, (start_x, rect.centery - icon.get_height() // 2))
+            start_x += icon.get_width() + gap
+        screen.blit(label, (start_x, rect.centery - label.get_height() // 2))
 
     def _draw_home(self, screen):
         badge_rect = pygame.Rect(self.width // 2 - 62, 52, 124, 28)
@@ -724,9 +751,9 @@ class ArcadeTrainingScene(BaseScene):
         subtitle = self.subtitle_font.render(self.manager.t(self.config.subtitle_key), True, (86, 104, 130))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 86))
         screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 142))
-        self._draw_button(screen, self.btn_start, self.manager.t("arcade.home.start"), self.config.theme_color)
-        self._draw_button(screen, self.btn_help, self.manager.t("arcade.home.help"), (120, 138, 170))
-        self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170))
+        self._draw_button(screen, self.btn_start, self.manager.t("arcade.home.start"), self.config.theme_color, icon_name="check")
+        self._draw_button(screen, self.btn_help, self.manager.t("arcade.home.help"), (120, 138, 170), icon_name="question")
+        self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow")
         hint = self.small_font.render(self.manager.t("arcade.home.tip"), True, (86, 104, 130))
         screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.btn_help.bottom + 22))
 
@@ -742,7 +769,7 @@ class ArcadeTrainingScene(BaseScene):
             screen.blit(num, (icon_x - num.get_width() // 2, y + 12 - num.get_height() // 2))
             text = self.body_font.render(self.manager.t(key), True, (58, 84, 118))
             screen.blit(text, (156, y))
-        self._draw_button(screen, self.btn_ok, self.manager.t("arcade.help.ok"), (244, 214, 126), text_color=(110, 88, 46))
+        self._draw_button(screen, self.btn_ok, self.manager.t("arcade.help.ok"), (244, 214, 126), text_color=(110, 88, 46), icon_name="check")
 
     def _draw_play(self, screen):
         pygame.draw.rect(screen, (245, 250, 255), self.play_area, border_radius=16)
@@ -752,7 +779,7 @@ class ArcadeTrainingScene(BaseScene):
         for idx, text in enumerate(items):
             surf = self.small_font.render(text, True, (56, 82, 118))
             screen.blit(surf, (24 + idx * 220, 20))
-        self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170))
+        self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow")
         guide = self.small_font.render(self.manager.t(self.config.guide_key), True, (82, 100, 126))
         screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, self.play_area.bottom + 10))
         self.mechanic.draw(screen)
@@ -778,8 +805,8 @@ class ArcadeTrainingScene(BaseScene):
         for idx, text in enumerate(lines):
             surf = self.body_font.render(text, True, (58, 84, 118))
             screen.blit(surf, (self.width // 2 - surf.get_width() // 2, 188 + idx * 38))
-        self._draw_button(screen, self.btn_continue, self.manager.t("arcade.result.continue"), (86, 152, 114))
-        self._draw_button(screen, self.btn_exit, self.manager.t("arcade.result.exit"), (120, 134, 168))
+        self._draw_button(screen, self.btn_continue, self.manager.t("arcade.result.continue"), (86, 152, 114), icon_name="check")
+        self._draw_button(screen, self.btn_exit, self.manager.t("arcade.result.exit"), (120, 134, 168), icon_name="cross")
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()

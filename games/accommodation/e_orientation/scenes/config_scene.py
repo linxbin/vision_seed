@@ -1,5 +1,6 @@
 import pygame
 from core.base_scene import BaseScene
+from core.asset_loader import load_image_if_exists, project_path
 from core.e_generator import EGenerator
 from core.ui_theme import PlatformTheme, draw_card, draw_platform_background
 from config import E_SIZE_LEVELS, SCREEN_WIDTH, MIN_QUESTIONS, MAX_QUESTIONS
@@ -435,14 +436,17 @@ class ConfigScene(BaseScene):
             base = (137, 187, 112)
             border = (190, 225, 171)
             text_color = (255, 255, 255)
+            icon_name = "check_light"
         elif variant == "secondary":
             base = PlatformTheme.ACCENT
             border = (255, 224, 177)
             text_color = (255, 250, 244)
+            icon_name = "home_light"
         else:
             base = (214, 205, 191)
             border = PlatformTheme.BORDER
             text_color = PlatformTheme.TEXT_PRIMARY
+            icon_name = "cross_dark"
 
         if hovered:
             fill = tuple(min(c + 24, 255) for c in base)
@@ -452,7 +456,14 @@ class ConfigScene(BaseScene):
         pygame.draw.rect(screen, fill, rect, border_radius=self.BUTTON_RADIUS)
         pygame.draw.rect(screen, border, rect, 2, border_radius=self.BUTTON_RADIUS)
         txt = self.font.render(text, True, text_color)
-        screen.blit(txt, (rect.centerx - txt.get_width() // 2, rect.centery - txt.get_height() // 2))
+        icon = load_image_if_exists(project_path("assets", "ui", f"{icon_name}.png"), (16, 16))
+        gap = 8 if icon is not None else 0
+        content_width = txt.get_width() + (icon.get_width() + gap if icon is not None else 0)
+        start_x = rect.centerx - content_width // 2
+        if icon is not None:
+            screen.blit(icon, (start_x, rect.centery - icon.get_height() // 2))
+            start_x += icon.get_width() + gap
+        screen.blit(txt, (start_x, rect.centery - txt.get_height() // 2))
 
     def _draw_feedback(self, screen):
         if not self.feedback_message:

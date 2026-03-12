@@ -2,7 +2,8 @@ import pygame
 
 from config import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.base_scene import BaseScene
-from core.ui_theme import PlatformTheme, draw_card, draw_chip, draw_platform_background
+from core.asset_loader import load_image_if_exists, project_path
+from core.ui_theme import PlatformTheme, draw_card, draw_chip_label, draw_platform_background
 
 
 class SystemSettingsScene(BaseScene):
@@ -72,8 +73,17 @@ class SystemSettingsScene(BaseScene):
         mouse_pos = pygame.mouse.get_pos()
         hovered = rect.collidepoint(mouse_pos)
         draw_card(screen, rect, hovered=hovered)
+        if rect == self.sound_rect:
+            icon_name = "audio_on_dark" if self.manager.settings.get("sound_enabled", True) else "audio_off_dark"
+        else:
+            icon_name = "gear_dark"
+        icon = load_image_if_exists(project_path("assets", "ui", f"{icon_name}.png"), (22, 22))
+        label_x = rect.x + 18
+        if icon is not None:
+            screen.blit(icon, (label_x, rect.centery - icon.get_height() // 2))
+            label_x += icon.get_width() + 12
         label = self.option_font.render(text, True, PlatformTheme.TEXT_PRIMARY)
-        screen.blit(label, (rect.x + 16, rect.centery - label.get_height() // 2))
+        screen.blit(label, (label_x, rect.centery - label.get_height() // 2))
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
@@ -90,6 +100,4 @@ class SystemSettingsScene(BaseScene):
 
         mouse_pos = pygame.mouse.get_pos()
         hovered = self.back_rect.collidepoint(mouse_pos)
-        draw_chip(screen, self.back_rect, hovered=hovered)
-        back_text = self.label_font.render(self.manager.t("common.back"), True, PlatformTheme.ACCENT_DARK if not hovered else (255, 250, 244))
-        screen.blit(back_text, (self.back_rect.centerx - back_text.get_width() // 2, self.back_rect.centery - back_text.get_height() // 2))
+        draw_chip_label(screen, self.back_rect, self.label_font, self.manager.t("common.back"), hovered=hovered, icon_name="back_arrow")

@@ -1,7 +1,9 @@
 import pygame
 import time
 
+from core.asset_loader import load_image_if_exists, project_path
 from core.base_scene import BaseScene
+from core.ui_theme import PlatformTheme, draw_card, draw_platform_background
 from config import SCREEN_WIDTH, SCREEN_HEIGHT
 
 
@@ -183,34 +185,48 @@ class LicenseScene(BaseScene):
         fill = tuple(min(c + 20, 255) for c in base_color) if hovered else base_color
         if flash:
             fill = (96, 166, 228)
-        pygame.draw.rect(screen, fill, rect, border_radius=8)
-        pygame.draw.rect(screen, (195, 212, 238), rect, 2, border_radius=8)
+        pygame.draw.rect(screen, fill, rect, border_radius=10)
+        pygame.draw.rect(screen, (255, 245, 230), rect, 2, border_radius=10)
         font = self.small_font if rect.height <= 36 else self.text_font
+        if rect == self.copy_hash_button_rect:
+            icon_name = "check_light"
+        elif rect == self.paste_button_rect:
+            icon_name = "check_light"
+        elif rect == self.activate_button_rect:
+            icon_name = "check_light"
+        else:
+            icon_name = "cross_light"
+        icon = load_image_if_exists(project_path("assets", "ui", f"{icon_name}.png"), (16, 16))
         label = font.render(text, True, (255, 255, 255))
-        screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
+        gap = 8 if icon is not None else 0
+        content_width = label.get_width() + (icon.get_width() + gap if icon is not None else 0)
+        start_x = rect.centerx - content_width // 2
+        if icon is not None:
+            screen.blit(icon, (start_x, rect.centery - icon.get_height() // 2))
+            start_x += icon.get_width() + gap
+        screen.blit(label, (start_x, rect.centery - label.get_height() // 2))
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
-        screen.fill((21, 30, 48))
+        draw_platform_background(screen, self.width, self.height)
         mouse_pos = pygame.mouse.get_pos()
 
-        pygame.draw.rect(screen, (33, 47, 75), self.panel_rect, border_radius=12)
-        pygame.draw.rect(screen, (92, 128, 186), self.panel_rect, 2, border_radius=12)
+        draw_card(screen, self.panel_rect, alt=True, radius=18)
 
-        title = self.title_font.render(self.manager.t("license.title"), True, (255, 255, 255))
+        title = self.title_font.render(self.manager.t("license.title"), True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(title, (self.width // 2 - title.get_width() // 2, self.panel_rect.y + 28))
 
-        subtitle = self.small_font.render(self.manager.t("license.subtitle"), True, (186, 202, 230))
+        subtitle = self.small_font.render(self.manager.t("license.subtitle"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, self.panel_rect.y + 88))
 
         device_hash = self.manager.license_manager.get_device_hash()
-        device_title = self.small_font.render(self.manager.t("license.device_hash"), True, (206, 220, 244))
+        device_title = self.small_font.render(self.manager.t("license.device_hash"), True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(device_title, (self.panel_rect.x + 30, self.panel_rect.y + 128))
 
-        pygame.draw.rect(screen, (27, 40, 64), self.hash_value_rect, border_radius=8)
-        pygame.draw.rect(screen, (96, 130, 188), self.hash_value_rect, 2, border_radius=8)
+        pygame.draw.rect(screen, (247, 250, 253), self.hash_value_rect, border_radius=8)
+        pygame.draw.rect(screen, PlatformTheme.BORDER, self.hash_value_rect, 2, border_radius=8)
         # 设计规范：哈希单行显示，不换行
-        device_surface = self.hash_font.render(device_hash, True, (151, 206, 255))
+        device_surface = self.hash_font.render(device_hash, True, (89, 124, 162))
         previous_clip = screen.get_clip()
         screen.set_clip(self.hash_value_rect.inflate(-8, -2))
         screen.blit(
@@ -231,13 +247,13 @@ class LicenseScene(BaseScene):
             flash=self.copy_flash_frames > 0,
         )
 
-        input_bg = (211, 227, 246) if self.input_active else (184, 202, 230)
-        input_border = (115, 161, 227) if self.input_active else (94, 128, 182)
+        input_bg = (253, 249, 243) if self.input_active else (243, 246, 249)
+        input_border = PlatformTheme.BORDER_HOVER if self.input_active else PlatformTheme.BORDER
         pygame.draw.rect(screen, input_bg, self.input_rect, border_radius=8)
         pygame.draw.rect(screen, input_border, self.input_rect, 2, border_radius=8)
 
         display_text = self.input_text if self.input_text else self.manager.t("license.input_placeholder")
-        text_color = (18, 26, 40) if self.input_text else (92, 112, 144)
+        text_color = PlatformTheme.TEXT_PRIMARY if self.input_text else PlatformTheme.TEXT_MUTED
         render_text = display_text
         text_surface = self.small_font.render(render_text, True, text_color)
         while text_surface.get_width() > self.input_rect.width - 20 and len(render_text) > 1:
@@ -267,9 +283,9 @@ class LicenseScene(BaseScene):
             (92, 106, 144),
         )
 
-        hint = self.small_font.render(self.manager.t("license.hint"), True, (176, 194, 222))
+        hint = self.small_font.render(self.manager.t("license.hint"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.panel_rect.y + 312))
-        paste_tip = self.small_font.render(self.manager.t("license.paste_tip"), True, (158, 186, 220))
+        paste_tip = self.small_font.render(self.manager.t("license.paste_tip"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(paste_tip, (self.panel_rect.x + 30, self.input_rect.y - 24))
 
         if self.message:

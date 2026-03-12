@@ -3,9 +3,11 @@ import random
 
 import pygame
 
+from core.asset_loader import load_image_if_exists, project_path
+
 
 class EyeFindPatternService:
-    PATTERN_IDS = ("star", "cat", "butterfly", "moon")
+    PATTERN_IDS = ("star", "cat", "butterfly", "moon", "fish", "rocket")
     PATTERN_COLORS = (
         (255, 214, 140, 255),
         (154, 227, 168, 255),
@@ -15,7 +17,14 @@ class EyeFindPatternService:
     RED_FILTER = (255, 102, 102, 204)
     BLUE_FILTER = (102, 102, 255, 204)
 
+    def _asset_path(self, pattern_id):
+        return project_path("games", "simultaneous", "eye_find_patterns", "assets", "objects", f"{pattern_id}.png")
+
     def build_pattern_surface(self, pattern_id, size, color):
+        asset_surface = load_image_if_exists(self._asset_path(pattern_id), (size, size))
+        if asset_surface is not None:
+            return asset_surface
+
         surf = pygame.Surface((size, size), pygame.SRCALPHA)
         cx = size // 2
         cy = size // 2

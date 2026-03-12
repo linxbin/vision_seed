@@ -3,6 +3,7 @@ import time
 
 import pygame
 
+from core.asset_loader import load_image_if_exists, project_path
 from core.base_scene import BaseScene
 from ..services import EyeFindPatternService, EyeFindScoringService, EyeFindSessionService
 
@@ -168,7 +169,11 @@ class EyeFindPatternsScene(BaseScene):
             pygame.draw.circle(screen, (245, 250, 255), (cx, cy), 26)
             pygame.draw.circle(screen, (238, 246, 255), (cx + 22, cy + 8), 20)
 
-    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255)):
+    def _load_ui_icon(self, icon_name, light=False, size=(18, 18)):
+        suffix = "light" if light else "dark"
+        return load_image_if_exists(project_path("assets", "ui", f"{icon_name}_{suffix}.png"), size)
+
+    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), icon_name=None):
         hovered = rect.collidepoint(pygame.mouse.get_pos())
         fill = tuple(min(255, c + 18) for c in color) if hovered else color
         border = (255, 255, 255) if hovered else (202, 223, 246)
@@ -176,9 +181,17 @@ class EyeFindPatternsScene(BaseScene):
         pygame.draw.rect(screen, border, rect, 2, border_radius=10)
         if text:
             text_surface = self.option_font.render(text, True, text_color)
+            use_light_icon = sum(text_color) > 500
+            icon = self._load_ui_icon(icon_name, light=use_light_icon) if icon_name else None
+            gap = 8 if icon is not None else 0
+            content_width = text_surface.get_width() + (icon.get_width() + gap if icon is not None else 0)
+            start_x = rect.centerx - content_width // 2
+            if icon is not None:
+                screen.blit(icon, (start_x, rect.centery - icon.get_height() // 2))
+                start_x += icon.get_width() + gap
             screen.blit(
                 text_surface,
-                (rect.centerx - text_surface.get_width() // 2, rect.centery - text_surface.get_height() // 2),
+                (start_x, rect.centery - text_surface.get_height() // 2),
             )
 
     def _format_time(self, sec):
@@ -300,10 +313,10 @@ class EyeFindPatternsScene(BaseScene):
     def _draw_home(self, screen):
         title = self.title_font.render(self.manager.t("eye_find.title"), True, (38, 66, 108))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 86))
-        self._draw_button(screen, self.btn_naked, self.manager.t("eye_find.home.naked"), (64, 138, 212))
-        self._draw_button(screen, self.btn_glasses, self.manager.t("eye_find.home.glasses"), (90, 126, 222))
-        self._draw_button(screen, self.btn_help, self.manager.t("eye_find.home.help"), (126, 142, 174))
-        self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (88, 116, 168))
+        self._draw_button(screen, self.btn_naked, self.manager.t("eye_find.home.naked"), (64, 138, 212), icon_name="check")
+        self._draw_button(screen, self.btn_glasses, self.manager.t("eye_find.home.glasses"), (90, 126, 222), icon_name="target")
+        self._draw_button(screen, self.btn_help, self.manager.t("eye_find.home.help"), (126, 142, 174), icon_name="question")
+        self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (88, 116, 168), icon_name="back_arrow")
 
         if self.show_filter_picker:
             modal = pygame.Surface((self.filter_modal.width, self.filter_modal.height), pygame.SRCALPHA)
@@ -314,7 +327,7 @@ class EyeFindPatternsScene(BaseScene):
             screen.blit(msg, (self.filter_modal.centerx - msg.get_width() // 2, self.filter_modal.y + 24))
             self._draw_button(screen, self.filter_lr, self.manager.t("eye_find.filter.lr"), (236, 150, 150))
             self._draw_button(screen, self.filter_rl, self.manager.t("eye_find.filter.rl"), (150, 168, 236))
-            self._draw_button(screen, self.filter_start, self.manager.t("eye_find.filter.start"), (86, 150, 108))
+            self._draw_button(screen, self.filter_start, self.manager.t("eye_find.filter.start"), (86, 150, 108), icon_name="check")
 
     def _draw_help(self, screen):
         title = self.title_font.render(self.manager.t("eye_find.help.title"), True, (42, 70, 110))
@@ -327,7 +340,7 @@ class EyeFindPatternsScene(BaseScene):
         self._draw_help_step(screen, 2, 280, self.manager.t("eye_find.help.step2"))
         self._draw_help_step(screen, 3, 370, self.manager.t("eye_find.help.step3"))
 
-        self._draw_button(screen, self.help_ok, self.manager.t("eye_find.help.ok"), (242, 214, 126), text_color=(104, 84, 42))
+        self._draw_button(screen, self.help_ok, self.manager.t("eye_find.help.ok"), (242, 214, 126), text_color=(104, 84, 42), icon_name="check")
 
     def _draw_play(self, screen):
         mode_text = self.manager.t("eye_find.mode.naked") if self.mode == self.MODE_NAKED else self.manager.t("eye_find.mode.glasses")
@@ -365,8 +378,8 @@ class EyeFindPatternsScene(BaseScene):
         attempt_surface = self.small_font.render(self.manager.t("eye_find.attempt_time", sec=attempt_left), True, attempt_color)
         screen.blit(attempt_surface, (self.play_area.centerx - attempt_surface.get_width() // 2, self.play_area.bottom + 30))
 
-        self._draw_button(screen, self.btn_confirm, self.manager.t("eye_find.confirm"), (72, 148, 102))
-        self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170))
+        self._draw_button(screen, self.btn_confirm, self.manager.t("eye_find.confirm"), (72, 148, 102), icon_name="check")
+        self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow")
 
         if self.feedback_text:
             fb = self.body_font.render(self.feedback_text, True, self.feedback_color)
@@ -396,8 +409,8 @@ class EyeFindPatternsScene(BaseScene):
             line = self.body_font.render(text, True, color)
             screen.blit(line, (self.width // 2 - line.get_width() // 2, 184 + idx * 36))
 
-        self._draw_button(screen, self.btn_continue, self.manager.t("eye_find.result.continue"), (84, 148, 108))
-        self._draw_button(screen, self.btn_exit, self.manager.t("eye_find.result.exit"), (120, 134, 168))
+        self._draw_button(screen, self.btn_continue, self.manager.t("eye_find.result.continue"), (84, 148, 108), icon_name="check")
+        self._draw_button(screen, self.btn_exit, self.manager.t("eye_find.result.exit"), (120, 134, 168), icon_name="cross")
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()

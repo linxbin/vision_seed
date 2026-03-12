@@ -3,7 +3,7 @@ import random
 import time
 from datetime import datetime
 from core.base_scene import BaseScene
-from core.ui_theme import PlatformTheme, draw_chip, draw_platform_background
+from core.ui_theme import PlatformTheme, draw_chip, draw_chip_label, draw_platform_background
 from ..services import ETrainingRecordsService
 from core.e_generator import EGenerator
 from config import E_SIZE_LEVELS, SCREEN_WIDTH, SCREEN_HEIGHT
@@ -473,15 +473,15 @@ class TrainingScene(BaseScene):
         is_hovered = self.back_button_rect.collidepoint(mouse_pos)
         
         # 按钮背景色
-        draw_chip(screen, self.back_button_rect, hovered=is_hovered, radius=10)
-        back_text = self.back_button_font.render(
+        draw_chip_label(
+            screen,
+            self.back_button_rect,
+            self.back_button_font,
             self.manager.t("training.back"),
-            True,
-            PlatformTheme.ACCENT_DARK if not is_hovered else (255, 250, 244),
+            hovered=is_hovered,
+            icon_name="back_arrow",
+            radius=10,
         )
-        text_x = self.back_button_rect.centerx - back_text.get_width() // 2
-        text_y = self.back_button_rect.centery - back_text.get_height() // 2
-        screen.blit(back_text, (text_x, text_y))
 
         pause_hovered = self.pause_button_rect.collidepoint(mouse_pos)
         pause_color = (181, 219, 165) if pause_hovered else (214, 235, 203)

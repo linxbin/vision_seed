@@ -1,6 +1,8 @@
 import pygame
 
+from core.asset_loader import load_image_if_exists, project_path
 from core.base_scene import BaseScene
+from core.ui_theme import PlatformTheme, draw_card, draw_platform_background
 from config import SCREEN_WIDTH, SCREEN_HEIGHT
 
 
@@ -55,21 +57,28 @@ class OnboardingScene(BaseScene):
     def _draw_button(self, screen, rect, text, base_color):
         hovered = rect.collidepoint(pygame.mouse.get_pos())
         fill = tuple(min(c + 24, 255) for c in base_color) if hovered else base_color
-        pygame.draw.rect(screen, fill, rect, border_radius=8)
-        pygame.draw.rect(screen, (190, 212, 242), rect, 2, border_radius=8)
+        pygame.draw.rect(screen, fill, rect, border_radius=10)
+        pygame.draw.rect(screen, (255, 245, 230), rect, 2, border_radius=10)
+        icon_name = "check_light" if rect == self.start_button_rect else "cross_light"
+        icon = load_image_if_exists(project_path("assets", "ui", f"{icon_name}.png"), (18, 18))
         label = self.body_font.render(text, True, (255, 255, 255))
-        screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
+        gap = 8 if icon is not None else 0
+        content_width = label.get_width() + (icon.get_width() + gap if icon is not None else 0)
+        start_x = rect.centerx - content_width // 2
+        if icon is not None:
+            screen.blit(icon, (start_x, rect.centery - icon.get_height() // 2))
+            start_x += icon.get_width() + gap
+        screen.blit(label, (start_x, rect.centery - label.get_height() // 2))
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
-        screen.fill((20, 30, 50))
-        pygame.draw.rect(screen, (35, 49, 80), self.panel_rect, border_radius=14)
-        pygame.draw.rect(screen, (98, 136, 196), self.panel_rect, 2, border_radius=14)
+        draw_platform_background(screen, self.width, self.height)
+        draw_card(screen, self.panel_rect, alt=True, radius=20)
 
-        title = self.title_font.render(self.manager.t("onboarding.title"), True, (255, 255, 255))
+        title = self.title_font.render(self.manager.t("onboarding.title"), True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(title, (self.width // 2 - title.get_width() // 2, self.panel_rect.y + 24))
 
-        subtitle = self.subtitle_font.render(self.manager.t("onboarding.subtitle"), True, (182, 202, 235))
+        subtitle = self.subtitle_font.render(self.manager.t("onboarding.subtitle"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, self.panel_rect.y + 82))
 
         tips = [
@@ -81,11 +90,11 @@ class OnboardingScene(BaseScene):
         tip_y = self.panel_rect.y + 150
         for idx, tip in enumerate(tips, start=1):
             tip_text = f"{idx}. {tip}"
-            tip_surface = self.body_font.render(tip_text, True, (225, 235, 252))
+            tip_surface = self.body_font.render(tip_text, True, PlatformTheme.TEXT_PRIMARY)
             screen.blit(tip_surface, (self.panel_rect.x + 52, tip_y))
             tip_y += 52
 
-        est = self.small_font.render(self.manager.t("onboarding.estimate"), True, (168, 194, 230))
+        est = self.small_font.render(self.manager.t("onboarding.estimate"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(est, (self.panel_rect.x + 52, self.panel_rect.bottom - 112))
 
         self._draw_button(screen, self.start_button_rect, self.manager.t("onboarding.start"), (63, 154, 92))

@@ -2,7 +2,7 @@ import pygame
 
 from core.base_scene import BaseScene
 from core.game_metrics import summarize_session
-from core.ui_theme import PlatformTheme, draw_card, draw_chip, draw_platform_background
+from core.ui_theme import PlatformTheme, draw_card, draw_chip_label, draw_platform_background
 from config import SCREEN_HEIGHT, SCREEN_WIDTH
 
 
@@ -116,9 +116,7 @@ class CategoryScene(BaseScene):
 
         mouse_pos = pygame.mouse.get_pos()
         hovered = self.back_rect.collidepoint(mouse_pos)
-        draw_chip(screen, self.back_rect, hovered=hovered)
-        back_text = self.hint_font.render(self.manager.t("common.back"), True, PlatformTheme.ACCENT_DARK if not hovered else (255, 250, 244))
-        screen.blit(back_text, (self.back_rect.centerx - back_text.get_width() // 2, self.back_rect.centery - back_text.get_height() // 2))
+        draw_chip_label(screen, self.back_rect, self.hint_font, self.manager.t("common.back"), hovered=hovered, icon_name="back_arrow")
 
         hint = self.hint_font.render(self.manager.t("category.hint"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.height - 36))

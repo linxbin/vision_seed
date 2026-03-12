@@ -3,7 +3,7 @@ import pygame
 from config import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.base_scene import BaseScene
 from core.e_generator import EGenerator
-from core.ui_theme import PlatformTheme, draw_card, draw_chip, draw_platform_background
+from core.ui_theme import PlatformTheme, draw_card, draw_chip_label, draw_platform_background
 
 
 E_TRAINING_GAME_ID = "accommodation.e_orientation"
@@ -110,13 +110,7 @@ class ETrainingMenuScene(BaseScene):
             screen.blit(text, (item["rect"].x + 16, item["rect"].centery - text.get_height() // 2))
 
         hovered = self.back_rect.collidepoint(mouse_pos)
-        draw_chip(screen, self.back_rect, hovered=hovered)
-        back_text = self.hint_font.render(
-            self.manager.t("common.back"),
-            True,
-            PlatformTheme.ACCENT_DARK if not hovered else (255, 250, 244),
-        )
-        screen.blit(back_text, (self.back_rect.centerx - back_text.get_width() // 2, self.back_rect.centery - back_text.get_height() // 2))
+        draw_chip_label(screen, self.back_rect, self.hint_font, self.manager.t("common.back"), hovered=hovered, icon_name="back_arrow")
 
         hint = self.hint_font.render(self.manager.t("e_menu.hint"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.height - 34))

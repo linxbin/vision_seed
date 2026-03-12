@@ -1,7 +1,7 @@
 import pygame
 from datetime import datetime, timedelta
 from core.base_scene import BaseScene
-from core.ui_theme import PlatformTheme, draw_card, draw_chip, draw_platform_background
+from core.ui_theme import PlatformTheme, draw_card, draw_chip, draw_chip_label, draw_platform_background
 from ..services import ETrainingRecordsService
 from config import SCREEN_WIDTH, E_SIZE_LEVELS
 
@@ -144,18 +144,14 @@ class HistoryScene(BaseScene):
 
     def _draw_back_button(self, screen, mouse_pos):
         is_hovered = self.back_button_rect.collidepoint(mouse_pos)
-        draw_chip(screen, self.back_button_rect, hovered=is_hovered, radius=10)
-        back_text = self.small_font.render(
+        draw_chip_label(
+            screen,
+            self.back_button_rect,
+            self.small_font,
             self.manager.t("history.back"),
-            True,
-            PlatformTheme.ACCENT_DARK if not is_hovered else (255, 250, 244),
-        )
-        screen.blit(
-            back_text,
-            (
-                self.back_button_rect.centerx - back_text.get_width() // 2,
-                self.back_button_rect.centery - back_text.get_height() // 2,
-            ),
+            hovered=is_hovered,
+            icon_name="back_arrow",
+            radius=10,
         )
 
     def _draw_chip(self, screen, rect, text, active, mouse_pos):

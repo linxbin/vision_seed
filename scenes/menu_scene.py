@@ -2,9 +2,10 @@ import pygame
 import sys
 
 from config import SCREEN_HEIGHT, SCREEN_WIDTH
+from core.asset_loader import load_image_if_exists, project_path
 from core.base_scene import BaseScene
 from core.training_recommendation import build_daily_plan, build_daily_suggestion
-from core.ui_theme import PlatformTheme, draw_card, draw_chip, draw_platform_background
+from core.ui_theme import PlatformTheme, draw_card, draw_chip_label, draw_platform_background
 
 
 class MenuScene(BaseScene):
@@ -43,8 +44,8 @@ class MenuScene(BaseScene):
         exit_y = self.height - margin - control_h
         system_y = exit_y - control_gap - control_h
         self.control_items = [
-            {"index": len(categories) + 1, "rect": pygame.Rect(control_x, system_y, control_w, control_h), "kind": "scene", "scene": "system_settings", "label": self.manager.t("menu.system_settings")},
-            {"index": len(categories) + 2, "rect": pygame.Rect(control_x, exit_y, control_w, control_h), "kind": "exit", "label": self.manager.t("menu.exit")},
+            {"index": len(categories) + 1, "rect": pygame.Rect(control_x, system_y, control_w, control_h), "kind": "scene", "scene": "system_settings", "label": self.manager.t("menu.system_settings"), "icon": "gear"},
+            {"index": len(categories) + 2, "rect": pygame.Rect(control_x, exit_y, control_w, control_h), "kind": "exit", "label": self.manager.t("menu.exit"), "icon": "power"},
         ]
 
         bottom_reserved = 210
@@ -155,14 +156,17 @@ class MenuScene(BaseScene):
 
     def _draw_recommendations(self, screen):
         draw_card(screen, self.recommend_panel, alt=True, radius=18)
+        target_icon = load_image_if_exists(project_path("assets", "ui", "target_dark.png"), (18, 18))
         title = self.option_font.render(self.manager.t("menu.recommend.title"), True, PlatformTheme.TEXT_PRIMARY)
-        screen.blit(title, (self.recommend_panel.x + 16, self.recommend_panel.y + 12))
+        title_x = self.recommend_panel.x + 16
+        if target_icon is not None:
+            screen.blit(target_icon, (title_x, self.recommend_panel.y + 16))
+            title_x += target_icon.get_width() + 8
+        screen.blit(title, (title_x, self.recommend_panel.y + 12))
 
         if not self._compact_recommendation:
             badge_rect = pygame.Rect(self.recommend_panel.right - 112, self.recommend_panel.y + 14, 96, 28)
-            draw_chip(screen, badge_rect, hovered=False)
-            badge = self.badge_font.render("Today", True, PlatformTheme.ACCENT_DARK)
-            screen.blit(badge, (badge_rect.centerx - badge.get_width() // 2, badge_rect.centery - badge.get_height() // 2))
+            draw_chip_label(screen, badge_rect, self.badge_font, "Today", hovered=False)
 
         hint = self.meta_font.render(self.recommendation_hint, True, PlatformTheme.TEXT_MUTED)
         screen.blit(hint, (self.recommend_panel.x + 16, self.recommend_panel.y + 48))
@@ -170,7 +174,13 @@ class MenuScene(BaseScene):
         for idx, item in enumerate(self.recommendations[: self._recommendation_lines], start=1):
             reason = self.manager.t(item["reason_key"], accuracy=f"{item['accuracy']:.1f}")
             line = self.meta_font.render(f"{idx}. {item['game_name']}  ·  {reason}", True, PlatformTheme.TEXT_PRIMARY)
-            screen.blit(line, (self.recommend_panel.x + 18, self.recommend_panel.y + 72 + (idx - 1) * 18))
+            line_y = self.recommend_panel.y + 72 + (idx - 1) * 18
+            bullet_icon = load_image_if_exists(project_path("assets", "ui", "star_dark.png"), (12, 12))
+            line_x = self.recommend_panel.x + 18
+            if bullet_icon is not None:
+                screen.blit(bullet_icon, (line_x, line_y + 3))
+                line_x += bullet_icon.get_width() + 6
+            screen.blit(line, (line_x, line_y))
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
@@ -191,9 +201,14 @@ class MenuScene(BaseScene):
 
         for item in self.control_items:
             hovered = item["rect"].collidepoint(mouse_pos)
-            draw_chip(screen, item["rect"], hovered=hovered)
-            label = self.option_font.render(item["label"], True, PlatformTheme.ACCENT_DARK if not hovered else (255, 250, 244))
-            screen.blit(label, (item["rect"].centerx - label.get_width() // 2, item["rect"].centery - label.get_height() // 2))
+            draw_chip_label(
+                screen,
+                item["rect"],
+                self.option_font,
+                item["label"],
+                hovered=hovered,
+                icon_name=item.get("icon"),
+            )
 
         self._draw_recommendations(screen)
         hint = self.hint_font.render(self.manager.t("menu.hint"), True, PlatformTheme.TEXT_MUTED)
