@@ -1,1 +1,1 @@
-# Game packages
+from .depth_grab import build_descriptor as build_depth_grab_descriptor

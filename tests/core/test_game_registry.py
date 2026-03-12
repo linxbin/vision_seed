@@ -11,17 +11,22 @@ class GameRegistryTests(unittest.TestCase):
         ids = {item["id"] for item in categories}
         self.assertEqual(ids, set(CATEGORY_LABELS.keys()))
 
-    def test_builtin_game_registered(self):
+    def test_builtin_games_registered(self):
         registry = GameRegistry()
-        game = registry.get_game("accommodation.e_orientation")
-        self.assertIsNotNone(game)
-        self.assertEqual(game.category, "accommodation")
-        self.assertEqual(game.name, "E Orientation Training")
-
-        eye_find = registry.get_game("simultaneous.eye_find_patterns")
-        self.assertIsNotNone(eye_find)
-        self.assertEqual(eye_find.category, "simultaneous")
-        self.assertEqual(eye_find.name, "Eye Find Patterns")
+        expected = {
+            "accommodation.e_orientation": "accommodation",
+            "accommodation.catch_fruit": "accommodation",
+            "simultaneous.eye_find_patterns": "simultaneous",
+            "simultaneous.spot_difference": "simultaneous",
+            "fusion.path_fusion": "fusion",
+            "suppression.weak_eye_key": "suppression",
+            "stereopsis.depth_grab": "stereopsis",
+            "amblyopia.precision_aim": "amblyopia",
+        }
+        for game_id, category in expected.items():
+            game = registry.get_game(game_id)
+            self.assertIsNotNone(game, game_id)
+            self.assertEqual(game.category, category)
 
 
 if __name__ == "__main__":

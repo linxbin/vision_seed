@@ -1,1 +1,1 @@
-# Game packages
+from .path_fusion import build_descriptor as build_path_fusion_descriptor

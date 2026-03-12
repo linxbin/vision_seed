@@ -1,6 +1,8 @@
 import pygame
 
 from core.base_scene import BaseScene
+from core.game_metrics import summarize_session
+from core.ui_theme import PlatformTheme, draw_card, draw_chip, draw_platform_background
 from config import SCREEN_HEIGHT, SCREEN_WIDTH
 
 
@@ -19,6 +21,7 @@ class CategoryScene(BaseScene):
         self.title_font = self.create_font(48)
         self.item_font = self.create_font(30)
         self.hint_font = self.create_font(20)
+        self.meta_font = self.create_font(16)
 
     def _build_items(self):
         category_id = self.manager.active_category
@@ -29,8 +32,8 @@ class CategoryScene(BaseScene):
 
         games = self.manager.game_registry.get_games_by_category(category_id)
         self._items = []
-        card_w = min(640, self.width - 80)
-        card_h = 56
+        card_w = min(660, self.width - 80)
+        card_h = 84
         gap = 14
         start_y = 170
         x = self.width // 2 - card_w // 2
@@ -38,8 +41,10 @@ class CategoryScene(BaseScene):
         for index, game in enumerate(games, start=1):
             rect = pygame.Rect(x, start_y + (index - 1) * (card_h + gap), card_w, card_h)
             game_name = self.manager.t(game.name_key) if getattr(game, "name_key", "") else game.name
-            self._items.append({"rect": rect, "index": index, "game_id": game.game_id, "name": game_name})
-        self.back_rect = pygame.Rect(self.width - 98, 20, 78, 34)
+            latest = self.manager.data_manager.get_latest_session(game.game_id)
+            summary1, summary2 = summarize_session(self.manager, latest)
+            self._items.append({"rect": rect, "index": index, "game_id": game.game_id, "name": game_name, "summary1": summary1, "summary2": summary2})
+        self.back_rect = pygame.Rect(self.width - 126, 24, 92, 40)
 
     def _resolve_label(self, item):
         if not item:
@@ -85,35 +90,35 @@ class CategoryScene(BaseScene):
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
-        screen.fill((10, 14, 22))
+        draw_platform_background(screen, self.width, self.height)
 
-        title = self.title_font.render(self._title, True, (236, 244, 255))
+        title = self.title_font.render(self._title, True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 72))
 
         if not self._items:
-            empty_text = self.item_font.render(self.manager.t("category.empty"), True, (168, 184, 212))
+            empty_text = self.item_font.render(self.manager.t("category.empty"), True, PlatformTheme.TEXT_MUTED)
             screen.blit(empty_text, (self.width // 2 - empty_text.get_width() // 2, self.height // 2 - 20))
         else:
             mouse_pos = pygame.mouse.get_pos()
-            for item in self._items:
+            for index, item in enumerate(self._items, start=1):
                 hovered = item["rect"].collidepoint(mouse_pos)
-                fill = (54, 78, 122) if hovered else (35, 50, 80)
-                border = (164, 196, 245) if hovered else (98, 124, 174)
-                pygame.draw.rect(screen, fill, item["rect"], border_radius=8)
-                pygame.draw.rect(screen, border, item["rect"], 2, border_radius=8)
-                label = self.item_font.render(f"{item['index']}. {item['name']}", True, (236, 244, 255))
+                draw_card(screen, item["rect"], hovered=hovered, alt=index % 2 == 0)
+                label = self.item_font.render(f"{item['index']}. {item['name']}", True, PlatformTheme.TEXT_PRIMARY)
                 label_x = item["rect"].x + 16
-                label_y = item["rect"].centery - label.get_height() // 2
+                label_y = item["rect"].y + 12
                 screen.blit(label, (label_x, label_y))
+                if item.get("summary1"):
+                    summary1 = self.meta_font.render(item["summary1"], True, PlatformTheme.TEXT_MUTED)
+                    screen.blit(summary1, (label_x, item["rect"].y + 44))
+                if item.get("summary2"):
+                    summary2 = self.meta_font.render(item["summary2"], True, (124, 145, 170))
+                    screen.blit(summary2, (label_x, item["rect"].y + 62))
 
         mouse_pos = pygame.mouse.get_pos()
         hovered = self.back_rect.collidepoint(mouse_pos)
-        fill = (68, 98, 152) if hovered else (50, 74, 118)
-        border = (176, 210, 255) if hovered else (112, 145, 196)
-        pygame.draw.rect(screen, fill, self.back_rect, border_radius=8)
-        pygame.draw.rect(screen, border, self.back_rect, 2, border_radius=8)
-        back_text = self.hint_font.render(self.manager.t("common.back"), True, (241, 247, 255))
+        draw_chip(screen, self.back_rect, hovered=hovered)
+        back_text = self.hint_font.render(self.manager.t("common.back"), True, PlatformTheme.ACCENT_DARK if not hovered else (255, 250, 244))
         screen.blit(back_text, (self.back_rect.centerx - back_text.get_width() // 2, self.back_rect.centery - back_text.get_height() // 2))
 
-        hint = self.hint_font.render(self.manager.t("category.hint"), True, (148, 166, 198))
+        hint = self.hint_font.render(self.manager.t("category.hint"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.height - 36))

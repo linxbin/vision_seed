@@ -10,12 +10,10 @@ from core.app_paths import get_install_root, get_user_data_dir
 class DataManager:
     """数据管理器 - 负责训练记录的持久化存储和读取"""
     CURRENT_SCHEMA_VERSION = 3
-    
+
     def __init__(self):
         self.data_dir = get_user_data_dir()
         self.records_file = os.path.join(self.data_dir, "records.json")
-
-        # 初始化记录文件（如果不存在）
         if not os.path.exists(self.records_file):
             self._migrate_or_init_records()
 
@@ -30,14 +28,9 @@ class DataManager:
             except OSError as e:
                 print(f"Error migrating legacy records file: {e}")
         self._init_records_file()
-    
+
     def _init_records_file(self):
-        """初始化记录文件"""
-        initial_data = {
-            "schema_version": self.CURRENT_SCHEMA_VERSION,
-            "sessions": []
-        }
-        self._write_json(initial_data)
+        self._write_json({"schema_version": self.CURRENT_SCHEMA_VERSION, "sessions": []})
 
     def _safe_int(self, value: Any, default: int = 0) -> int:
         try:
@@ -61,43 +54,35 @@ class DataManager:
             return E_SIZE_LEVELS[difficulty_level - 1]
         return E_SIZE_LEVELS[0]
 
+    def _normalize_metrics(self, session: Dict[str, Any]) -> Dict[str, Any]:
+        metrics = session.get("training_metrics", {})
+        if not isinstance(metrics, dict):
+            return {}
+        normalized = {}
+        for key, value in metrics.items():
+            if isinstance(key, str) and key and isinstance(value, (int, float, str, bool)):
+                normalized[key] = value
+        return normalized
+
     def _normalize_session(self, session: Dict[str, Any]) -> Dict[str, Any]:
         timestamp = session.get("timestamp", "")
         game_id = session.get("game_id", "legacy_training")
-        if not isinstance(game_id, str) or not game_id.strip():
-            game_id = "legacy_training"
-        else:
-            game_id = game_id.strip()
-        difficulty_level = self._safe_int(session.get("difficulty_level"), 1)
-        difficulty_level = max(1, min(len(E_SIZE_LEVELS), difficulty_level))
-
-        total_questions = self._safe_int(session.get("total_questions"), 0)
-        total_questions = max(0, total_questions)
-        correct_count = self._safe_int(session.get("correct_count"), 0)
-        correct_count = max(0, min(total_questions, correct_count))
-
+        game_id = game_id.strip() if isinstance(game_id, str) and game_id.strip() else "legacy_training"
+        difficulty_level = max(1, min(len(E_SIZE_LEVELS), self._safe_int(session.get("difficulty_level"), 1)))
+        total_questions = max(0, self._safe_int(session.get("total_questions"), 0))
+        correct_count = max(0, min(total_questions, self._safe_int(session.get("correct_count"), 0)))
         wrong_default = max(0, total_questions - correct_count)
-        wrong_count = self._safe_int(session.get("wrong_count"), wrong_default)
-        wrong_count = max(0, wrong_count)
-
-        duration_seconds = self._safe_float(session.get("duration_seconds"), 0.0)
-        duration_seconds = max(0.0, duration_seconds)
-
+        wrong_count = max(0, self._safe_int(session.get("wrong_count"), wrong_default))
+        duration_seconds = max(0.0, self._safe_float(session.get("duration_seconds"), 0.0))
         e_size_px = self._safe_int(session.get("e_size_px"), 0)
         if e_size_px <= 0:
             e_size_px = self._derive_e_size(difficulty_level)
-
         accuracy_rate = session.get("accuracy_rate")
         if accuracy_rate is None:
             accuracy_rate = round((correct_count / total_questions) * 100, 1) if total_questions > 0 else 0.0
         else:
-            accuracy_rate = self._safe_float(accuracy_rate, 0.0)
-        accuracy_rate = max(0.0, min(100.0, accuracy_rate))
-
-        session_id = session.get("session_id")
-        if not session_id:
-            session_id = self._build_session_id(timestamp)
-
+            accuracy_rate = max(0.0, min(100.0, self._safe_float(accuracy_rate, 0.0)))
+        session_id = session.get("session_id") or self._build_session_id(timestamp)
         return {
             "schema_version": self.CURRENT_SCHEMA_VERSION,
             "timestamp": timestamp,
@@ -110,13 +95,13 @@ class DataManager:
             "wrong_count": wrong_count,
             "duration_seconds": duration_seconds,
             "accuracy_rate": accuracy_rate,
+            "training_metrics": self._normalize_metrics(session),
         }
 
     def _migrate_data(self, data: Dict[str, Any]) -> Tuple[Dict[str, Any], bool]:
         sessions = data.get("sessions", [])
         if not isinstance(sessions, list):
             sessions = []
-
         normalized_sessions = []
         changed = False
         for raw_session in sessions:
@@ -127,21 +112,12 @@ class DataManager:
             normalized_sessions.append(normalized)
             if normalized != raw_session:
                 changed = True
-
-        migrated = {
-            "schema_version": self.CURRENT_SCHEMA_VERSION,
-            "sessions": normalized_sessions
-        }
-
-        if data.get("schema_version") != self.CURRENT_SCHEMA_VERSION:
+        migrated = {"schema_version": self.CURRENT_SCHEMA_VERSION, "sessions": normalized_sessions}
+        if data.get("schema_version") != self.CURRENT_SCHEMA_VERSION or data.get("sessions") != normalized_sessions:
             changed = True
-        if data.get("sessions") != normalized_sessions:
-            changed = True
-
         return migrated, changed
-    
+
     def _read_json(self) -> Dict[str, Any]:
-        """安全读取JSON文件"""
         try:
             if os.path.exists(self.records_file):
                 with open(self.records_file, 'r', encoding='utf-8') as f:
@@ -152,24 +128,17 @@ class DataManager:
                 if changed:
                     self._write_json(migrated_data)
                 return migrated_data
-            else:
-                return {"schema_version": self.CURRENT_SCHEMA_VERSION, "sessions": []}
+            return {"schema_version": self.CURRENT_SCHEMA_VERSION, "sessions": []}
         except (json.JSONDecodeError, IOError) as e:
             print(f"Error reading records file: {e}")
-            # 返回默认数据并尝试修复文件
             self._init_records_file()
             return {"schema_version": self.CURRENT_SCHEMA_VERSION, "sessions": []}
-    
+
     def _write_json(self, data: Dict[str, Any]):
-        """安全写入JSON文件"""
         temp_path = ""
         try:
             os.makedirs(os.path.dirname(self.records_file), exist_ok=True)
-            fd, temp_path = tempfile.mkstemp(
-                dir=os.path.dirname(self.records_file),
-                prefix=".records.",
-                suffix=".tmp",
-            )
+            fd, temp_path = tempfile.mkstemp(dir=os.path.dirname(self.records_file), prefix=".records.", suffix=".tmp")
             with os.fdopen(fd, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
                 f.flush()
@@ -182,64 +151,38 @@ class DataManager:
                     os.remove(temp_path)
                 except OSError:
                     pass
-    
+
     def save_training_session(self, session_data: Dict[str, Any]) -> bool:
-        """
-        保存训练会话记录
-        
-        Args:
-            session_data (dict): 训练会话数据
-            
-        Returns:
-            bool: 保存是否成功
-        """
         try:
-            # 验证必需字段
-            required_fields = ['timestamp', 'difficulty_level', 'total_questions', 
-                             'correct_count', 'wrong_count', 'duration_seconds']
+            required_fields = ['timestamp', 'difficulty_level', 'total_questions', 'correct_count', 'wrong_count', 'duration_seconds']
             for field in required_fields:
                 if field not in session_data:
                     raise ValueError(f"Missing required field: {field}")
-
             normalized_session = self._normalize_session(session_data)
-
-            # 获取现有数据
             data = self._read_json()
-            
-            # 添加新会话到列表开头（最新在前）
             data['sessions'].insert(0, normalized_session)
             data['schema_version'] = self.CURRENT_SCHEMA_VERSION
-            
-            # 写回文件
             self._write_json(data)
-            
             return True
-            
         except Exception as e:
             print(f"Error saving training session: {e}")
             return False
-    
+
     def get_all_sessions(self) -> List[Dict[str, Any]]:
-        """获取所有训练会话记录"""
-        data = self._read_json()
-        return data.get('sessions', [])
+        return self._read_json().get('sessions', [])
 
     def get_sessions_by_game(self, game_id: str) -> List[Dict[str, Any]]:
-        """按 game_id 获取训练会话记录。"""
         if not isinstance(game_id, str) or not game_id.strip():
             return self.get_all_sessions()
         normalized = game_id.strip()
         return [session for session in self.get_all_sessions() if session.get("game_id") == normalized]
-    
+
     def get_latest_session(self, game_id: str = None) -> Dict[str, Any]:
-        """获取最新的训练会话记录，可按 game_id 过滤。"""
         sessions = self.get_sessions_by_game(game_id) if game_id else self.get_all_sessions()
         return sessions[0] if sessions else {}
-    
+
     def get_session_count(self) -> int:
-        """获取训练会话总数"""
         return len(self.get_all_sessions())
-    
+
     def clear_all_records(self):
-        """清空所有训练记录（谨慎使用）"""
         self._init_records_file()

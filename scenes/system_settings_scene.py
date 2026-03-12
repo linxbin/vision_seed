@@ -2,6 +2,7 @@ import pygame
 
 from config import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.base_scene import BaseScene
+from core.ui_theme import PlatformTheme, draw_card, draw_chip, draw_platform_background
 
 
 class SystemSettingsScene(BaseScene):
@@ -23,13 +24,13 @@ class SystemSettingsScene(BaseScene):
 
     def _reflow_layout(self):
         card_w = min(700, self.width - 80)
-        card_h = 64
+        card_h = 68
         x = self.width // 2 - card_w // 2
         y = 220
         gap = 18
         self.sound_rect = pygame.Rect(x, y, card_w, card_h)
         self.language_rect = pygame.Rect(x, y + card_h + gap, card_w, card_h)
-        self.back_rect = pygame.Rect(self.width - 98, 20, 78, 34)
+        self.back_rect = pygame.Rect(self.width - 126, 24, 92, 40)
 
     def on_resize(self, width, height):
         self.width = width
@@ -70,18 +71,15 @@ class SystemSettingsScene(BaseScene):
     def _draw_item(self, screen, rect, text):
         mouse_pos = pygame.mouse.get_pos()
         hovered = rect.collidepoint(mouse_pos)
-        fill = (60, 88, 138) if hovered else (42, 62, 98)
-        border = (172, 206, 255) if hovered else (108, 140, 194)
-        pygame.draw.rect(screen, fill, rect, border_radius=10)
-        pygame.draw.rect(screen, border, rect, 2, border_radius=10)
-        label = self.option_font.render(text, True, (240, 246, 255))
+        draw_card(screen, rect, hovered=hovered)
+        label = self.option_font.render(text, True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(label, (rect.x + 16, rect.centery - label.get_height() // 2))
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
-        screen.fill((9, 14, 24))
-        title = self.title_font.render(self.manager.t("system.title"), True, (245, 248, 255))
-        info = self.hint_font.render(self.manager.t("system.hint"), True, (156, 182, 222))
+        draw_platform_background(screen, self.width, self.height)
+        title = self.title_font.render(self.manager.t("system.title"), True, PlatformTheme.TEXT_PRIMARY)
+        info = self.hint_font.render(self.manager.t("system.hint"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 100))
         screen.blit(info, (self.width // 2 - info.get_width() // 2, 162))
 
@@ -92,9 +90,6 @@ class SystemSettingsScene(BaseScene):
 
         mouse_pos = pygame.mouse.get_pos()
         hovered = self.back_rect.collidepoint(mouse_pos)
-        fill = (68, 98, 152) if hovered else (50, 74, 118)
-        border = (176, 210, 255) if hovered else (112, 145, 196)
-        pygame.draw.rect(screen, fill, self.back_rect, border_radius=8)
-        pygame.draw.rect(screen, border, self.back_rect, 2, border_radius=8)
-        back_text = self.label_font.render(self.manager.t("common.back"), True, (241, 247, 255))
+        draw_chip(screen, self.back_rect, hovered=hovered)
+        back_text = self.label_font.render(self.manager.t("common.back"), True, PlatformTheme.ACCENT_DARK if not hovered else (255, 250, 244))
         screen.blit(back_text, (self.back_rect.centerx - back_text.get_width() // 2, self.back_rect.centery - back_text.get_height() // 2))

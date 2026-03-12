@@ -1,1 +1,1 @@
-# Game packages
+from .weak_eye_key import build_descriptor as build_weak_eye_key_descriptor

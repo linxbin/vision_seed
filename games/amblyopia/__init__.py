@@ -1,1 +1,1 @@
-# Game packages
+from .precision_aim import build_descriptor as build_precision_aim_descriptor

@@ -1,5 +1,12 @@
+from games.accommodation.catch_fruit.i18n import TRANSLATIONS as CATCH_FRUIT_TRANSLATIONS
 from games.accommodation.e_orientation.i18n import TRANSLATIONS as E_ORIENTATION_TRANSLATIONS
+from games.amblyopia.precision_aim.i18n import TRANSLATIONS as PRECISION_AIM_TRANSLATIONS
+from games.common.arcade_training.i18n import TRANSLATIONS as ARCADE_TRANSLATIONS
+from games.fusion.path_fusion.i18n import TRANSLATIONS as PATH_FUSION_TRANSLATIONS
 from games.simultaneous.eye_find_patterns.i18n import TRANSLATIONS as EYE_FIND_TRANSLATIONS
+from games.simultaneous.spot_difference.i18n import TRANSLATIONS as SPOT_DIFFERENCE_TRANSLATIONS
+from games.stereopsis.depth_grab.i18n import TRANSLATIONS as DEPTH_GRAB_TRANSLATIONS
+from games.suppression.weak_eye_key.i18n import TRANSLATIONS as WEAK_EYE_KEY_TRANSLATIONS
 
 
 def _merge_translations(*translation_sets):
@@ -26,6 +33,12 @@ class LanguageManager:
             "menu.view_history": "View History",
             "menu.exit": "Exit",
             "menu.hint": "Shortcuts: 1-9",
+            "menu.recommend.title": "Today's Recommended Order",
+            "menu.recommend.fresh": "fresh today",
+            "menu.recommend.review": "review ({accuracy}%)",
+            "menu.recommend.none": "Complete a training to see tailored suggestions.",
+            "menu.recommend.start_fresh": "Start with fresh categories, then review today's weaker area.",
+            "menu.recommend.review_focus": "Review {category} first today.",
             "menu.multigame_subtitle": "Multi-Game Training",
             "menu.template_title": "Quick Plans",
             "menu.template_child": "Child Plan",
@@ -87,6 +100,8 @@ class LanguageManager:
             "category.unknown": "Category",
             "category.empty": "No games in this category",
             "category.hint": "Esc or Back: Return",
+            "category.latest_summary": "Latest: {accuracy}% / {duration}s",
+            "category.latest_metric": "{label}: {value}",
         },
         "zh-CN": {
             "menu.title": "视芽",
@@ -97,6 +112,12 @@ class LanguageManager:
             "menu.view_history": "训练历史",
             "menu.exit": "退出",
             "menu.hint": "快捷键：1-9",
+            "menu.recommend.title": "今日推荐训练顺序",
+            "menu.recommend.fresh": "今天优先开始",
+            "menu.recommend.review": "建议复习（{accuracy}%）",
+            "menu.recommend.none": "完成一次训练后，这里会显示个性化建议。",
+            "menu.recommend.start_fresh": "建议先练今天还没覆盖的分类，再回看较弱项。",
+            "menu.recommend.review_focus": "今天建议先复习 {category}。",
             "menu.multigame_subtitle": "多游戏训练系统",
             "menu.template_title": "快捷训练方案",
             "menu.template_child": "儿童方案",
@@ -158,13 +179,22 @@ class LanguageManager:
             "category.unknown": "分类",
             "category.empty": "该分类暂无游戏",
             "category.hint": "Esc 或 返回：回到主菜单",
+            "category.latest_summary": "最近一次：正确率{accuracy}% / {duration}秒",
+            "category.latest_metric": "{label}：{value}",
         },
     }
 
     TRANSLATIONS = _merge_translations(
         CORE_TRANSLATIONS,
+        ARCADE_TRANSLATIONS,
         E_ORIENTATION_TRANSLATIONS,
+        CATCH_FRUIT_TRANSLATIONS,
         EYE_FIND_TRANSLATIONS,
+        SPOT_DIFFERENCE_TRANSLATIONS,
+        PATH_FUSION_TRANSLATIONS,
+        WEAK_EYE_KEY_TRANSLATIONS,
+        DEPTH_GRAB_TRANSLATIONS,
+        PRECISION_AIM_TRANSLATIONS,
     )
 
     def __init__(self, language=DEFAULT_LANGUAGE):

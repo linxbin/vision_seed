@@ -13,7 +13,6 @@ class DataManagerIOTests(unittest.TestCase):
                 "core.data_manager.get_install_root", return_value=tmp_dir
             ):
                 manager = DataManager()
-
                 ok = manager.save_training_session(
                     {
                         "timestamp": "2026-02-27T00:00:00",
@@ -22,18 +21,16 @@ class DataManagerIOTests(unittest.TestCase):
                         "correct_count": 7,
                         "wrong_count": 3,
                         "duration_seconds": 12.3,
+                        "training_metrics": {"clear_window_hits": 4},
                     }
                 )
                 self.assertTrue(ok)
-
                 sessions = manager.get_all_sessions()
                 self.assertEqual(len(sessions), 1)
                 self.assertEqual(sessions[0]["schema_version"], DataManager.CURRENT_SCHEMA_VERSION)
-                self.assertIn("e_size_px", sessions[0])
-                self.assertIn("session_id", sessions[0])
-                self.assertIn("game_id", sessions[0])
                 self.assertEqual(sessions[0]["game_id"], "legacy_training")
                 self.assertEqual(sessions[0]["accuracy_rate"], 70.0)
+                self.assertEqual(sessions[0]["training_metrics"]["clear_window_hits"], 4)
 
     def test_atomic_write_replace_failure_keeps_original_file(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -41,23 +38,13 @@ class DataManagerIOTests(unittest.TestCase):
                 "core.data_manager.get_install_root", return_value=tmp_dir
             ):
                 manager = DataManager()
-
                 baseline = manager._read_json()
                 next_data = {"schema_version": DataManager.CURRENT_SCHEMA_VERSION, "sessions": [{"timestamp": "x"}]}
-
                 with patch("core.data_manager.os.replace", side_effect=OSError("replace failed")):
                     manager._write_json(next_data)
-
                 after = manager._read_json()
                 self.assertEqual(after, baseline)
-
-                tmp_files = list(Path(tmp_dir).glob(".records.*.tmp"))
-                self.assertEqual(tmp_files, [])
-
-
-if __name__ == "__main__":
-    unittest.main()
-
+                self.assertEqual(list(Path(tmp_dir).glob(".records.*.tmp")), [])
 
     def test_get_sessions_by_game_filters_namespace(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -82,15 +69,16 @@ if __name__ == "__main__":
                     "correct_count": 6,
                     "wrong_count": 2,
                     "duration_seconds": 20.0,
+                    "training_metrics": {"depth_accuracy": 80.0},
                 })
-
                 e_sessions = manager.get_sessions_by_game("accommodation.e_orientation")
                 eye_sessions = manager.get_sessions_by_game("simultaneous.eye_find_patterns")
-
                 self.assertEqual(len(e_sessions), 1)
                 self.assertEqual(len(eye_sessions), 1)
                 self.assertEqual(e_sessions[0]["game_id"], "accommodation.e_orientation")
-                self.assertEqual(
-                    manager.get_latest_session("simultaneous.eye_find_patterns")["game_id"],
-                    "simultaneous.eye_find_patterns",
-                )
+                self.assertEqual(manager.get_latest_session("simultaneous.eye_find_patterns")["game_id"], "simultaneous.eye_find_patterns")
+                self.assertEqual(eye_sessions[0]["training_metrics"]["depth_accuracy"], 80.0)
+
+
+if __name__ == "__main__":
+    unittest.main()

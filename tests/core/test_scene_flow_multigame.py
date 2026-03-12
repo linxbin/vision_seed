@@ -11,12 +11,17 @@ from scenes.game_host_scene import GameHostScene
 from scenes.menu_scene import MenuScene
 
 
+class _FakeDataManager:
+    def get_latest_session(self, game_id=None):
+        return {"accuracy_rate": 75.0, "duration_seconds": 20.0, "training_metrics": {"clear_window_hits": 3}}
+
+
 class _FakeGameRegistry:
     def __init__(self, descriptor):
         self._descriptor = descriptor
 
     def get_categories(self):
-        return [{"id": "accommodation", "name": "调节训练"}]
+        return [{"id": "accommodation", "name": "调节训练", "name_key": "category.accommodation"}]
 
     def get_games_by_category(self, category_id):
         if category_id == "accommodation":
@@ -33,12 +38,17 @@ class _FlowManagerStub:
     def __init__(self, registry):
         self.settings = {"language": "en-US"}
         self.game_registry = registry
+        self.data_manager = _FakeDataManager()
         self.active_category = None
         self.active_game_id = None
         self.screen_size = (900, 700)
         self.last_scene = None
 
-    def t(self, key, **_kwargs):
+    def t(self, key, **kwargs):
+        if key == "category.latest_summary":
+            return f"Latest: {kwargs['accuracy']}% / {kwargs['duration']}s"
+        if key == "category.latest_metric":
+            return f"{kwargs['label']}: {kwargs['value']}"
         return key
 
     def set_scene(self, name):
@@ -97,6 +107,8 @@ class SceneFlowMultiGameTests(unittest.TestCase):
         self.assertEqual(manager.active_category, "accommodation")
 
         category = CategoryScene(manager)
+        self.assertEqual(len(category._items), 1)
+        self.assertEqual(category._items[0]["summary1"], "Latest: 75.0% / 20.0s")
         category.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_1)])
         self.assertEqual(manager.last_scene, "game_host")
         self.assertEqual(manager.active_game_id, "accommodation.fake")

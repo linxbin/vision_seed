@@ -1,7 +1,11 @@
 from typing import Dict, List, Optional
 
-from games.accommodation import build_descriptor as build_accommodation_descriptor
-from games.simultaneous import build_eye_find_patterns_descriptor
+from games.accommodation import build_catch_fruit_descriptor, build_descriptor as build_accommodation_descriptor
+from games.amblyopia import build_precision_aim_descriptor
+from games.fusion import build_path_fusion_descriptor
+from games.simultaneous import build_eye_find_patterns_descriptor, build_spot_difference_descriptor
+from games.stereopsis import build_depth_grab_descriptor
+from games.suppression import build_weak_eye_key_descriptor
 
 from .game_contract import GameDescriptor
 
@@ -23,7 +27,13 @@ class GameRegistry:
 
     def _register_builtin_games(self):
         self.register(build_accommodation_descriptor())
+        self.register(build_catch_fruit_descriptor())
         self.register(build_eye_find_patterns_descriptor())
+        self.register(build_spot_difference_descriptor())
+        self.register(build_path_fusion_descriptor())
+        self.register(build_weak_eye_key_descriptor())
+        self.register(build_depth_grab_descriptor())
+        self.register(build_precision_aim_descriptor())
 
     def register(self, game: GameDescriptor):
         self._games[game.game_id] = game
