@@ -1,6 +1,7 @@
 import pygame
 from core.base_scene import BaseScene
 from core.e_generator import EGenerator
+from core.ui_theme import PlatformTheme, draw_card, draw_platform_background
 from config import E_SIZE_LEVELS, SCREEN_WIDTH, MIN_QUESTIONS, MAX_QUESTIONS
 
 
@@ -36,11 +37,11 @@ class ConfigScene(BaseScene):
     ACTION_BUTTON_GAP = 12
     FEEDBACK_DURATION_FRAMES = 180
 
-    COLOR_BG = (24, 34, 58)
-    COLOR_PANEL_FILL = (34, 48, 78)
-    COLOR_PANEL_FILL_HOVER = (40, 56, 90)
-    COLOR_PANEL_BORDER = (86, 116, 170)
-    COLOR_PANEL_BORDER_HOVER = (110, 145, 205)
+    COLOR_BG = PlatformTheme.BG_BOTTOM
+    COLOR_PANEL_FILL = PlatformTheme.CARD
+    COLOR_PANEL_FILL_HOVER = PlatformTheme.CARD_HOVER
+    COLOR_PANEL_BORDER = PlatformTheme.BORDER
+    COLOR_PANEL_BORDER_HOVER = PlatformTheme.BORDER_HOVER
 
     def __init__(self, manager):
         super().__init__(manager)
@@ -386,39 +387,35 @@ class ConfigScene(BaseScene):
 
     def _draw_panel(self, screen, rect, title, mouse_pos):
         hovered = rect.collidepoint(mouse_pos)
-        fill = self.COLOR_PANEL_FILL_HOVER if hovered else self.COLOR_PANEL_FILL
-        border = self.COLOR_PANEL_BORDER_HOVER if hovered else self.COLOR_PANEL_BORDER
-        pygame.draw.rect(screen, fill, rect, border_radius=self.PANEL_RADIUS)
-        pygame.draw.rect(screen, border, rect, 2, border_radius=self.PANEL_RADIUS)
-
-        title_surface = self.subtitle_font.render(title, True, (235, 240, 255))
+        draw_card(screen, rect, hovered=hovered, alt=True, radius=self.PANEL_RADIUS)
+        title_surface = self.subtitle_font.render(title, True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(title_surface, (rect.x + 16, rect.y + 12))
 
     def _draw_segmented_control(self, screen, rect, label, left_text, right_text, left_selected, mouse_pos):
         hovered = rect.collidepoint(mouse_pos)
         # 统一分段开关语义：底板 + 选中胶囊 + 未选中暗底
-        bg = (58, 82, 128) if hovered else (48, 70, 112)
+        bg = (230, 220, 203) if hovered else (237, 229, 214)
         pygame.draw.rect(screen, bg, rect, border_radius=self.CONTROL_RADIUS + 2)
-        pygame.draw.rect(screen, (164, 194, 236), rect, 2, border_radius=self.CONTROL_RADIUS + 2)
+        pygame.draw.rect(screen, PlatformTheme.BORDER_HOVER if hovered else PlatformTheme.BORDER, rect, 2, border_radius=self.CONTROL_RADIUS + 2)
 
         left_rect = pygame.Rect(rect.x + 2, rect.y + 2, rect.width // 2 - 3, rect.height - 4)
         right_rect = pygame.Rect(rect.centerx + 1, rect.y + 2, rect.width // 2 - 3, rect.height - 4)
 
         if left_selected:
-            pygame.draw.rect(screen, (66, 160, 98), left_rect, border_radius=self.CONTROL_RADIUS)
-            pygame.draw.rect(screen, (138, 220, 164), left_rect, 1, border_radius=self.CONTROL_RADIUS)
-            pygame.draw.rect(screen, (83, 97, 128), right_rect, border_radius=self.CONTROL_RADIUS)
+            pygame.draw.rect(screen, (137, 187, 112), left_rect, border_radius=self.CONTROL_RADIUS)
+            pygame.draw.rect(screen, (190, 225, 171), left_rect, 1, border_radius=self.CONTROL_RADIUS)
+            pygame.draw.rect(screen, (214, 205, 191), right_rect, border_radius=self.CONTROL_RADIUS)
             left_color = (255, 255, 255)
-            right_color = (205, 216, 238)
+            right_color = PlatformTheme.TEXT_MUTED
         else:
-            pygame.draw.rect(screen, (83, 97, 128), left_rect, border_radius=self.CONTROL_RADIUS)
-            pygame.draw.rect(screen, (82, 126, 182), right_rect, border_radius=self.CONTROL_RADIUS)
-            pygame.draw.rect(screen, (146, 188, 240), right_rect, 1, border_radius=self.CONTROL_RADIUS)
-            left_color = (205, 216, 238)
+            pygame.draw.rect(screen, (214, 205, 191), left_rect, border_radius=self.CONTROL_RADIUS)
+            pygame.draw.rect(screen, (238, 174, 97), right_rect, border_radius=self.CONTROL_RADIUS)
+            pygame.draw.rect(screen, (255, 224, 177), right_rect, 1, border_radius=self.CONTROL_RADIUS)
+            left_color = PlatformTheme.TEXT_MUTED
             right_color = (255, 255, 255)
 
         if label:
-            label_surface = self.small_font.render(label, True, (198, 216, 244))
+            label_surface = self.small_font.render(label, True, PlatformTheme.TEXT_MUTED)
             screen.blit(label_surface, (rect.x, rect.y - 22))
 
         left_surface = self.small_font.render(left_text, True, left_color)
@@ -435,17 +432,17 @@ class ConfigScene(BaseScene):
     def _draw_action_button(self, screen, rect, text, mouse_pos, variant):
         hovered = rect.collidepoint(mouse_pos)
         if variant == "primary":
-            base = (58, 160, 95)
-            border = (176, 228, 198)
+            base = (137, 187, 112)
+            border = (190, 225, 171)
             text_color = (255, 255, 255)
         elif variant == "secondary":
-            base = (70, 122, 182)
-            border = (182, 212, 245)
-            text_color = (245, 250, 255)
+            base = PlatformTheme.ACCENT
+            border = (255, 224, 177)
+            text_color = (255, 250, 244)
         else:
-            base = (76, 88, 118)
-            border = (152, 172, 208)
-            text_color = (228, 236, 246)
+            base = (214, 205, 191)
+            border = PlatformTheme.BORDER
+            text_color = PlatformTheme.TEXT_PRIMARY
 
         if hovered:
             fill = tuple(min(c + 24, 255) for c in base)
@@ -461,21 +458,21 @@ class ConfigScene(BaseScene):
         if not self.feedback_message:
             return
         if self.feedback_variant == "success":
-            fill = (42, 95, 64)
-            border = (120, 202, 154)
-            color = (225, 245, 232)
+            fill = (223, 242, 214)
+            border = (148, 198, 124)
+            color = (73, 113, 61)
         elif self.feedback_variant == "warning":
-            fill = (92, 79, 38)
-            border = (218, 198, 116)
-            color = (248, 241, 208)
+            fill = (255, 241, 209)
+            border = (226, 190, 105)
+            color = (130, 98, 39)
         elif self.feedback_variant == "error":
-            fill = (102, 52, 52)
-            border = (225, 136, 136)
-            color = (255, 226, 226)
+            fill = (252, 225, 225)
+            border = (226, 151, 151)
+            color = (138, 75, 75)
         else:
-            fill = (46, 74, 112)
-            border = (136, 176, 226)
-            color = (228, 238, 255)
+            fill = (230, 240, 247)
+            border = (150, 182, 205)
+            color = (78, 104, 126)
 
         fb_rect = pygame.Rect(self.width // 2 - 270, self.layout_offset_y + 510, 540, 28)
         pygame.draw.rect(screen, fill, fb_rect, border_radius=self.CONTROL_RADIUS)
@@ -485,7 +482,7 @@ class ConfigScene(BaseScene):
         screen.blit(fb_surf, (fb_rect.centerx - fb_surf.get_width() // 2, fb_rect.centery - fb_surf.get_height() // 2))
 
     def _draw_tooltip(self, screen, text, mouse_pos):
-        text_surf = self.tiny_font.render(text, True, (240, 245, 255))
+        text_surf = self.tiny_font.render(text, True, PlatformTheme.TEXT_PRIMARY)
         pad_x = 10
         pad_y = 6
         tip_w = text_surf.get_width() + pad_x * 2
@@ -503,19 +500,19 @@ class ConfigScene(BaseScene):
             tip_y = self.height - tip_h - 8
 
         tip_rect = pygame.Rect(tip_x, tip_y, tip_w, tip_h)
-        pygame.draw.rect(screen, (28, 42, 68), tip_rect, border_radius=7)
-        pygame.draw.rect(screen, (142, 176, 228), tip_rect, 2, border_radius=7)
+        pygame.draw.rect(screen, (255, 249, 238), tip_rect, border_radius=7)
+        pygame.draw.rect(screen, PlatformTheme.BORDER_HOVER, tip_rect, 2, border_radius=7)
         screen.blit(text_surf, (tip_rect.x + pad_x, tip_rect.y + pad_y))
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
-        screen.fill(self.COLOR_BG)
+        draw_platform_background(screen, self.width, self.height)
         mouse_pos = pygame.mouse.get_pos()
 
-        title = self.title_font.render(self.manager.t("config.title"), True, (255, 255, 255))
+        title = self.title_font.render(self.manager.t("config.title"), True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(title, (self.width // 2 - title.get_width() // 2, self.title_y))
         info_text = self._fit_text(self.manager.t("config.info"), self.tiny_font, self.width - 120)
-        info = self.tiny_font.render(info_text, True, (165, 180, 208))
+        info = self.tiny_font.render(info_text, True, PlatformTheme.TEXT_MUTED)
         screen.blit(info, (self.width // 2 - info.get_width() // 2, self.info_y))
 
         self._draw_panel(screen, self.level_panel_rect, self.manager.t("config.difficulty_level"), mouse_pos)
@@ -526,9 +523,9 @@ class ConfigScene(BaseScene):
         # 难度分组背景（10级模式）
         for group in getattr(self, "level_groups", []):
             group_rect = group["rect"]
-            pygame.draw.rect(screen, (42, 61, 96), group_rect, border_radius=self.BUTTON_RADIUS)
-            pygame.draw.rect(screen, (102, 132, 186), group_rect, 1, border_radius=self.BUTTON_RADIUS)
-            group_title = self.tiny_font.render(self.manager.t(group["title_key"]), True, (194, 214, 244))
+            pygame.draw.rect(screen, (244, 239, 232), group_rect, border_radius=self.BUTTON_RADIUS)
+            pygame.draw.rect(screen, PlatformTheme.BORDER, group_rect, 1, border_radius=self.BUTTON_RADIUS)
+            group_title = self.tiny_font.render(self.manager.t(group["title_key"]), True, PlatformTheme.TEXT_MUTED)
             screen.blit(group_title, (group_rect.centerx - group_title.get_width() // 2, group_rect.y + 6))
 
         # 难度卡
@@ -540,14 +537,14 @@ class ConfigScene(BaseScene):
             selected = level == self.draft_settings["start_level"]
             hovered = rect.collidepoint(mouse_pos)
             if selected:
-                fill = (80, 128, 206)
-                border = (178, 208, 255)
+                fill = PlatformTheme.ACCENT
+                border = (255, 224, 177)
             elif hovered:
-                fill = (68, 102, 170)
-                border = (140, 172, 228)
+                fill = PlatformTheme.CARD_HOVER
+                border = PlatformTheme.BORDER_HOVER
             else:
-                fill = (56, 76, 120)
-                border = (96, 124, 176)
+                fill = PlatformTheme.CARD_ALT
+                border = PlatformTheme.BORDER
             pygame.draw.rect(screen, fill, rect, border_radius=self.CONTROL_RADIUS)
             pygame.draw.rect(screen, border, rect, 2, border_radius=self.CONTROL_RADIUS)
 
@@ -555,7 +552,7 @@ class ConfigScene(BaseScene):
                 pygame.draw.rect(screen, (245, 225, 130), rect.inflate(4, 4), 2, border_radius=10)
 
             if rect.height <= 30:
-                one_line = self.tiny_font.render(f"L{level}  {size_value}px", True, (236, 244, 255))
+                one_line = self.tiny_font.render(f"L{level}  {size_value}px", True, PlatformTheme.TEXT_PRIMARY)
                 screen.blit(
                     one_line,
                     (
@@ -564,8 +561,8 @@ class ConfigScene(BaseScene):
                     ),
                 )
             else:
-                ltxt = level_font.render(f"L{level}", True, (255, 255, 255))
-                stxt = size_font.render(f"{size_value}px", True, (224, 230, 242))
+                ltxt = level_font.render(f"L{level}", True, PlatformTheme.TEXT_PRIMARY)
+                stxt = size_font.render(f"{size_value}px", True, PlatformTheme.TEXT_MUTED)
                 if compact:
                     ltxt_y = rect.y + 2
                     stxt_y = rect.y + 22
@@ -579,17 +576,15 @@ class ConfigScene(BaseScene):
         preview_level = self.hovered_level if self.hovered_level is not None else self.draft_settings["start_level"]
         preview_size = E_SIZE_LEVELS[preview_level - 1]
         distance = max(1.0, round(4.5 - (preview_level - 1) * 0.5, 1))
-        self.e_generator.draw_e(
-            screen,
-            (self.preview_panel_rect.centerx, self.preview_panel_rect.y + 100),
-            preview_size,
-            "RIGHT",
-        )
+        preview_surface = EGenerator.create_e_surface(preview_size, "RIGHT")
+        preview_surface.fill((0, 0, 0), special_flags=pygame.BLEND_RGB_MULT)
+        preview_rect = preview_surface.get_rect(center=(self.preview_panel_rect.centerx, self.preview_panel_rect.y + 100))
+        screen.blit(preview_surface, preview_rect)
 
         info1 = self.small_font.render(
             self.manager.t("config.preview_level_size", level=preview_level, size=preview_size),
             True,
-            (220, 230, 245),
+            PlatformTheme.TEXT_PRIMARY,
         )
         screen.blit(info1, (self.preview_panel_rect.x + 20, self.preview_panel_rect.y + 150))
 
@@ -600,38 +595,38 @@ class ConfigScene(BaseScene):
                 "config.preview_recommend",
                 distance=f"{distance:.1f}",
             )
-        info2 = self.small_font.render(info2_text, True, (182, 205, 236))
+        info2 = self.small_font.render(info2_text, True, PlatformTheme.TEXT_MUTED)
         screen.blit(info2, (self.preview_panel_rect.x + 20, self.preview_panel_rect.y + 176))
 
         # 题量输入
         range_text = self.small_font.render(
             self.manager.t("config.range", min_questions=MIN_QUESTIONS, max_questions=MAX_QUESTIONS),
             True,
-            (186, 202, 230),
+            PlatformTheme.TEXT_MUTED,
         )
         screen.blit(range_text, (self.question_panel_rect.x + 26, self.question_panel_rect.y + 42))
 
-        adjust_text = self.small_font.render(self.manager.t("config.adjust_hint"), True, (162, 183, 215))
+        adjust_text = self.small_font.render(self.manager.t("config.adjust_hint"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(adjust_text, (self.question_panel_rect.x + 26, self.question_panel_rect.y + 122))
 
-        input_fill = (210, 226, 245) if self.input_active else (183, 202, 230)
-        border = (122, 162, 220) if self.input_active else (95, 130, 184)
+        input_fill = (255, 251, 245) if self.input_active else (240, 235, 226)
+        border = PlatformTheme.BORDER_HOVER if self.input_active else PlatformTheme.BORDER
         pygame.draw.rect(screen, input_fill, self.input_rect, border_radius=self.CONTROL_RADIUS)
         pygame.draw.rect(screen, border, self.input_rect, 2, border_radius=self.CONTROL_RADIUS)
 
-        val = self.font.render(self.input_text, True, (18, 26, 40))
+        val = self.font.render(self.input_text, True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(val, (self.input_rect.centerx - val.get_width() // 2, self.input_rect.centery - val.get_height() // 2))
 
         for rect, symbol in ((self.minus_button_rect, "-"), (self.plus_button_rect, "+")):
             hovered = rect.collidepoint(mouse_pos)
-            fill = (76, 112, 170) if hovered else (64, 94, 144)
+            fill = (239, 181, 111) if hovered else (230, 220, 203)
             pygame.draw.rect(screen, fill, rect, border_radius=self.CONTROL_RADIUS)
-            pygame.draw.rect(screen, (146, 178, 232), rect, 2, border_radius=self.CONTROL_RADIUS)
-            sym = self.subtitle_font.render(symbol, True, (240, 245, 255))
+            pygame.draw.rect(screen, PlatformTheme.BORDER_HOVER if hovered else PlatformTheme.BORDER, rect, 2, border_radius=self.CONTROL_RADIUS)
+            sym = self.subtitle_font.render(symbol, True, PlatformTheme.TEXT_PRIMARY)
             screen.blit(sym, (rect.centerx - sym.get_width() // 2, rect.centery - sym.get_height() // 2))
 
         if self.input_error:
-            err = self.tiny_font.render(self.input_error, True, (245, 138, 138))
+            err = self.tiny_font.render(self.input_error, True, (180, 98, 98))
             screen.blit(err, (self.question_panel_rect.x + 26, self.question_panel_rect.y + 146))
 
         # 偏好分段开关（仅自适应）
@@ -645,7 +640,7 @@ class ConfigScene(BaseScene):
             mouse_pos,
         )
         adaptive_short = self.manager.t("config.adaptive_desc_short")
-        adaptive_desc = self.tiny_font.render(adaptive_short, True, (168, 192, 226))
+        adaptive_desc = self.tiny_font.render(adaptive_short, True, PlatformTheme.TEXT_MUTED)
         screen.blit(adaptive_desc, (self.adaptive_desc_rect.x, self.adaptive_desc_rect.y))
 
         if self.adaptive_desc_rect.collidepoint(mouse_pos) or self.adaptive_toggle_rect.collidepoint(mouse_pos):

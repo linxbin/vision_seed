@@ -2,6 +2,7 @@ import pygame
 import math
 import time
 from core.base_scene import BaseScene
+from core.ui_theme import PlatformTheme, draw_platform_background
 from ..services import ETrainingRecordsService
 from config import E_SIZE_LEVELS
 
@@ -116,12 +117,12 @@ class ReportScene(BaseScene):
     def _draw_button(self, screen, rect, text, mouse_pos, base_color):
         hovered = rect.collidepoint(mouse_pos)
         fill = tuple(min(c + 25, 255) for c in base_color) if hovered else base_color
-        border = (200, 220, 255) if hovered else (140, 170, 220)
+        border = (255, 224, 177) if hovered else PlatformTheme.BORDER
 
         pygame.draw.rect(screen, fill, rect, border_radius=8)
         pygame.draw.rect(screen, border, rect, 2, border_radius=8)
 
-        text_surface = self.label_font.render(text, True, (255, 255, 255))
+        text_surface = self.label_font.render(text, True, PlatformTheme.TEXT_PRIMARY if base_color[0] > 180 else (255, 255, 255))
         text_x = rect.centerx - text_surface.get_width() // 2
         text_y = rect.centery - text_surface.get_height() // 2
         screen.blit(text_surface, (text_x, text_y))
@@ -228,7 +229,7 @@ class ReportScene(BaseScene):
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
-        screen.fill((24, 32, 52))
+        draw_platform_background(screen, self.width, self.height)
 
         progress = self._animation_progress()
         correct = self._lerp_int(self.final_result.get("correct", 0), progress)
@@ -245,9 +246,9 @@ class ReportScene(BaseScene):
         mouse_pos = pygame.mouse.get_pos()
 
         # 标题与结果等级
-        title = self.title_font.render(self.manager.t("report.title"), True, (255, 255, 255))
+        title = self.title_font.render(self.manager.t("report.title"), True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(title, (self.width // 2 - title.get_width() // 2, self.layout_offset_y + 80))
-        game_label = self.game_font.render(self._display_game_id(), True, (166, 188, 220))
+        game_label = self.game_font.render(self._display_game_id(), True, PlatformTheme.TEXT_MUTED)
         screen.blit(game_label, (self.width // 2 - game_label.get_width() // 2, self.layout_offset_y + 130))
 
         badge_text = self._result_text(accuracy)
@@ -266,10 +267,10 @@ class ReportScene(BaseScene):
         next_plan_raw = self._get_next_plan(accuracy, duration, total)
         suggestion_text = self._fit_text(suggestion_raw, self.trend_font, 760)
         next_plan_text = self._fit_text(next_plan_raw, self.hint_font, 760)
-        suggestion = self.trend_font.render(suggestion_text, True, (130, 220, 175))
-        next_plan = self.hint_font.render(next_plan_text, True, (188, 218, 255))
+        suggestion = self.trend_font.render(suggestion_text, True, (113, 160, 84))
+        next_plan = self.hint_font.render(next_plan_text, True, PlatformTheme.TEXT_MUTED)
         adaptive_text = self._fit_text(self._adaptive_line(), self.hint_font, 780)
-        adaptive_line = self.hint_font.render(adaptive_text, True, (168, 210, 236))
+        adaptive_line = self.hint_font.render(adaptive_text, True, PlatformTheme.TEXT_MUTED)
         suggestion_y = self.layout_offset_y + 178
         next_plan_y = self.layout_offset_y + 202
         screen.blit(suggestion, (self.width // 2 - suggestion.get_width() // 2, suggestion_y))
@@ -285,28 +286,28 @@ class ReportScene(BaseScene):
             rect = pygame.Rect(card["x"], card["y"], card["w"], card["h"])
             card_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
             alpha = int(90 + 165 * card_progress)
-            pygame.draw.rect(card_surface, (38, 50, 78, alpha), pygame.Rect(0, 0, rect.width, rect.height), border_radius=10)
-            pygame.draw.rect(card_surface, (82, 110, 165, alpha), pygame.Rect(0, 0, rect.width, rect.height), 2, border_radius=10)
+            pygame.draw.rect(card_surface, (*PlatformTheme.CARD, alpha), pygame.Rect(0, 0, rect.width, rect.height), border_radius=10)
+            pygame.draw.rect(card_surface, (*PlatformTheme.BORDER, alpha), pygame.Rect(0, 0, rect.width, rect.height), 2, border_radius=10)
 
             field = card["field"]
             if field == "total":
                 text = self.manager.t("report.total_questions", total=total)
-                color = (235, 235, 240)
+                color = PlatformTheme.TEXT_PRIMARY
             elif field == "correct":
                 text = self.manager.t("report.correct", correct=correct)
-                color = (120, 230, 155)
+                color = (113, 160, 84)
             elif field == "wrong":
                 text = self.manager.t("report.wrong", wrong=wrong)
-                color = (235, 130, 130)
+                color = (195, 102, 102)
             elif field == "accuracy":
                 text = self.manager.t("report.accuracy", accuracy=accuracy)
                 color = self._accuracy_color(accuracy)
             elif field == "max_combo":
                 text = self.manager.t("report.max_combo", combo=max_combo)
-                color = (255, 196, 112)
+                color = (205, 132, 64)
             else:
                 text = self.manager.t("report.time_used", duration=duration)
-                color = (170, 200, 255)
+                color = (115, 150, 185)
 
             text_surface = self.value_font.render(text, True, color)
             text_y = rect.height // 2 - text_surface.get_height() // 2
@@ -326,12 +327,12 @@ class ReportScene(BaseScene):
 
             acc_text = self.manager.t("report.trend_accuracy", delta=f"{acc_delta:+.1f}", arrow=acc_arrow)
             dur_text = self.manager.t("report.trend_duration", delta=f"{dur_delta:+.2f}", arrow=dur_arrow)
-            acc_surface = self.trend_font.render(self._fit_text(acc_text, self.trend_font, 820), True, (190, 210, 245))
-            dur_surface = self.trend_font.render(self._fit_text(dur_text, self.trend_font, 820), True, (190, 210, 245))
+            acc_surface = self.trend_font.render(self._fit_text(acc_text, self.trend_font, 820), True, PlatformTheme.TEXT_MUTED)
+            dur_surface = self.trend_font.render(self._fit_text(dur_text, self.trend_font, 820), True, PlatformTheme.TEXT_MUTED)
             screen.blit(acc_surface, (self.width // 2 - acc_surface.get_width() // 2, self.layout_offset_y + 560))
             screen.blit(dur_surface, (self.width // 2 - dur_surface.get_width() // 2, self.layout_offset_y + 582))
         else:
-            no_hist = self.trend_font.render(self.manager.t("report.trend_no_history"), True, (180, 190, 210))
+            no_hist = self.trend_font.render(self.manager.t("report.trend_no_history"), True, PlatformTheme.TEXT_MUTED)
             screen.blit(no_hist, (self.width // 2 - no_hist.get_width() // 2, self.layout_offset_y + 570))
 
         # 操作按钮
@@ -340,22 +341,22 @@ class ReportScene(BaseScene):
             self.retry_button_rect,
             self.manager.t("report.retry"),
             mouse_pos,
-            (60, 150, 92),
+            (181, 219, 165),
         )
         self._draw_button(
             screen,
             self.menu_button_rect,
             self.manager.t("report.back_menu"),
             mouse_pos,
-            (78, 104, 155),
+            (252, 231, 199),
         )
 
         # 快捷键提示
-        hint = self.hint_font.render(self.manager.t("report.return_hint"), True, (180, 190, 210))
+        hint = self.hint_font.render(self.manager.t("report.return_hint"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.layout_offset_y + 665))
 
         if progress < 1.0:
             overlay = pygame.Surface((self.width, self.height))
-            overlay.fill((8, 12, 20))
+            overlay.fill((255, 250, 240))
             overlay.set_alpha(int((1.0 - progress) * 170))
             screen.blit(overlay, (0, 0))

@@ -3,6 +3,7 @@ import random
 import time
 from datetime import datetime
 from core.base_scene import BaseScene
+from core.ui_theme import PlatformTheme, draw_chip, draw_platform_background
 from ..services import ETrainingRecordsService
 from core.e_generator import EGenerator
 from config import E_SIZE_LEVELS, SCREEN_WIDTH, SCREEN_HEIGHT
@@ -247,6 +248,7 @@ class TrainingScene(BaseScene):
         self.previous_direction = self.target_direction
 
         self.surface = EGenerator.create_e_surface(self.base_size, self.target_direction)
+        self.surface.fill((0, 0, 0), special_flags=pygame.BLEND_RGB_MULT)
         self.rect = self.surface.get_rect(center=self.center_pos)
 
     def _save_training_record(self, duration: float, wrong: int):
@@ -432,32 +434,33 @@ class TrainingScene(BaseScene):
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
-        screen.fill((0, 0, 0))
+        draw_platform_background(screen, self.width, self.height)
         ox, oy = self.shake_offset
+
         screen.blit(self.surface, self.rect.move(ox, oy))
 
         progress = f"{self.current}/{self.total}"
-        progress_surface = self.small_font.render(progress, True, (200, 200, 200))
-        screen.blit(
-            progress_surface,
-            (self.progress_pos[0] - progress_surface.get_width() // 2, self.progress_pos[1]),
-        )
+        progress_bar_rect = pygame.Rect(self.progress_pos[0] - 110, self.progress_pos[1] - 8, 220, 42)
+        pygame.draw.rect(screen, (255, 251, 245), progress_bar_rect, border_radius=16)
+        pygame.draw.rect(screen, PlatformTheme.BORDER, progress_bar_rect, 2, border_radius=16)
+        progress_surface = self.small_font.render(progress, True, PlatformTheme.TEXT_PRIMARY)
+        screen.blit(progress_surface, (self.progress_pos[0] - progress_surface.get_width() // 2, self.progress_pos[1]))
 
         # 轻量训练状态信息：等级/尺寸/正确率
         accuracy = round((self.correct / self.current) * 100, 1) if self.current > 0 else 0.0
         level = self.manager.settings.get("start_level", 1)
         status_text = f"L{level} | {self.base_size}px | {accuracy:.1f}%"
-        status_surface = self.back_button_font.render(status_text, True, (160, 180, 210))
+        status_surface = self.back_button_font.render(status_text, True, PlatformTheme.TEXT_MUTED)
         screen.blit(
             status_surface,
             (self.status_pos[0] - status_surface.get_width() // 2, self.status_pos[1]),
         )
 
-        pause_hint = self.back_button_font.render(self.manager.t("training.pause_hint"), True, (135, 155, 185))
+        pause_hint = self.back_button_font.render(self.manager.t("training.pause_hint"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(pause_hint, (22, self.height - 34))
 
         if self.combo >= 2 and self.combo_display_frames > 0:
-            combo_color = (245, 210, 110) if self.combo < 5 else (255, 170, 95)
+            combo_color = (235, 174, 89) if self.combo < 5 else (205, 132, 64)
             combo_text = self.small_font.render(self.manager.t("training.combo", combo=self.combo), True, combo_color)
             screen.blit(combo_text, (self.center_pos[0] - combo_text.get_width() // 2, 36))
         
@@ -470,48 +473,50 @@ class TrainingScene(BaseScene):
         is_hovered = self.back_button_rect.collidepoint(mouse_pos)
         
         # 按钮背景色
-        button_color = (80, 120, 200) if is_hovered else (60, 90, 150)
-        border_color = (150, 180, 255) if is_hovered else (100, 130, 200)
-        
-        pygame.draw.rect(screen, button_color, self.back_button_rect, border_radius=6)
-        pygame.draw.rect(screen, border_color, self.back_button_rect, 2, border_radius=6)
-        
-        # 按钮文字（多语言）
-        back_text = self.back_button_font.render(self.manager.t("training.back"), True, (255, 255, 255))
+        draw_chip(screen, self.back_button_rect, hovered=is_hovered, radius=10)
+        back_text = self.back_button_font.render(
+            self.manager.t("training.back"),
+            True,
+            PlatformTheme.ACCENT_DARK if not is_hovered else (255, 250, 244),
+        )
         text_x = self.back_button_rect.centerx - back_text.get_width() // 2
         text_y = self.back_button_rect.centery - back_text.get_height() // 2
         screen.blit(back_text, (text_x, text_y))
 
         pause_hovered = self.pause_button_rect.collidepoint(mouse_pos)
-        pause_color = (80, 152, 109) if pause_hovered else (62, 124, 90)
-        pause_border = (154, 221, 184) if pause_hovered else (112, 182, 146)
-        pygame.draw.rect(screen, pause_color, self.pause_button_rect, border_radius=6)
-        pygame.draw.rect(screen, pause_border, self.pause_button_rect, 2, border_radius=6)
+        pause_color = (181, 219, 165) if pause_hovered else (214, 235, 203)
+        pause_border = (150, 192, 129) if pause_hovered else (170, 205, 149)
+        pygame.draw.rect(screen, pause_color, self.pause_button_rect, border_radius=10)
+        pygame.draw.rect(screen, pause_border, self.pause_button_rect, 2, border_radius=10)
         pause_key = "training.resume" if self.is_paused else "training.pause"
-        pause_text = self.back_button_font.render(self.manager.t(pause_key), True, (255, 255, 255))
+        pause_text = self.back_button_font.render(self.manager.t(pause_key), True, (73, 113, 61))
         pause_x = self.pause_button_rect.centerx - pause_text.get_width() // 2
         pause_y = self.pause_button_rect.centery - pause_text.get_height() // 2
         screen.blit(pause_text, (pause_x, pause_y))
 
         if self.is_paused:
+            overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            overlay.fill((255, 247, 236, 92))
+            screen.blit(overlay, (0, 0))
+
             # 暂停态视觉反馈：不遮挡 E 字，使用外圈描边高亮
             focus_rect = self.rect.inflate(26, 26).move(ox, oy)
-            pygame.draw.rect(screen, (112, 172, 242), focus_rect, 3, border_radius=10)
-            pygame.draw.rect(screen, (62, 104, 162), focus_rect.inflate(10, 10), 2, border_radius=12)
+            pygame.draw.rect(screen, PlatformTheme.BORDER_HOVER, focus_rect, 3, border_radius=10)
+            pygame.draw.rect(screen, PlatformTheme.ACCENT, focus_rect.inflate(10, 10), 2, border_radius=12)
 
             paused_rect = pygame.Rect(self.width // 2 - 120, 18, 240, 38)
-            pygame.draw.rect(screen, (42, 66, 102), paused_rect, border_radius=9)
-            pygame.draw.rect(screen, (150, 182, 232), paused_rect, 2, border_radius=9)
-            paused_text = self.back_button_font.render(self.manager.t("training.paused"), True, (240, 245, 255))
+            pygame.draw.rect(screen, (255, 251, 245), paused_rect, border_radius=9)
+            pygame.draw.rect(screen, PlatformTheme.BORDER, paused_rect, 2, border_radius=9)
+            paused_text = self.back_button_font.render(self.manager.t("training.paused"), True, PlatformTheme.TEXT_PRIMARY)
             paused_x = paused_rect.centerx - paused_text.get_width() // 2
             paused_y = paused_rect.centery - paused_text.get_height() // 2
             screen.blit(paused_text, (paused_x, paused_y))
 
         if self.finish_transition_active:
             done_rect = pygame.Rect(self.width // 2 - 230, self.height // 2 - 34, 460, 78)
-            pygame.draw.rect(screen, (30, 48, 78), done_rect, border_radius=10)
-            pygame.draw.rect(screen, (132, 174, 232), done_rect, 2, border_radius=10)
-            done_text = self.back_button_font.render(self.manager.t("training.completed"), True, (236, 244, 255))
-            hint_text = self.back_button_font.render(self.manager.t("training.skip_hint"), True, (180, 206, 238))
+            pygame.draw.rect(screen, (255, 251, 245), done_rect, border_radius=10)
+            pygame.draw.rect(screen, PlatformTheme.BORDER_HOVER, done_rect, 2, border_radius=10)
+            done_text = self.back_button_font.render(self.manager.t("training.completed"), True, PlatformTheme.TEXT_PRIMARY)
+            hint_text = self.back_button_font.render(self.manager.t("training.skip_hint"), True, PlatformTheme.TEXT_MUTED)
             screen.blit(done_text, (done_rect.centerx - done_text.get_width() // 2, done_rect.y + 13))
             screen.blit(hint_text, (done_rect.centerx - hint_text.get_width() // 2, done_rect.y + 42))

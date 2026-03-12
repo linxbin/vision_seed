@@ -1,6 +1,7 @@
 import pygame
 from datetime import datetime, timedelta
 from core.base_scene import BaseScene
+from core.ui_theme import PlatformTheme, draw_card, draw_chip, draw_platform_background
 from ..services import ETrainingRecordsService
 from config import SCREEN_WIDTH, E_SIZE_LEVELS
 
@@ -143,11 +144,12 @@ class HistoryScene(BaseScene):
 
     def _draw_back_button(self, screen, mouse_pos):
         is_hovered = self.back_button_rect.collidepoint(mouse_pos)
-        button_color = (80, 120, 200) if is_hovered else (60, 90, 150)
-        border_color = (150, 180, 255) if is_hovered else (100, 130, 200)
-        pygame.draw.rect(screen, button_color, self.back_button_rect, border_radius=6)
-        pygame.draw.rect(screen, border_color, self.back_button_rect, 2, border_radius=6)
-        back_text = self.small_font.render(self.manager.t("history.back"), True, (255, 255, 255))
+        draw_chip(screen, self.back_button_rect, hovered=is_hovered, radius=10)
+        back_text = self.small_font.render(
+            self.manager.t("history.back"),
+            True,
+            PlatformTheme.ACCENT_DARK if not is_hovered else (255, 250, 244),
+        )
         screen.blit(
             back_text,
             (
@@ -159,20 +161,20 @@ class HistoryScene(BaseScene):
     def _draw_chip(self, screen, rect, text, active, mouse_pos):
         hovered = rect.collidepoint(mouse_pos)
         if active:
-            fill = (84, 136, 212)
-            border = (176, 209, 255)
+            fill = PlatformTheme.ACCENT
+            border = (255, 224, 177)
             color = (255, 255, 255)
         else:
-            fill = (57, 77, 122) if hovered else (45, 64, 103)
-            border = (122, 154, 207) if hovered else (93, 121, 176)
-            color = (220, 230, 245)
+            fill = PlatformTheme.CARD_HOVER if hovered else PlatformTheme.CARD_ALT
+            border = PlatformTheme.BORDER_HOVER if hovered else PlatformTheme.BORDER
+            color = PlatformTheme.TEXT_PRIMARY
         pygame.draw.rect(screen, fill, rect, border_radius=8)
         pygame.draw.rect(screen, border, rect, 2, border_radius=8)
         txt = self.small_font.render(text, True, color)
         screen.blit(txt, (rect.centerx - txt.get_width() // 2, rect.centery - txt.get_height() // 2))
 
     def _draw_filters(self, screen, mouse_pos):
-        label_color = (180, 205, 240)
+        label_color = PlatformTheme.TEXT_MUTED
         offset_x = self.layout_offset_x
         date_label = self.small_font.render(self.manager.t("history.filter.date"), True, label_color)
         level_label = self.small_font.render(self.manager.t("history.filter.level"), True, label_color)
@@ -254,14 +256,18 @@ class HistoryScene(BaseScene):
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
-        screen.fill((25, 25, 45))
+        draw_platform_background(screen, self.width, self.height)
         mouse_pos = pygame.mouse.get_pos()
 
-        title = self.title_font.render(self.manager.t("history.title"), True, (255, 255, 255))
+        title = self.title_font.render(self.manager.t("history.title"), True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 34))
 
         info = self.manager.t("history.info_with_records") if self.filtered_records else self.manager.t("history.info_empty")
-        info_surface = self.small_font.render(info, True, (180, 180, 200) if self.filtered_records else (200, 150, 150))
+        info_surface = self.small_font.render(
+            info,
+            True,
+            PlatformTheme.TEXT_MUTED if self.filtered_records else (170, 106, 106),
+        )
         screen.blit(info_surface, (self.width // 2 - info_surface.get_width() // 2, 82))
 
         self._draw_filters(screen, mouse_pos)
@@ -295,19 +301,19 @@ class HistoryScene(BaseScene):
         ]
         for i, header in enumerate(headers):
             text = self._fit_text(header, self.header_font, col_widths[i] - 10)
-            surf = self.header_font.render(text, True, (200, 220, 255))
+            surf = self.header_font.render(text, True, PlatformTheme.TEXT_PRIMARY)
             screen.blit(surf, (col_centers[i] - surf.get_width() // 2, header_y))
 
-        pygame.draw.line(screen, (80, 100, 140), (table_left, header_y + 34), (table_right, header_y + 34), 2)
+        pygame.draw.line(screen, PlatformTheme.BORDER, (table_left, header_y + 34), (table_right, header_y + 34), 2)
 
         current_records = self._get_current_page_records()
         row_start = header_y + 48
         row_height = 42
         for i, record in enumerate(current_records):
             y = row_start + i * row_height
-            bg = (35, 35, 55) if i % 2 == 0 else (40, 40, 60)
-            fg = (220, 220, 240) if i % 2 == 0 else (200, 200, 220)
-            pygame.draw.rect(screen, bg, pygame.Rect(table_left, y, table_width, row_height - 4), border_radius=4)
+            row_rect = pygame.Rect(table_left, y, table_width, row_height - 4)
+            draw_card(screen, row_rect, alt=i % 2 == 1, radius=10)
+            fg = PlatformTheme.TEXT_PRIMARY if i % 2 == 0 else PlatformTheme.TEXT_MUTED
 
             row = [
                 self._format_timestamp(record.get("timestamp", "")),
@@ -324,7 +330,7 @@ class HistoryScene(BaseScene):
 
         if self.total_pages > 1:
             page_info = self.manager.t("history.page_info", current=self.current_page + 1, total=self.total_pages)
-            page_surf = self.small_font.render(page_info, True, (180, 200, 220))
+            page_surf = self.small_font.render(page_info, True, PlatformTheme.TEXT_MUTED)
             screen.blit(page_surf, (self.width // 2 - page_surf.get_width() // 2, row_start + len(current_records) * row_height + 16))
 
         self._draw_back_button(screen, mouse_pos)

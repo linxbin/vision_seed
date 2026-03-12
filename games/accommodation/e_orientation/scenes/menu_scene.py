@@ -2,6 +2,8 @@ import pygame
 
 from config import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.base_scene import BaseScene
+from core.e_generator import EGenerator
+from core.ui_theme import PlatformTheme, draw_card, draw_chip, draw_platform_background
 
 
 E_TRAINING_GAME_ID = "accommodation.e_orientation"
@@ -27,7 +29,11 @@ class ETrainingMenuScene(BaseScene):
         card_w = min(620, self.width - 100)
         card_h = 58
         gap = 14
-        start_y = 220
+        total_h = card_h * 4 + gap * 3
+        available_top = 220
+        available_bottom = self.height - 90
+        available_h = max(total_h, available_bottom - available_top)
+        start_y = available_top + max(0, (available_h - total_h) // 2)
         x = self.width // 2 - card_w // 2
         labels = [
             (self.manager.t("e_menu.start"), "training"),
@@ -90,29 +96,27 @@ class ETrainingMenuScene(BaseScene):
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
-        screen.fill((8, 14, 26))
-        title = self.title_font.render(self.manager.t("e_menu.title"), True, (238, 246, 255))
-        subtitle = self.subtitle_font.render(self.manager.t("e_menu.subtitle"), True, (166, 188, 220))
+        draw_platform_background(screen, self.width, self.height)
+        title = self.title_font.render(self.manager.t("e_menu.title"), True, PlatformTheme.TEXT_PRIMARY)
+        subtitle = self.subtitle_font.render(self.manager.t("e_menu.subtitle"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 110))
         screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 168))
 
         mouse_pos = pygame.mouse.get_pos()
-        for item in self.items:
+        for index, item in enumerate(self.items, start=1):
             hovered = item["rect"].collidepoint(mouse_pos)
-            fill = (56, 86, 142) if hovered else (38, 58, 96)
-            border = (172, 206, 255) if hovered else (108, 140, 194)
-            pygame.draw.rect(screen, fill, item["rect"], border_radius=10)
-            pygame.draw.rect(screen, border, item["rect"], 2, border_radius=10)
-            text = self.option_font.render(f"{item['index']}. {item['label']}", True, (240, 246, 255))
+            draw_card(screen, item["rect"], hovered=hovered, alt=index % 2 == 0)
+            text = self.option_font.render(f"{item['index']}. {item['label']}", True, PlatformTheme.TEXT_PRIMARY)
             screen.blit(text, (item["rect"].x + 16, item["rect"].centery - text.get_height() // 2))
 
         hovered = self.back_rect.collidepoint(mouse_pos)
-        fill = (68, 98, 152) if hovered else (50, 74, 118)
-        border = (176, 210, 255) if hovered else (112, 145, 196)
-        pygame.draw.rect(screen, fill, self.back_rect, border_radius=8)
-        pygame.draw.rect(screen, border, self.back_rect, 2, border_radius=8)
-        back_text = self.hint_font.render(self.manager.t("common.back"), True, (241, 247, 255))
+        draw_chip(screen, self.back_rect, hovered=hovered)
+        back_text = self.hint_font.render(
+            self.manager.t("common.back"),
+            True,
+            PlatformTheme.ACCENT_DARK if not hovered else (255, 250, 244),
+        )
         screen.blit(back_text, (self.back_rect.centerx - back_text.get_width() // 2, self.back_rect.centery - back_text.get_height() // 2))
 
-        hint = self.hint_font.render(self.manager.t("e_menu.hint"), True, (148, 172, 206))
+        hint = self.hint_font.render(self.manager.t("e_menu.hint"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.height - 34))
