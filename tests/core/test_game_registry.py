@@ -18,6 +18,7 @@ class GameRegistryTests(unittest.TestCase):
             "accommodation.catch_fruit": "accommodation",
             "simultaneous.eye_find_patterns": "simultaneous",
             "simultaneous.spot_difference": "simultaneous",
+            "simultaneous.pong": "simultaneous",
             "suppression.weak_eye_key": "suppression",
             "stereopsis.depth_grab": "stereopsis",
             "amblyopia.precision_aim": "amblyopia",

@@ -3,6 +3,7 @@ from games.accommodation.e_orientation.i18n import TRANSLATIONS as E_ORIENTATION
 from games.amblyopia.precision_aim.i18n import TRANSLATIONS as PRECISION_AIM_TRANSLATIONS
 from games.common.arcade_training.i18n import TRANSLATIONS as ARCADE_TRANSLATIONS
 from games.simultaneous.eye_find_patterns.i18n import TRANSLATIONS as EYE_FIND_TRANSLATIONS
+from games.simultaneous.pong.i18n import TRANSLATIONS as PONG_TRANSLATIONS
 from games.simultaneous.spot_difference.i18n import TRANSLATIONS as SPOT_DIFFERENCE_TRANSLATIONS
 from games.stereopsis.depth_grab.i18n import TRANSLATIONS as DEPTH_GRAB_TRANSLATIONS
 from games.suppression.weak_eye_key.i18n import TRANSLATIONS as WEAK_EYE_KEY_TRANSLATIONS
@@ -193,6 +194,7 @@ class LanguageManager:
         E_ORIENTATION_TRANSLATIONS,
         CATCH_FRUIT_TRANSLATIONS,
         EYE_FIND_TRANSLATIONS,
+        PONG_TRANSLATIONS,
         SPOT_DIFFERENCE_TRANSLATIONS,
         WEAK_EYE_KEY_TRANSLATIONS,
         DEPTH_GRAB_TRANSLATIONS,

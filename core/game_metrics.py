@@ -10,6 +10,7 @@ METRIC_LABEL_KEYS = {
     "clear_window_hits": "catch_fruit.metric.label",
     "smallest_caught_size_px": "catch_fruit.metric.smallest",
     "binocular_merge_accuracy": "spot_difference.metric.label",
+    "pong_best_rally": "pong.metric.label",
     "weak_eye_usage_rate": "weak_eye_key.metric.label",
     "depth_accuracy": "depth_grab.metric.label",
     "average_click_deviation_px": "precision_aim.metric.label",
