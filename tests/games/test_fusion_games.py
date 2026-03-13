@@ -104,6 +104,35 @@ class FusionGamesTests(unittest.TestCase):
             self.assertEqual(manager.data_manager.saved[-1]["game_id"], descriptor.game_id)
             self.assertEqual(manager.sound_manager.completed_calls, 1)
 
+    def test_puzzle_fusion_can_reach_perfect_alignment(self):
+        manager = _ManagerStub("fusion.puzzle_fusion")
+        scene = build_puzzle_fusion_descriptor().factory(manager)
+        scene._start_session()
+        scene.mechanic.offset = 32
+        for _ in range(5):
+            scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_LEFT)])
+        self.assertEqual(scene.mechanic.offset, -3)
+        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RIGHT)])
+        self.assertEqual(scene.mechanic.offset, 4)
+        self.assertTrue(scene.mechanic.confirm())
+
+    def test_bridge_fusion_success_starts_crossing_animation(self):
+        manager = _ManagerStub("fusion.bridge_fusion")
+        scene = build_bridge_fusion_descriptor().factory(manager)
+        scene._start_session()
+        scene.mechanic.offset = 0
+        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE)])
+        self.assertTrue(scene.pending_next_task)
+        self.assertGreater(scene.mechanic.crossing_started_at, 0)
+
+    def test_rail_fusion_same_state_forms_connectable_track(self):
+        manager = _ManagerStub("fusion.rail_fusion")
+        scene = build_rail_fusion_descriptor().factory(manager)
+        scene._start_session()
+        scene.mechanic.current_state = 0
+        scene.mechanic.correct_state = 0
+        self.assertTrue(scene.mechanic.confirm())
+
 
 if __name__ == "__main__":
     unittest.main()

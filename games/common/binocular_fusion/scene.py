@@ -56,6 +56,12 @@ class _FusionMechanic:
     def confirm(self):
         return False
 
+    def start_success_animation(self):
+        return False
+
+    def animation_finished(self, now):
+        return True
+
     def record_result(self, success):
         if success:
             self.success_count += 1
@@ -94,6 +100,14 @@ class _FusionMechanic:
         }
         return self.scene.manager.t(mapping.get(self.scene.config.mechanic_type, "fusion_common.goal.align"))
 
+    def stage_label(self):
+        progress = self.scene.session_progress()
+        if progress < 0.34:
+            return self.scene.manager.t("fusion_common.stage.warmup")
+        if progress < 0.67:
+            return self.scene.manager.t("fusion_common.stage.steady")
+        return self.scene.manager.t("fusion_common.stage.challenge")
+
 
 class _PuzzleFusionMechanic(_FusionMechanic):
     SHAPES = ("fish", "star", "apple", "butterfly")
@@ -106,7 +120,13 @@ class _PuzzleFusionMechanic(_FusionMechanic):
         self.shape_surface = pygame.Surface((160, 160), pygame.SRCALPHA)
 
     def start_task(self):
-        self.offset = random.choice([-44, -30, -16, 16, 30, 44])
+        progress = self.scene.session_progress()
+        if progress < 0.34:
+            self.offset = random.choice([-32, -20, 20, 32])
+        elif progress < 0.67:
+            self.offset = random.choice([-44, -30, -16, 16, 30, 44])
+        else:
+            self.offset = random.choice([-56, -44, -30, -18, 18, 30, 44, 56])
         self.target_shape = random.choice(self.SHAPES)
         self.base_color = random.choice(((255, 220, 120, 255), (160, 224, 255, 255), (255, 160, 160, 255)))
         self.shape_surface = self._build_shape(self.target_shape, self.base_color)
@@ -119,7 +139,9 @@ class _PuzzleFusionMechanic(_FusionMechanic):
                 self.offset = min(60, self.offset + 7)
 
     def confirm(self):
-        return abs(self.offset) <= 8
+        progress = self.scene.session_progress()
+        tolerance = 10 if progress < 0.34 else 8 if progress < 0.67 else 6
+        return abs(self.offset) <= tolerance
 
     def draw(self, screen):
         cx, cy = self.scene.play_area.centerx, self.scene.play_area.centery + 10
@@ -127,12 +149,8 @@ class _PuzzleFusionMechanic(_FusionMechanic):
         right_half = pygame.Surface(self.shape_surface.get_size(), pygame.SRCALPHA)
         mid_x = self.shape_surface.get_width() // 2
         left_half.blit(self.shape_surface, (0, 0), pygame.Rect(0, 0, mid_x, self.shape_surface.get_height()))
-        right_half.blit(
-            self.shape_surface,
-            (self.offset, 0),
-            pygame.Rect(mid_x, 0, self.shape_surface.get_width() - mid_x, self.shape_surface.get_height()),
-        )
-        self.scene.draw_binocular_pair(screen, left_half, right_half, (cx, cy))
+        right_half.blit(self.shape_surface, (0, 0), pygame.Rect(mid_x, 0, self.shape_surface.get_width() - mid_x, self.shape_surface.get_height()))
+        self.scene.draw_binocular_pair(screen, left_half, right_half, (cx, cy), left_offset=(-self.offset // 2, 0), right_offset=(self.offset // 2, 0))
         label = self.scene.body_font.render(self.scene.manager.t("fusion_common.puzzle_label"), True, (58, 70, 102))
         screen.blit(label, (cx - label.get_width() // 2, self.scene.play_area.bottom - 42))
 
@@ -141,29 +159,39 @@ class _PuzzleFusionMechanic(_FusionMechanic):
         accuracy = round(self.success_count / total * 100, 1) if total else 0.0
         return {"puzzle_fusion_accuracy": accuracy, "best_streak": self.best_streak}
 
+    def reward_summary(self):
+        if self.best_streak >= 5:
+            return self.scene.manager.t("puzzle_fusion.reward.super")
+        if self.best_streak >= 3:
+            return self.scene.manager.t("puzzle_fusion.reward.good")
+        return self.scene.manager.t("puzzle_fusion.reward.try")
+
+    def next_goal_text(self):
+        return self.scene.manager.t("puzzle_fusion.next_goal")
+
     def _build_shape(self, shape_id, color):
-        surf = pygame.Surface((160, 160), pygame.SRCALPHA)
-        cx, cy = 80, 80
+        surf = pygame.Surface((220, 220), pygame.SRCALPHA)
+        cx, cy = 110, 110
         if shape_id == "fish":
-            pygame.draw.ellipse(surf, color, pygame.Rect(cx - 44, cy - 24, 78, 48))
-            pygame.draw.polygon(surf, color, [(cx + 28, cy), (cx + 58, cy - 22), (cx + 58, cy + 22)])
+            pygame.draw.ellipse(surf, color, pygame.Rect(cx - 62, cy - 34, 112, 68))
+            pygame.draw.polygon(surf, color, [(cx + 44, cy), (cx + 84, cy - 30), (cx + 84, cy + 30)])
         elif shape_id == "star":
             points = []
             for i in range(10):
                 angle = -math.pi / 2 + i * math.pi / 5
-                radius = 44 if i % 2 == 0 else 20
+                radius = 62 if i % 2 == 0 else 28
                 points.append((cx + int(math.cos(angle) * radius), cy + int(math.sin(angle) * radius)))
             pygame.draw.polygon(surf, color, points)
         elif shape_id == "apple":
-            pygame.draw.circle(surf, color, (cx - 14, cy + 8), 28)
-            pygame.draw.circle(surf, color, (cx + 14, cy + 8), 28)
-            pygame.draw.polygon(surf, color, [(cx - 40, cy), (cx, cy - 36), (cx + 40, cy), (cx + 24, cy + 40), (cx - 24, cy + 40)])
+            pygame.draw.circle(surf, color, (cx - 20, cy + 10), 40)
+            pygame.draw.circle(surf, color, (cx + 20, cy + 10), 40)
+            pygame.draw.polygon(surf, color, [(cx - 58, cy), (cx, cy - 52), (cx + 58, cy), (cx + 34, cy + 56), (cx - 34, cy + 56)])
         else:
-            pygame.draw.ellipse(surf, color, pygame.Rect(cx - 56, cy - 34, 46, 54))
-            pygame.draw.ellipse(surf, color, pygame.Rect(cx + 10, cy - 34, 46, 54))
-            pygame.draw.ellipse(surf, color, pygame.Rect(cx - 50, cy + 6, 40, 48))
-            pygame.draw.ellipse(surf, color, pygame.Rect(cx + 10, cy + 6, 40, 48))
-            pygame.draw.rect(surf, (60, 60, 72, 255), pygame.Rect(cx - 5, cy - 24, 10, 68), border_radius=6)
+            pygame.draw.ellipse(surf, color, pygame.Rect(cx - 78, cy - 48, 62, 76))
+            pygame.draw.ellipse(surf, color, pygame.Rect(cx + 16, cy - 48, 62, 76))
+            pygame.draw.ellipse(surf, color, pygame.Rect(cx - 70, cy + 8, 56, 66))
+            pygame.draw.ellipse(surf, color, pygame.Rect(cx + 14, cy + 8, 56, 66))
+            pygame.draw.rect(surf, (60, 60, 72, 255), pygame.Rect(cx - 7, cy - 34, 14, 100), border_radius=8)
         return surf
 
 
@@ -171,9 +199,18 @@ class _BridgeFusionMechanic(_FusionMechanic):
     def __init__(self, scene):
         super().__init__(scene)
         self.offset = 0
+        self.crossing_started_at = 0.0
+        self.crossing_duration = 1.1
+        self.bridge_glow_until = 0.0
 
     def start_task(self):
-        self.offset = random.choice([-36, -24, -12, 12, 24, 36])
+        progress = self.scene.session_progress()
+        if progress < 0.34:
+            self.offset = random.choice([-20, -12, 12, 20])
+        elif progress < 0.67:
+            self.offset = random.choice([-36, -24, -12, 12, 24, 36])
+        else:
+            self.offset = random.choice([-48, -36, -24, -12, 12, 24, 36, 48])
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -183,7 +220,9 @@ class _BridgeFusionMechanic(_FusionMechanic):
                 self.offset = min(50, self.offset + 6)
 
     def confirm(self):
-        return abs(self.offset) <= 10
+        progress = self.scene.session_progress()
+        tolerance = 12 if progress < 0.34 else 10 if progress < 0.67 else 7
+        return abs(self.offset) <= tolerance
 
     def draw(self, screen):
         cx = self.scene.play_area.centerx
@@ -193,11 +232,11 @@ class _BridgeFusionMechanic(_FusionMechanic):
         pygame.draw.rect(screen, (234, 208, 164), pygame.Rect(water.left - 40, cy - 50, 52, 116), border_radius=18)
         pygame.draw.rect(screen, (234, 208, 164), pygame.Rect(water.right - 12, cy - 50, 52, 116), border_radius=18)
 
-        left_bridge = pygame.Surface((220, 70), pygame.SRCALPHA)
-        right_bridge = pygame.Surface((220, 70), pygame.SRCALPHA)
+        left_bridge = pygame.Surface((300, 92), pygame.SRCALPHA)
+        right_bridge = pygame.Surface((300, 92), pygame.SRCALPHA)
         for i in range(4):
-            pygame.draw.rect(left_bridge, (212, 158, 104, 255), pygame.Rect(i * 44, 18, 34, 24), border_radius=6)
-            pygame.draw.rect(right_bridge, (212, 158, 104, 255), pygame.Rect(i * 44, 18, 34, 24), border_radius=6)
+            pygame.draw.rect(left_bridge, (212, 158, 104, 255), pygame.Rect(i * 60, 24, 48, 32), border_radius=8)
+            pygame.draw.rect(right_bridge, (212, 158, 104, 255), pygame.Rect(i * 60, 24, 48, 32), border_radius=8)
         self.scene.draw_binocular_pair(
             screen,
             left_bridge,
@@ -206,8 +245,20 @@ class _BridgeFusionMechanic(_FusionMechanic):
             left_offset=(-self.offset // 2, 0),
             right_offset=(self.offset // 2, 0),
         )
-        player_x = water.left - 12 if abs(self.offset) > 10 else water.right - 10
-        pygame.draw.circle(screen, (255, 214, 120), (player_x, cy + 28), 16)
+        if self.bridge_glow_until and time.time() <= self.bridge_glow_until:
+            glow = pygame.Surface((water.width - 56, 44), pygame.SRCALPHA)
+            glow.fill((255, 244, 168, 88))
+            screen.blit(glow, (water.x + 28, cy - 2))
+        if self.crossing_started_at:
+            progress = min(1.0, max(0.0, (time.time() - self.crossing_started_at) / self.crossing_duration))
+            player_x = int((water.left + 8) * (1 - progress) + (water.right - 8) * progress)
+        else:
+            player_x = water.left - 12 if abs(self.offset) > 10 else water.left + 8
+        shadow = pygame.Surface((54, 24), pygame.SRCALPHA)
+        pygame.draw.ellipse(shadow, (40, 50, 70, 60), shadow.get_rect())
+        screen.blit(shadow, (player_x - 27, cy + 28))
+        pygame.draw.circle(screen, (255, 214, 120), (player_x, cy + 28), 22)
+        pygame.draw.circle(screen, (255, 246, 208), (player_x - 8, cy + 20), 6)
         label = self.scene.body_font.render(self.scene.manager.t("fusion_common.bridge_label"), True, (58, 70, 102))
         screen.blit(label, (cx - label.get_width() // 2, self.scene.play_area.bottom - 42))
 
@@ -216,23 +267,46 @@ class _BridgeFusionMechanic(_FusionMechanic):
         accuracy = round(self.success_count / total * 100, 1) if total else 0.0
         return {"bridge_fusion_accuracy": accuracy, "best_streak": self.best_streak}
 
+    def reward_summary(self):
+        if self.best_streak >= 5:
+            return self.scene.manager.t("bridge_fusion.reward.super")
+        if self.best_streak >= 3:
+            return self.scene.manager.t("bridge_fusion.reward.good")
+        return self.scene.manager.t("bridge_fusion.reward.try")
+
+    def next_goal_text(self):
+        return self.scene.manager.t("bridge_fusion.next_goal")
+
+    def start_success_animation(self):
+        self.crossing_started_at = time.time()
+        self.bridge_glow_until = self.crossing_started_at + self.crossing_duration
+        return True
+
+    def animation_finished(self, now):
+        return self.crossing_started_at > 0 and (now - self.crossing_started_at) >= self.crossing_duration
+
 
 class _RailFusionMechanic(_FusionMechanic):
     def __init__(self, scene):
         super().__init__(scene)
         self.current_state = 0
         self.correct_state = 0
+        self.state_count = 3
+        self.train_departed_at = 0.0
+        self.train_duration = 1.2
 
     def start_task(self):
-        self.current_state = random.randint(0, 2)
-        self.correct_state = random.randint(0, 2)
+        max_state = 2 if self.scene.session_progress() < 0.5 else 3
+        self.state_count = max_state + 1
+        self.current_state = random.randint(0, max_state)
+        self.correct_state = random.randint(0, max_state)
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                self.current_state = (self.current_state - 1) % 3
+                self.current_state = (self.current_state - 1) % self.state_count
             elif event.key == pygame.K_RIGHT:
-                self.current_state = (self.current_state + 1) % 3
+                self.current_state = (self.current_state + 1) % self.state_count
 
     def confirm(self):
         return self.current_state == self.correct_state
@@ -245,16 +319,24 @@ class _RailFusionMechanic(_FusionMechanic):
         pygame.draw.line(screen, (96, 110, 144), (start[0], cy), (start[0] + 80, cy), 10)
         pygame.draw.line(screen, (96, 110, 144), (end[0] - 80, cy), (end[0], cy), 10)
 
-        left_track = pygame.Surface((180, 120), pygame.SRCALPHA)
-        right_track = pygame.Surface((180, 120), pygame.SRCALPHA)
+        left_track = pygame.Surface((260, 160), pygame.SRCALPHA)
+        right_track = pygame.Surface((260, 160), pygame.SRCALPHA)
         self._draw_track_half(left_track, "left", self.current_state)
         self._draw_track_half(right_track, "right", self.correct_state)
         self.scene.draw_binocular_pair(screen, left_track, right_track, (cx, cy))
 
-        train_x = start[0] + 18
-        pygame.draw.rect(screen, (240, 108, 88), pygame.Rect(train_x, cy - 18, 44, 30), border_radius=8)
-        pygame.draw.circle(screen, (52, 60, 82), (train_x + 10, cy + 14), 6)
-        pygame.draw.circle(screen, (52, 60, 82), (train_x + 34, cy + 14), 6)
+        if self.train_departed_at:
+            progress = min(1.0, max(0.0, (time.time() - self.train_departed_at) / self.train_duration))
+            train_x = int((start[0] + 18) * (1 - progress) + (end[0] - 70) * progress)
+        else:
+            train_x = start[0] + 18
+        glow = pygame.Surface((76, 22), pygame.SRCALPHA)
+        pygame.draw.ellipse(glow, (36, 46, 66, 58), glow.get_rect())
+        screen.blit(glow, (train_x - 8, cy + 18))
+        pygame.draw.rect(screen, (240, 108, 88), pygame.Rect(train_x, cy - 24, 60, 38), border_radius=10)
+        pygame.draw.rect(screen, (255, 228, 210), pygame.Rect(train_x + 34, cy - 16, 14, 10), border_radius=4)
+        pygame.draw.circle(screen, (52, 60, 82), (train_x + 14, cy + 18), 8)
+        pygame.draw.circle(screen, (52, 60, 82), (train_x + 46, cy + 18), 8)
         label = self.scene.body_font.render(self.scene.manager.t("fusion_common.rail_label"), True, (58, 70, 102))
         screen.blit(label, (cx - label.get_width() // 2, self.scene.play_area.bottom - 42))
 
@@ -263,11 +345,31 @@ class _RailFusionMechanic(_FusionMechanic):
         accuracy = round(self.success_count / total * 100, 1) if total else 0.0
         return {"rail_fusion_accuracy": accuracy, "best_streak": self.best_streak}
 
+    def reward_summary(self):
+        if self.best_streak >= 5:
+            return self.scene.manager.t("rail_fusion.reward.super")
+        if self.best_streak >= 3:
+            return self.scene.manager.t("rail_fusion.reward.good")
+        return self.scene.manager.t("rail_fusion.reward.try")
+
+    def next_goal_text(self):
+        return self.scene.manager.t("rail_fusion.next_goal")
+
+    def start_success_animation(self):
+        self.train_departed_at = time.time()
+        return True
+
+    def animation_finished(self, now):
+        return self.train_departed_at > 0 and (now - self.train_departed_at) >= self.train_duration
+
     def _draw_track_half(self, surface, side, state):
         color = (124, 136, 176, 255)
-        x0 = 0 if side == "left" else surface.get_width() // 2
-        y_map = {0: 60, 1: 24, 2: 96}
-        pygame.draw.line(surface, color, (x0, 60), (x0 + surface.get_width() // 2, y_map[state]), 10)
+        x_mid = surface.get_width() // 2
+        y_map = {0: 80, 1: 30, 2: 130, 3: 56}
+        if side == "left":
+            pygame.draw.line(surface, color, (0, 80), (x_mid, y_map[state]), 14)
+        else:
+            pygame.draw.line(surface, color, (x_mid, y_map[state]), (surface.get_width(), 80), 14)
 
 
 class FusionTrainingScene(BaseScene):
@@ -299,6 +401,7 @@ class FusionTrainingScene(BaseScene):
         self.feedback_color = (255, 255, 255)
         self.feedback_until = 0.0
         self.final_stats = {}
+        self.pending_next_task = False
         self._refresh_fonts()
         self._build_ui_rects()
         self.mechanic = self._create_mechanic()
@@ -347,6 +450,7 @@ class FusionTrainingScene(BaseScene):
         self.correct_count = 0
         self.wrong_count = 0
         self.feedback_text = ""
+        self.pending_next_task = False
         self.mechanic = self._create_mechanic()
         self.mechanic.start_task()
 
@@ -370,6 +474,7 @@ class FusionTrainingScene(BaseScene):
         self.correct_count = 0
         self.wrong_count = 0
         self.feedback_text = ""
+        self.pending_next_task = False
         self.session_started_at = time.time()
         self.mechanic = self._create_mechanic()
         self.mechanic.start_task()
@@ -414,6 +519,11 @@ class FusionTrainingScene(BaseScene):
             self.feedback_text = f"{self.feedback_text} {extra}"
         self.feedback_color = color
         self.feedback_until = time.time() + 1.0
+
+    def session_progress(self):
+        if not self.session_started_at:
+            return 0.0
+        return min(1.0, max(0.0, (time.time() - self.session_started_at) / self._session_seconds()))
 
     def draw_binocular_pair(self, screen, left_surface, right_surface, center, left_offset=(0, 0), right_offset=(0, 0)):
         left = apply_filter(left_surface, self.mode, self.filter_direction, "left")
@@ -563,12 +673,15 @@ class FusionTrainingScene(BaseScene):
             if hasattr(self.manager, "sound_manager"):
                 self.manager.sound_manager.play_correct()
             self._set_feedback("fusion_common.success", (90, 202, 120), f"+{gained}")
+            self.pending_next_task = self.mechanic.start_success_animation()
         else:
             self.wrong_count += 1
             if hasattr(self.manager, "sound_manager"):
                 self.manager.sound_manager.play_wrong()
             self._set_feedback("fusion_common.fail", (228, 108, 108))
-        self.mechanic.start_task()
+            self.pending_next_task = False
+        if not self.pending_next_task:
+            self.mechanic.start_task()
 
     def update(self):
         if self.state == self.STATE_PLAY and self.session_started_at:
@@ -576,6 +689,9 @@ class FusionTrainingScene(BaseScene):
             if time.time() - self.session_started_at >= self._session_seconds():
                 self._finish_session()
                 return
+            if self.pending_next_task and self.mechanic.animation_finished(time.time()):
+                self.pending_next_task = False
+                self.mechanic.start_task()
         if self.feedback_text and time.time() > self.feedback_until:
             self.feedback_text = ""
 
@@ -616,12 +732,6 @@ class FusionTrainingScene(BaseScene):
 
     def _draw_play(self, screen):
         hud_primary = (42, 12, 72) if self.mode == self.MODE_GLASSES else (55, 82, 122)
-        pygame.draw.rect(screen, (248, 251, 255), self.play_area, border_radius=26)
-        pygame.draw.rect(screen, (204, 220, 244), self.play_area, 2, border_radius=26)
-        if self.mode == self.MODE_GLASSES:
-            overlay = pygame.Surface((self.play_area.width, self.play_area.height), pygame.SRCALPHA)
-            overlay.fill(GLASSES_BACKGROUND)
-            screen.blit(overlay, self.play_area.topleft)
         guide = self.small_font.render(self.manager.t(self.config.guide_key), True, hud_primary)
         screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, self.play_area.top + 16))
         remaining = max(0, self._session_seconds() - (time.time() - self.session_started_at))
@@ -629,6 +739,15 @@ class FusionTrainingScene(BaseScene):
         score = self.body_font.render(self.manager.t("fusion_common.score", score=self.score), True, hud_primary)
         screen.blit(timer, (self.width // 2 - timer.get_width() // 2, 14))
         screen.blit(score, (self.width // 2 - score.get_width() // 2, 42))
+        stage = self.small_font.render(self.mechanic.stage_label(), True, (94, 110, 150))
+        screen.blit(stage, (24, 18))
+        if self.mode == self.MODE_GLASSES:
+            direction_key = "fusion_common.filter.lr" if self.filter_direction == self.FILTER_LR else "fusion_common.filter.rl"
+            direction = self.small_font.render(self.manager.t(direction_key), True, (72, 28, 104))
+            screen.blit(direction, (24, 42))
+        if self.mechanic.streak > 1:
+            streak = self.small_font.render(self.manager.t("fusion_common.streak", n=self.mechanic.streak), True, (214, 104, 72))
+            screen.blit(streak, (self.width - streak.get_width() - 24, 18))
         goal = self.small_font.render(self.mechanic.goal_label(), True, (94, 110, 150))
         screen.blit(goal, (self.play_area.centerx - goal.get_width() // 2, self.play_area.top + 46))
         self.mechanic.draw(screen)
@@ -644,6 +763,12 @@ class FusionTrainingScene(BaseScene):
         lines = [
             self.manager.t("fusion_common.result.score", n=self.final_stats.get("score", 0)),
             self.manager.t("fusion_common.result.success", n=self.final_stats.get("correct", 0)),
+            self.manager.t(
+                "fusion_common.result.mode",
+                text=self.manager.t("fusion_common.home.glasses")
+                if self.final_stats.get("mode") == self.MODE_GLASSES
+                else self.manager.t("fusion_common.home.start"),
+            ),
             self.manager.t("fusion_common.result.reward", text=self.final_stats.get("reward_summary", "")),
             self.manager.t("fusion_common.result.next", text=self.final_stats.get("next_goal", "")),
         ]
