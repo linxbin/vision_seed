@@ -1,4 +1,4 @@
-from config import DEFAULT_TOTAL_QUESTIONS, DEFAULT_START_LEVEL, E_SIZE_LEVELS
+from config import DEFAULT_TOTAL_QUESTIONS, DEFAULT_START_LEVEL, DEFAULT_SESSION_MINUTES, E_SIZE_LEVELS
 from .sound_manager import SoundManager
 from .data_manager import DataManager
 from .preferences_manager import PreferencesManager
@@ -19,6 +19,8 @@ class SceneManager:
         self.settings = {
             "total_questions": DEFAULT_TOTAL_QUESTIONS,
             "start_level": DEFAULT_START_LEVEL,
+            "session_duration_minutes": DEFAULT_SESSION_MINUTES,
+            "e_training_mode": "time",
             "sound_enabled": True,
             "language": "en-US",
             "fullscreen": False,
@@ -70,6 +72,8 @@ class SceneManager:
         payload = {
             "start_level": self.settings["start_level"],
             "total_questions": self.settings["total_questions"],
+            "session_duration_minutes": self.settings.get("session_duration_minutes", DEFAULT_SESSION_MINUTES),
+            "e_training_mode": self.settings.get("e_training_mode", "time"),
             "sound_enabled": self.settings.get("sound_enabled", True),
             "language": self.settings.get("language", "en-US"),
             "fullscreen": self.settings.get("fullscreen", False),

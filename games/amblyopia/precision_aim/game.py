@@ -14,6 +14,7 @@ CONFIG = ArcadeGameConfig(
     mechanic_type="precision_aim",
     theme_color=(208, 104, 104),
     difficulty_level=4,
+    play_background_style="amblyopia_stimulus",
 )
 
 

@@ -32,7 +32,7 @@ class ConfigScene(BaseScene):
     PREF_DESC_Y = 170
     PREF_COL2_X = 215
 
-    ACTION_BUTTON_Y = 560
+    ACTION_BUTTON_Y = 586
     ACTION_BUTTON_W = 130
     ACTION_BUTTON_H = 42
     ACTION_BUTTON_GAP = 12
@@ -77,6 +77,7 @@ class ConfigScene(BaseScene):
             "start_level": self.manager.settings["start_level"],
             "total_questions": self.manager.settings["total_questions"],
             "adaptive_enabled": self.manager.settings.get("adaptive_enabled", True),
+            "training_mode": self.manager.settings.get("e_training_mode", "time"),
         }
         self.original_settings = dict(source)
         self.draft_settings = dict(source)
@@ -200,16 +201,28 @@ class ConfigScene(BaseScene):
         self.minus_button_rect = pygame.Rect(self.input_rect.right + 14, self.input_rect.y, 40, 40)
         self.plus_button_rect = pygame.Rect(self.minus_button_rect.right + 10, self.input_rect.y, 40, 40)
 
-        # 偏好区仅保留自适应开关
-        self.adaptive_toggle_rect = pygame.Rect(
+        # 偏好区：训练模式 + 自适应开关
+        self.mode_toggle_rect = pygame.Rect(
             self.pref_panel_rect.x + self.PREF_INSET_X,
             self.pref_panel_rect.y + self.PREF_ROW1_Y + 10,
             370,
             self.PREF_TOGGLE_H,
         )
-        self.adaptive_desc_rect = pygame.Rect(
+        self.mode_desc_rect = pygame.Rect(
             self.pref_panel_rect.x + 26,
             self.pref_panel_rect.y + self.PREF_ROW1_Y + 60,
+            self.pref_panel_rect.width - 52,
+            18,
+        )
+        self.adaptive_toggle_rect = pygame.Rect(
+            self.pref_panel_rect.x + self.PREF_INSET_X,
+            self.pref_panel_rect.y + self.PREF_ROW2_Y + 10,
+            370,
+            self.PREF_TOGGLE_H,
+        )
+        self.adaptive_desc_rect = pygame.Rect(
+            self.pref_panel_rect.x + 26,
+            self.pref_panel_rect.y + self.PREF_ROW2_Y + 60,
             self.pref_panel_rect.width - 52,
             18,
         )
@@ -245,6 +258,7 @@ class ConfigScene(BaseScene):
         self.manager.settings["start_level"] = self.draft_settings["start_level"]
         self.manager.settings["total_questions"] = self.draft_settings["total_questions"]
         self.manager.settings["adaptive_enabled"] = self.draft_settings["adaptive_enabled"]
+        self.manager.settings["e_training_mode"] = self.draft_settings["training_mode"]
         self.manager.save_user_preferences()
         self.original_settings = dict(self.draft_settings)
         self._set_feedback("config.feedback_saved", "success")
@@ -350,6 +364,8 @@ class ConfigScene(BaseScene):
                             self.manager.set_scene(self._return_scene_name())
                 elif event.key == pygame.K_a:
                     self.draft_settings["adaptive_enabled"] = not self.draft_settings["adaptive_enabled"]
+                elif event.key == pygame.K_t:
+                    self.draft_settings["training_mode"] = "questions" if self.draft_settings["training_mode"] == "time" else "time"
                 elif event.key == pygame.K_UP:
                     self._set_level(max(1, self.draft_settings["start_level"] - 1))
                 elif event.key == pygame.K_DOWN:
@@ -380,6 +396,11 @@ class ConfigScene(BaseScene):
                         self.manager.set_scene(self._return_scene_name())
                 elif self.cancel_button_rect.collidepoint(mouse_pos):
                     self._cancel_changes()
+                elif self.mode_toggle_rect.collidepoint(mouse_pos):
+                    if mouse_pos[0] < self.mode_toggle_rect.centerx:
+                        self.draft_settings["training_mode"] = "time"
+                    else:
+                        self.draft_settings["training_mode"] = "questions"
                 elif self.adaptive_toggle_rect.collidepoint(mouse_pos):
                     if mouse_pos[0] < self.adaptive_toggle_rect.centerx:
                         self.draft_settings["adaptive_enabled"] = True
@@ -391,6 +412,18 @@ class ConfigScene(BaseScene):
         draw_card(screen, rect, hovered=hovered, alt=True, radius=self.PANEL_RADIUS)
         title_surface = self.subtitle_font.render(title, True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(title_surface, (rect.x + 16, rect.y + 12))
+
+    def _draw_panel_title_with_tip(self, screen, rect, title, tip_text):
+        title_surface = self.subtitle_font.render(title, True, PlatformTheme.TEXT_PRIMARY)
+        screen.blit(title_surface, (rect.x + 16, rect.y + 12))
+        if not tip_text:
+            return
+        tip_surface = self.tiny_font.render(tip_text, True, PlatformTheme.TEXT_MUTED)
+        tip_x = rect.right - tip_surface.get_width() - 16
+        tip_y = rect.y + 18
+        if tip_x <= rect.x + 170:
+            tip_x = rect.x + 170
+        screen.blit(tip_surface, (tip_x, tip_y))
 
     def _draw_segmented_control(self, screen, rect, label, left_text, right_text, left_selected, mouse_pos):
         hovered = rect.collidepoint(mouse_pos)
@@ -529,7 +562,14 @@ class ConfigScene(BaseScene):
         self._draw_panel(screen, self.level_panel_rect, self.manager.t("config.difficulty_level"), mouse_pos)
         self._draw_panel(screen, self.preview_panel_rect, self.manager.t("config.font_preview"), mouse_pos)
         self._draw_panel(screen, self.question_panel_rect, self.manager.t("config.question_count"), mouse_pos)
-        self._draw_panel(screen, self.pref_panel_rect, self.manager.t("config.section_preferences"), mouse_pos)
+        pref_hovered = self.pref_panel_rect.collidepoint(mouse_pos)
+        draw_card(screen, self.pref_panel_rect, hovered=pref_hovered, alt=True, radius=self.PANEL_RADIUS)
+        self._draw_panel_title_with_tip(
+            screen,
+            self.pref_panel_rect,
+            self.manager.t("config.section_preferences"),
+            self.manager.t("config.adaptive_desc_short"),
+        )
 
         # 难度分组背景（10级模式）
         for group in getattr(self, "level_groups", []):
@@ -640,7 +680,17 @@ class ConfigScene(BaseScene):
             err = self.tiny_font.render(self.input_error, True, (180, 98, 98))
             screen.blit(err, (self.question_panel_rect.x + 26, self.question_panel_rect.y + 146))
 
-        # 偏好分段开关（仅自适应）
+        # 偏好分段开关：训练模式
+        self._draw_segmented_control(
+            screen,
+            self.mode_toggle_rect,
+            self.manager.t("config.training_mode"),
+            self.manager.t("config.mode_time"),
+            self.manager.t("config.mode_questions"),
+            self.draft_settings["training_mode"] == "time",
+            mouse_pos,
+        )
+        # 偏好分段开关：自适应
         self._draw_segmented_control(
             screen,
             self.adaptive_toggle_rect,
@@ -650,10 +700,6 @@ class ConfigScene(BaseScene):
             self.draft_settings["adaptive_enabled"],
             mouse_pos,
         )
-        adaptive_short = self.manager.t("config.adaptive_desc_short")
-        adaptive_desc = self.tiny_font.render(adaptive_short, True, PlatformTheme.TEXT_MUTED)
-        screen.blit(adaptive_desc, (self.adaptive_desc_rect.x, self.adaptive_desc_rect.y))
-
         if self.adaptive_desc_rect.collidepoint(mouse_pos) or self.adaptive_toggle_rect.collidepoint(mouse_pos):
             self._draw_tooltip(screen, self.manager.t("config.adaptive_desc"), mouse_pos)
 
@@ -665,8 +711,8 @@ class ConfigScene(BaseScene):
             size=current_size,
             questions=self.draft_settings["total_questions"],
         )
-        status = self.small_font.render(status_text, True, (184, 220, 178))
-        screen.blit(status, (self.width // 2 - status.get_width() // 2, self.layout_offset_y + 540))
+        status = self.small_font.render(status_text, True, PlatformTheme.TEXT_PRIMARY)
+        screen.blit(status, (self.width // 2 - status.get_width() // 2, self.layout_offset_y + 550))
         if self.feedback_frames > 0:
             self._draw_feedback(screen)
 

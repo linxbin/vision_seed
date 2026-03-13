@@ -23,6 +23,7 @@ class MenuScene(BaseScene):
         self.control_items = []
         self._recommendation_lines = 3
         self._compact_recommendation = False
+        self.focused_index = 0
         self._build_items()
 
     def _refresh_fonts(self):
@@ -34,6 +35,7 @@ class MenuScene(BaseScene):
         self.badge_font = self.create_font(16)
 
     def _build_items(self):
+        previous_focus = self.focused_index
         categories = self._safe_categories()
         margin = 32
         gutter = 18
@@ -79,6 +81,11 @@ class MenuScene(BaseScene):
         self.recommendations = build_daily_plan(self.manager, limit=3)
         self.recommendation_hint = build_daily_suggestion(self.manager, self.recommendations)
         self._sync_legacy_ui_shape()
+        if self._all_items():
+            self.focused_index = max(0, min(previous_focus, len(self._all_items()) - 1))
+
+    def _all_items(self):
+        return self._items + self.control_items
 
     def _safe_categories(self):
         categories = []
@@ -143,14 +150,25 @@ class MenuScene(BaseScene):
         mouse_pos = pygame.mouse.get_pos()
         for event in events:
             if event.type == pygame.KEYDOWN:
+                all_items = self._all_items()
+                if event.key in (pygame.K_UP, pygame.K_LEFT) and all_items:
+                    self.focused_index = (self.focused_index - 1) % len(all_items)
+                    continue
+                if event.key in (pygame.K_DOWN, pygame.K_RIGHT) and all_items:
+                    self.focused_index = (self.focused_index + 1) % len(all_items)
+                    continue
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE) and all_items:
+                    self._handle_item(all_items[self.focused_index])
+                    continue
                 if pygame.K_1 <= event.key <= pygame.K_9:
                     idx = event.key - pygame.K_0
-                    target = next((item for item in self._items + self.control_items if item["index"] == idx), None)
+                    target = next((item for item in all_items if item["index"] == idx), None)
                     if target:
                         self._handle_item(target)
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                for item in self._items + self.control_items:
+                for idx, item in enumerate(self._all_items()):
                     if item["rect"].collidepoint(mouse_pos):
+                        self.focused_index = idx
                         self._handle_item(item)
                         break
 
@@ -192,14 +210,15 @@ class MenuScene(BaseScene):
         screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 100))
 
         mouse_pos = pygame.mouse.get_pos()
-        for item in self._items:
-            hovered = item["rect"].collidepoint(mouse_pos)
+        all_items = self._all_items()
+        for idx, item in enumerate(self._items):
+            hovered = item["rect"].collidepoint(mouse_pos) or idx == self.focused_index
             draw_card(screen, item["rect"], hovered=hovered)
             label = self.option_font.render(f"{item['index']}. {item['label']}", True, PlatformTheme.TEXT_PRIMARY)
             screen.blit(label, (item["rect"].x + 16, item["rect"].centery - label.get_height() // 2))
 
-        for item in self.control_items:
-            hovered = item["rect"].collidepoint(mouse_pos)
+        for offset, item in enumerate(self.control_items, start=len(self._items)):
+            hovered = item["rect"].collidepoint(mouse_pos) or offset == self.focused_index
             draw_chip_label(
                 screen,
                 item["rect"],

@@ -10,7 +10,7 @@ from scenes.system_settings_scene import SystemSettingsScene
 
 class _ManagerStub:
     def __init__(self):
-        self.settings = {"language": "en-US", "sound_enabled": True}
+        self.settings = {"language": "en-US", "sound_enabled": True, "session_duration_minutes": 5}
         self.saved = 0
         self.last_scene = None
 
@@ -50,9 +50,11 @@ class SystemSettingsSceneTests(unittest.TestCase):
         scene = SystemSettingsScene(manager)
         scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_1)])
         scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_2)])
+        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_3)])
         self.assertFalse(manager.settings["sound_enabled"])
         self.assertEqual(manager.settings["language"], "zh-CN")
-        self.assertEqual(manager.saved, 2)
+        self.assertEqual(manager.settings["session_duration_minutes"], 10)
+        self.assertEqual(manager.saved, 3)
 
     def test_escape_returns_menu(self):
         manager = _ManagerStub()

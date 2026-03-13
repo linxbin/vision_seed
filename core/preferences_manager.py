@@ -12,10 +12,13 @@ from core.app_paths import (
 from config import (
     DEFAULT_TOTAL_QUESTIONS,
     DEFAULT_START_LEVEL,
+    DEFAULT_SESSION_MINUTES,
     MIN_LEVEL,
     MAX_LEVEL,
     MIN_QUESTIONS,
     MAX_QUESTIONS,
+    MIN_SESSION_MINUTES,
+    MAX_SESSION_MINUTES,
 )
 
 
@@ -40,6 +43,8 @@ class PreferencesManager:
         return {
             "start_level": DEFAULT_START_LEVEL,
             "total_questions": DEFAULT_TOTAL_QUESTIONS,
+            "session_duration_minutes": DEFAULT_SESSION_MINUTES,
+            "e_training_mode": "time",
             "sound_enabled": True,
             "language": "en-US",
             "fullscreen": False,
@@ -98,6 +103,15 @@ class PreferencesManager:
             merged["total_questions"] = defaults["total_questions"]
         merged["total_questions"] = max(MIN_QUESTIONS, min(MAX_QUESTIONS, merged["total_questions"]))
 
+        try:
+            merged["session_duration_minutes"] = int(merged.get("session_duration_minutes", defaults["session_duration_minutes"]))
+        except (TypeError, ValueError):
+            merged["session_duration_minutes"] = defaults["session_duration_minutes"]
+        merged["session_duration_minutes"] = max(
+            MIN_SESSION_MINUTES,
+            min(MAX_SESSION_MINUTES, merged["session_duration_minutes"]),
+        )
+
         merged["sound_enabled"] = bool(merged["sound_enabled"])
 
         language = merged.get("language", defaults["language"])
@@ -108,6 +122,10 @@ class PreferencesManager:
         merged["fullscreen"] = bool(merged.get("fullscreen", defaults["fullscreen"]))
         merged["onboarding_completed"] = bool(merged.get("onboarding_completed", defaults["onboarding_completed"]))
         merged["adaptive_enabled"] = bool(merged.get("adaptive_enabled", defaults["adaptive_enabled"]))
+        mode = str(merged.get("e_training_mode", defaults["e_training_mode"]))
+        if mode not in {"time", "questions"}:
+            mode = defaults["e_training_mode"]
+        merged["e_training_mode"] = mode
         try:
             merged["adaptive_cooldown_left"] = int(merged.get("adaptive_cooldown_left", defaults["adaptive_cooldown_left"]))
         except (TypeError, ValueError):

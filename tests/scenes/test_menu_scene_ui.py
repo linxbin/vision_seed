@@ -37,7 +37,7 @@ class TestMenuSceneUI(UITestCase):
         self.assertGreater(sum(panel_color[:3]), 30)
 
     def test_mouse_hover_interaction(self):
-        first_menu_rect = self.scene.menu_options[0]["rect"]
+        first_menu_rect = self.scene._items[1]["rect"]
         hover_pos = (first_menu_rect.centerx, first_menu_rect.centery)
         self.set_mouse_position(*hover_pos)
         hover_frame = self.capture_frame(self.scene)
@@ -58,6 +58,14 @@ class TestMenuSceneUI(UITestCase):
         self.set_mouse_position(*click_pos)
         click_events = self.simulate_mouse_event(pygame.MOUSEBUTTONDOWN, click_pos, button=1)
         self.capture_frame(self.scene, click_events)
+        self.mock_manager.set_scene.assert_called_with("category")
+
+    def test_keyboard_navigation_uses_focus_and_enter(self):
+        events = self.simulate_key_event(pygame.K_DOWN)
+        self.capture_frame(self.scene, events)
+        self.assertEqual(self.scene.focused_index, 1)
+        self.capture_frame(self.scene, self.simulate_key_event(pygame.K_RETURN))
+        self.assertEqual(self.mock_manager.active_category, "simultaneous")
         self.mock_manager.set_scene.assert_called_with("category")
 
 

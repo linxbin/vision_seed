@@ -30,7 +30,7 @@ class ETrainingMenuScene(BaseScene):
         card_h = 58
         gap = 14
         total_h = card_h * 4 + gap * 3
-        available_top = 220
+        available_top = 190
         available_bottom = self.height - 90
         available_h = max(total_h, available_bottom - available_top)
         start_y = available_top + max(0, (available_h - total_h) // 2)

@@ -12,7 +12,7 @@ from games.simultaneous.eye_find_patterns.services.scoring_service import EyeFin
 
 class _ManagerStub:
     def __init__(self):
-        self.settings = {"language": "en-US"}
+        self.settings = {"language": "en-US", "session_duration_minutes": 5}
         self.active_game_id = "simultaneous.eye_find_patterns"
         self.active_category = "simultaneous"
         self.last_scene = None
@@ -109,6 +109,12 @@ class EyeFindPatternsTests(unittest.TestCase):
         screen = pygame.Surface((scene.width, scene.height))
         scene.draw(screen)
         self.assertEqual(screen.get_at((4, 4))[:3], (248, 86, 255))
+
+    def test_session_seconds_follow_global_settings(self):
+        manager = _ManagerStub()
+        manager.settings["session_duration_minutes"] = 10
+        scene = EyeFindPatternsScene(manager)
+        self.assertEqual(scene._session_seconds(), 600)
 
 
 if __name__ == "__main__":

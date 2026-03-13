@@ -42,6 +42,8 @@ class _ManagerStub:
         self.settings = {
             "total_questions": total_questions,
             "start_level": start_level,
+            "session_duration_minutes": 5,
+            "e_training_mode": "questions",
             "sound_enabled": False,
             "language": "en-US",
         }
@@ -187,6 +189,20 @@ class TrainingScoringTests(unittest.TestCase):
         scene.handle_events([answer_event])
         self.assertEqual(scene.current, 1)
         self.assertEqual(scene.correct, 1)
+
+    def test_time_mode_finishes_when_global_timer_runs_out(self):
+        manager = _ManagerStub(total_questions=30, start_level=3)
+        manager.settings["e_training_mode"] = "time"
+        manager.settings["session_duration_minutes"] = 1
+        scene = TrainingScene(manager)
+
+        scene.start_time = time.time() - 61
+        scene.update()
+
+        self.assertTrue(scene.finish_transition_active)
+        scene.finish_transition_ends_at = time.time() - 0.01
+        scene.update()
+        self.assertEqual(manager.last_scene, "report")
 
 
 if __name__ == "__main__":

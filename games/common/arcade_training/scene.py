@@ -27,6 +27,7 @@ class ArcadeGameConfig:
     rounds_total: int = 8
     round_seconds: int = 12
     session_seconds: int = 120
+    play_background_style: str | None = None
 
 
 class BaseArcadeMechanic:
@@ -61,11 +62,31 @@ class BaseArcadeMechanic:
     def metric_display(self, scene):
         return "-"
 
+    def score_for_outcome(self, success):
+        return 10 if success else 0
+
+    def feedback_for_outcome(self, scene, success):
+        return ("arcade.play.correct", (86, 174, 112)) if success else ("arcade.play.wrong", (224, 110, 110))
+
+    def stage_label(self, scene):
+        return "-"
+
+    def goal_label(self, scene):
+        return "-"
+
+    def reward_summary(self, scene):
+        return ""
+
+    def next_goal_text(self, scene):
+        return ""
+
 
 class CatchFruitMechanic(BaseArcadeMechanic):
     def __init__(self, scene):
         super().__init__(scene)
         self.basket_x = 0
+        self.move_dir = 0
+        self.move_speed = 8
         self.fruit_x = 0
         self.fruit_y = 0
         self.fruit_speed = 0
@@ -73,12 +94,19 @@ class CatchFruitMechanic(BaseArcadeMechanic):
         self.end_size = 36
         self.clear_hits = 0
         self.smallest_caught = None
+        self.catch_window_top = 0
+        self.space_prompt = False
+        self.streak = 0
+        self.best_streak = 0
+        self.bonus_hits = 0
+        self.last_success_bonus = False
         self.fruit_asset_name = "apple"
         self.fruit_assets = {
             name: project_path("games", "accommodation", "catch_fruit", "assets", "objects", f"{name}.png")
             for name in ("apple", "banana", "orange", "strawberry", "grapes", "watermelon")
         }
         self.basket_asset = project_path("games", "accommodation", "catch_fruit", "assets", "objects", "basket.png")
+        self.fruit_points = {"apple": 10, "banana": 10, "orange": 10, "strawberry": 12, "grapes": 12, "watermelon": 18}
 
     def start_round(self):
         super().start_round()
@@ -86,28 +114,78 @@ class CatchFruitMechanic(BaseArcadeMechanic):
         self.fruit_x = random.randint(self.scene.play_area.left + 60, self.scene.play_area.right - 60)
         self.fruit_y = self.scene.play_area.top + 24
         self.fruit_speed = random.uniform(3.2, 4.8) + self.scene.config.difficulty_level * 0.25
-        self.fruit_asset_name = random.choice(tuple(self.fruit_assets.keys()))
+        self.catch_window_top = self.scene.play_area.bottom - 118
+        stage = self._stage_index()
+        if stage == 0:
+            self.fruit_speed -= 0.4
+            self.fruit_asset_name = random.choice(("apple", "banana", "orange"))
+        elif stage == 1:
+            self.fruit_speed += 0.2
+            self.fruit_asset_name = random.choice(("apple", "orange", "strawberry", "grapes"))
+        else:
+            self.fruit_speed += 0.8
+            self.fruit_asset_name = random.choice(tuple(self.fruit_assets.keys()))
+        self.last_success_bonus = False
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEMOTION:
             self.basket_x = max(self.scene.play_area.left + 60, min(self.scene.play_area.right - 60, event.pos[0]))
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                self.basket_x -= 28
+                self.move_dir = -1
             elif event.key == pygame.K_RIGHT:
-                self.basket_x += 28
-            self.basket_x = max(self.scene.play_area.left + 60, min(self.scene.play_area.right - 60, self.basket_x))
+                self.move_dir = 1
+            self._move_basket()
+        elif event.type == pygame.KEYUP:
+            if event.key == pygame.K_LEFT and self.move_dir < 0:
+                self.move_dir = 0
+            elif event.key == pygame.K_RIGHT and self.move_dir > 0:
+                self.move_dir = 0
 
     def update(self, now):
+        self._move_basket()
         self.fruit_y += self.fruit_speed
+        self.space_prompt = self.fruit_y >= self.catch_window_top
         if self.fruit_y >= self.scene.play_area.bottom - 46:
             success = abs(self.fruit_x - self.basket_x) <= 70 and self._clarity() >= 0.55
-            if success:
-                current_size = self._current_size()
-                self.smallest_caught = current_size if self.smallest_caught is None else min(self.smallest_caught, current_size)
-                if self._clarity() >= 0.75:
-                    self.clear_hits += 1
-            self._resolve(success)
+            self._finalize_catch(success)
+
+    def _move_basket(self):
+        if self.move_dir == 0:
+            return
+        self.basket_x += self.move_dir * self.move_speed
+        self.basket_x = max(self.scene.play_area.left + 60, min(self.scene.play_area.right - 60, self.basket_x))
+
+    def _attempt_catch(self):
+        if self.outcome is not None:
+            return
+        success = abs(self.fruit_x - self.basket_x) <= 70 and self._clarity() >= 0.55
+        self._finalize_catch(success)
+
+    def _finalize_catch(self, success):
+        if self.outcome is not None:
+            return
+        if success:
+            current_size = self._current_size()
+            self.smallest_caught = current_size if self.smallest_caught is None else min(self.smallest_caught, current_size)
+            if self._clarity() >= 0.75:
+                self.clear_hits += 1
+            self.streak += 1
+            self.best_streak = max(self.best_streak, self.streak)
+            self.last_success_bonus = self.fruit_asset_name == "watermelon"
+            if self.last_success_bonus:
+                self.bonus_hits += 1
+        else:
+            self.streak = 0
+        self._resolve(success)
+
+    def _stage_index(self):
+        progress = self.scene.session_progress()
+        if progress < 0.34:
+            return 0
+        if progress < 0.67:
+            return 1
+        return 2
 
     def _clarity(self):
         span = max(1, self.scene.play_area.height - 80)
@@ -139,12 +217,47 @@ class CatchFruitMechanic(BaseArcadeMechanic):
             pygame.draw.circle(screen, (255, 98, 86), (int(self.fruit_x), int(self.fruit_y)), size // 2)
             pygame.draw.circle(screen, (255, 230, 214), (int(self.fruit_x), int(self.fruit_y)), size // 2, 2)
             pygame.draw.line(screen, (124, 168, 92), (self.fruit_x, self.fruit_y - size // 2), (self.fruit_x + 8, self.fruit_y - size // 2 - 16), 3)
-
     def training_metrics(self, scene):
-        return {"smallest_caught_size_px": int(self.smallest_caught or self.start_size), "clear_window_hits": int(self.clear_hits)}
+        return {
+            "smallest_caught_size_px": int(self.smallest_caught or self.start_size),
+            "clear_window_hits": int(self.clear_hits),
+            "best_streak": int(self.best_streak),
+            "bonus_hits": int(self.bonus_hits),
+        }
 
     def metric_display(self, scene):
         return f"{self.clear_hits}/{scene.correct_count}"
+
+    def score_for_outcome(self, success):
+        if not success:
+            return 0
+        score = self.fruit_points.get(self.fruit_asset_name, 10)
+        if self.streak >= 3:
+            score += 8
+        if self.last_success_bonus:
+            score += 12
+        return score
+
+    def feedback_for_outcome(self, scene, success):
+        if not success:
+            return ("catch_fruit.feedback.miss", (214, 96, 96))
+        if self.last_success_bonus:
+            return ("catch_fruit.feedback.bonus", (88, 162, 108))
+        if self.streak >= 3:
+            return ("catch_fruit.feedback.combo", (92, 156, 222))
+        return ("arcade.play.correct", (86, 174, 112))
+
+    def stage_label(self, scene):
+        return scene.manager.t(("catch_fruit.stage.warmup", "catch_fruit.stage.steady", "catch_fruit.stage.sprint")[self._stage_index()])
+
+    def goal_label(self, scene):
+        return scene.manager.t(("catch_fruit.goal.warmup", "catch_fruit.goal.steady", "catch_fruit.goal.sprint")[self._stage_index()])
+
+    def reward_summary(self, scene):
+        return scene.manager.t("catch_fruit.reward", count=self.best_streak, bonus=self.bonus_hits)
+
+    def next_goal_text(self, scene):
+        return scene.manager.t("catch_fruit.next_goal")
 
 
 class SpotDifferenceMechanic(BaseArcadeMechanic):
@@ -336,28 +449,100 @@ class PrecisionAimMechanic(BaseArcadeMechanic):
     def __init__(self, scene):
         super().__init__(scene)
         self.target_center = (0, 0)
+        self.anchor_center = (0, 0)
+        self.aim_center = [0, 0]
         self.base_radius = 44
         self.current_radius = 44
         self.deviations = []
+        self.last_quality = "miss"
+        self.center_streak = 0
+        self.best_center_streak = 0
+        self.challenge_shift = 0.0
+
+    def _stage_index(self):
+        progress = self.scene.session_progress()
+        if progress < 0.34:
+            return 0
+        if progress < 0.67:
+            return 1
+        return 2
 
     def start_round(self):
         super().start_round()
-        self.target_center = (random.randint(self.scene.play_area.left + 80, self.scene.play_area.right - 80), random.randint(self.scene.play_area.top + 70, self.scene.play_area.bottom - 70))
-        self.base_radius = max(18, 46 - self.scene.current_round * 2)
+        self.anchor_center = (
+            random.randint(self.scene.play_area.left + 80, self.scene.play_area.right - 80),
+            random.randint(self.scene.play_area.top + 70, self.scene.play_area.bottom - 70),
+        )
+        self.target_center = self.anchor_center
+        self.aim_center = [self.scene.play_area.centerx, self.scene.play_area.centery]
+        stage = self._stage_index()
+        difficulty_offset = max(0, int(self.scene.config.difficulty_level) - 3) * 2
+        if stage == 0:
+            self.base_radius = max(30, 54 - difficulty_offset)
+        elif stage == 1:
+            self.base_radius = max(22, 42 - difficulty_offset)
+        else:
+            self.base_radius = max(16, 34 - difficulty_offset)
         self.current_radius = self.base_radius
+        self.last_quality = "miss"
+        self.challenge_shift = random.uniform(0.0, math.pi * 2)
 
     def handle_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            dx = event.pos[0] - self.target_center[0]
-            dy = event.pos[1] - self.target_center[1]
-            distance = math.hypot(dx, dy)
-            self.deviations.append(round(distance, 1))
-            self._resolve(distance <= self.current_radius * 0.68)
+        if event.type == pygame.MOUSEMOTION:
+            self.aim_center[0] = max(self.scene.play_area.left + 20, min(self.scene.play_area.right - 20, event.pos[0]))
+            self.aim_center[1] = max(self.scene.play_area.top + 20, min(self.scene.play_area.bottom - 20, event.pos[1]))
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            self._fire_at(self.aim_center[0], self.aim_center[1])
+        elif event.type == pygame.KEYDOWN:
+            step = 22
+            if event.key == pygame.K_LEFT:
+                self.aim_center[0] -= step
+            elif event.key == pygame.K_RIGHT:
+                self.aim_center[0] += step
+            elif event.key == pygame.K_UP:
+                self.aim_center[1] -= step
+            elif event.key == pygame.K_DOWN:
+                self.aim_center[1] += step
+            elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                self._fire_at(self.aim_center[0], self.aim_center[1])
+            self.aim_center[0] = max(self.scene.play_area.left + 20, min(self.scene.play_area.right - 20, self.aim_center[0]))
+            self.aim_center[1] = max(self.scene.play_area.top + 20, min(self.scene.play_area.bottom - 20, self.aim_center[1]))
+
+    def _fire_at(self, x, y):
+        if self.outcome is not None:
+            return
+        dx = x - self.target_center[0]
+        dy = y - self.target_center[1]
+        distance = math.hypot(dx, dy)
+        self.deviations.append(round(distance, 1))
+        if distance <= self.current_radius * 0.35:
+            self.last_quality = "center"
+            self.center_streak += 1
+            self.best_center_streak = max(self.best_center_streak, self.center_streak)
+            self._resolve(True)
+        elif distance <= self.current_radius * 0.68:
+            self.last_quality = "good"
+            self.center_streak = 0
+            self._resolve(True)
+        elif distance <= self.current_radius:
+            self.last_quality = "edge"
+            self.center_streak = 0
+            self._resolve(True)
+        else:
+            self.last_quality = "miss"
+            self.center_streak = 0
+            self._resolve(False)
 
     def update(self, now):
         progress = min(1.0, self.scene.round_elapsed / max(1.0, self.scene.config.round_seconds))
         shrink_progress = progress ** 0.78
         self.current_radius = max(10, int(self.base_radius * (1.0 - 0.62 * shrink_progress)))
+        if self._stage_index() == 2:
+            drift_x = int(math.sin(now * 2.4 + self.challenge_shift) * 18)
+            drift_y = int(math.cos(now * 1.9 + self.challenge_shift) * 12)
+            self.target_center = (self.anchor_center[0] + drift_x, self.anchor_center[1] + drift_y)
+        else:
+            self.target_center = self.anchor_center
 
     def draw(self, screen):
         rings = [self.current_radius, int(self.current_radius * 0.68), int(self.current_radius * 0.35)]
@@ -365,14 +550,67 @@ class PrecisionAimMechanic(BaseArcadeMechanic):
         for radius, color in zip(rings, colors):
             pygame.draw.circle(screen, color, self.target_center, max(4, radius))
         pygame.draw.circle(screen, (255, 255, 255), self.target_center, rings[-1])
+        cross_color = (72, 86, 122)
+        cx, cy = int(self.aim_center[0]), int(self.aim_center[1])
+        pygame.draw.circle(screen, (255, 255, 255), (cx, cy), 14, 2)
+        pygame.draw.line(screen, cross_color, (cx - 12, cy), (cx + 12, cy), 2)
+        pygame.draw.line(screen, cross_color, (cx, cy - 12), (cx, cy + 12), 2)
+        if self.center_streak >= 2:
+            streak = self.scene.small_font.render(f"STREAK x{self.center_streak}", True, (72, 132, 208))
+            screen.blit(streak, (self.scene.play_area.right - streak.get_width() - 12, self.scene.play_area.y + 12))
 
     def training_metrics(self, scene):
         avg = sum(self.deviations) / len(self.deviations) if self.deviations else 0.0
-        return {"average_click_deviation_px": round(avg, 1)}
+        return {"average_click_deviation_px": round(avg, 1), "best_center_streak": int(self.best_center_streak)}
 
     def metric_display(self, scene):
         avg = sum(self.deviations) / len(self.deviations) if self.deviations else 0.0
         return f"{avg:.1f}px"
+
+    def score_for_outcome(self, success):
+        if not success:
+            return 0
+        score = {"center": 18, "good": 12, "edge": 8}.get(self.last_quality, 10)
+        if self.last_quality == "center" and self.center_streak >= 2:
+            score += 6
+        return score
+
+    def feedback_for_outcome(self, scene, success):
+        if not success:
+            return ("precision_aim.feedback.miss", (214, 96, 96))
+        key = {
+            "center": "precision_aim.feedback.center",
+            "good": "precision_aim.feedback.good",
+            "edge": "precision_aim.feedback.edge",
+        }.get(self.last_quality, "arcade.play.correct")
+        color = {
+            "center": (82, 152, 222),
+            "good": (86, 174, 112),
+            "edge": (214, 148, 88),
+        }.get(self.last_quality, (86, 174, 112))
+        return (key, color)
+
+    def stage_label(self, scene):
+        stage = self._stage_index()
+        if stage == 0:
+            return scene.manager.t("precision_aim.stage.warmup")
+        if stage == 1:
+            return scene.manager.t("precision_aim.stage.steady")
+        return scene.manager.t("precision_aim.stage.challenge")
+
+    def goal_label(self, scene):
+        stage = self._stage_index()
+        if stage == 0:
+            return scene.manager.t("precision_aim.goal.warmup")
+        if stage == 1:
+            return scene.manager.t("precision_aim.goal.steady")
+        return scene.manager.t("precision_aim.goal.challenge")
+
+    def reward_summary(self, scene):
+        return scene.manager.t("precision_aim.reward", count=self.best_center_streak)
+
+    def next_goal_text(self, scene):
+        return scene.manager.t("precision_aim.next_goal")
 
 
 MECHANICS = {
@@ -397,7 +635,7 @@ class ArcadeTrainingScene(BaseScene):
         self.width = 900
         self.height = 700
         self.state = self.STATE_HOME
-        self.current_round = 0
+        self.attempt_count = 0
         self.correct_count = 0
         self.wrong_count = 0
         self.score = 0
@@ -409,11 +647,23 @@ class ArcadeTrainingScene(BaseScene):
         self.feedback_until = 0.0
         self.final_stats = {}
         self._result_saved = False
+        self.home_focus = 0
+        self.result_focus = 0
         self.completed_sound_played = False
         self._refresh_fonts()
         self._build_ui_rects()
         self.mechanic = MECHANICS[config.mechanic_type](self)
         self.completed_sound_played = False
+
+    def _session_seconds(self):
+        try:
+            minutes = int(self.manager.settings.get("session_duration_minutes", 5))
+        except (TypeError, ValueError):
+            minutes = 5
+        return max(60, minutes * 60)
+
+    def session_progress(self):
+        return min(1.0, self.session_elapsed / max(1.0, self._session_seconds()))
 
     def _refresh_fonts(self):
         self.title_font = self.create_font(52)
@@ -423,7 +673,7 @@ class ArcadeTrainingScene(BaseScene):
         self.small_font = self.create_font(18)
 
     def _build_ui_rects(self):
-        self.play_area = pygame.Rect(70, 120, self.width - 140, self.height - 280)
+        self.play_area = pygame.Rect(54, 104, self.width - 108, self.height - 176)
         card_w = min(560, self.width - 120)
         card_h = 62
         start_x = self.width // 2 - card_w // 2
@@ -443,7 +693,7 @@ class ArcadeTrainingScene(BaseScene):
 
     def reset(self):
         self.state = self.STATE_HOME
-        self.current_round = 0
+        self.attempt_count = 0
         self.correct_count = 0
         self.wrong_count = 0
         self.score = 0
@@ -476,7 +726,7 @@ class ArcadeTrainingScene(BaseScene):
 
     def _start_session(self):
         self.state = self.STATE_PLAY
-        self.current_round = 0
+        self.attempt_count = 0
         self.correct_count = 0
         self.wrong_count = 0
         self.score = 0
@@ -491,15 +741,19 @@ class ArcadeTrainingScene(BaseScene):
 
     def _apply_outcome(self, success):
         self._play_feedback_sound(success)
+        points = self.mechanic.score_for_outcome(success)
+        key, color = self.mechanic.feedback_for_outcome(self, success)
         if success:
             self.correct_count += 1
-            self.score += 10
-            self._set_feedback("arcade.play.correct", (86, 174, 112))
+            self.score += points
+            self._set_feedback(key, color)
+            if points > 10:
+                self.feedback_text = f"{self.feedback_text}  +{points}"
         else:
             self.wrong_count += 1
-            self._set_feedback("arcade.play.wrong", (224, 110, 110))
-        self.current_round += 1
-        if self.current_round >= self.config.rounds_total or self.session_elapsed >= self.config.session_seconds:
+            self._set_feedback(key, color)
+        self.attempt_count += 1
+        if self.session_elapsed >= self._session_seconds():
             self._finish_session()
         else:
             self._start_round()
@@ -516,19 +770,22 @@ class ArcadeTrainingScene(BaseScene):
             "score": self.score,
             "metric_label": self.manager.t(self.config.metric_label_key),
             "metric_value": self.mechanic.metric_display(self),
+            "reward_summary": self.mechanic.reward_summary(self),
+            "next_goal": self.mechanic.next_goal_text(self),
+            "stars": max(1, min(3, int(round(self.accuracy_rate() / 33.4)))),
         }
         if not self._result_saved:
             payload = {
                 "timestamp": datetime.now().replace(microsecond=0).isoformat(),
                 "game_id": self.config.game_id,
                 "difficulty_level": self.config.difficulty_level,
-                "total_questions": self.config.rounds_total,
+                "total_questions": self.correct_count + self.wrong_count,
                 "correct_count": self.correct_count,
                 "wrong_count": self.wrong_count,
                 "duration_seconds": round(duration, 1),
                 "training_metrics": self.mechanic.training_metrics(self),
             }
-            self.manager.current_result = {"correct": self.correct_count, "total": self.config.rounds_total, "game_id": self.config.game_id}
+            self.manager.current_result = {"correct": self.correct_count, "total": self.correct_count + self.wrong_count, "game_id": self.config.game_id}
             self.manager.data_manager.save_training_session(payload)
             self.saved_session = payload
             self._result_saved = True
@@ -543,23 +800,43 @@ class ArcadeTrainingScene(BaseScene):
     def _go_menu(self):
         self.manager.set_scene("menu")
 
+    def _home_buttons(self):
+        return [self.btn_start, self.btn_help, self.btn_back]
+
+    def _result_buttons(self):
+        return [self.btn_continue, self.btn_exit]
+
     def handle_events(self, events):
         for event in events:
             if self.state == self.STATE_HOME:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         self._go_category()
-                    elif event.key in (pygame.K_1, pygame.K_RETURN):
+                    elif event.key in (pygame.K_UP, pygame.K_LEFT):
+                        self.home_focus = (self.home_focus - 1) % 3
+                    elif event.key in (pygame.K_DOWN, pygame.K_RIGHT):
+                        self.home_focus = (self.home_focus + 1) % 3
+                    elif event.key == pygame.K_1:
                         self._start_session()
                     elif event.key == pygame.K_2:
                         self.state = self.STATE_HELP
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        if self.home_focus == 0:
+                            self._start_session()
+                        elif self.home_focus == 1:
+                            self.state = self.STATE_HELP
+                        else:
+                            self._go_category()
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
                     if self.btn_back.collidepoint(pos):
+                        self.home_focus = 2
                         self._go_category()
                     elif self.btn_start.collidepoint(pos):
+                        self.home_focus = 0
                         self._start_session()
                     elif self.btn_help.collidepoint(pos):
+                        self.home_focus = 1
                         self.state = self.STATE_HELP
             elif self.state == self.STATE_HELP:
                 if event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
@@ -576,15 +853,24 @@ class ArcadeTrainingScene(BaseScene):
                 self.mechanic.handle_event(event)
             else:
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_RETURN:
-                        self.state = self.STATE_HOME
+                    if event.key in (pygame.K_LEFT, pygame.K_UP):
+                        self.result_focus = (self.result_focus - 1) % 2
+                    elif event.key in (pygame.K_RIGHT, pygame.K_DOWN):
+                        self.result_focus = (self.result_focus + 1) % 2
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        if self.result_focus == 0:
+                            self.state = self.STATE_HOME
+                        else:
+                            self._go_menu()
                     elif event.key == pygame.K_ESCAPE:
                         self._go_menu()
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
                     if self.btn_continue.collidepoint(pos):
+                        self.result_focus = 0
                         self.state = self.STATE_HOME
                     elif self.btn_exit.collidepoint(pos):
+                        self.result_focus = 1
                         self._go_menu()
 
     def update(self):
@@ -592,14 +878,15 @@ class ArcadeTrainingScene(BaseScene):
         if self.state == self.STATE_PLAY:
             self.session_elapsed = now - self.session_started_at
             self.round_elapsed = now - self.round_started_at
+            if self.session_elapsed >= self._session_seconds():
+                self._finish_session()
+                return
             self.mechanic.update(now)
             if self.round_elapsed >= self.config.round_seconds and self.mechanic.outcome is None:
                 self.mechanic._resolve(False)
             outcome = self.mechanic.consume_outcome()
             if outcome is not None:
                 self._apply_outcome(outcome)
-            elif self.session_elapsed >= self.config.session_seconds:
-                self._finish_session()
         if self.feedback_text and now > self.feedback_until:
             self.feedback_text = ""
 
@@ -616,6 +903,31 @@ class ArcadeTrainingScene(BaseScene):
             pygame.draw.line(screen, color, (0, y), (self.width, y))
 
         self._draw_theme_decorations(screen)
+
+    def _draw_amblyopia_stimulus_bg(self, screen):
+        pattern_rect = self.play_area.inflate(-12, -12)
+        elapsed = time.time() - self.session_started_at if self.session_started_at else time.time()
+        pattern_index = int(elapsed // 3) % 2
+        motion = int((elapsed * 36) % 48)
+        pattern_surface = pygame.Surface(pattern_rect.size, pygame.SRCALPHA)
+        if pattern_index == 0:
+            block = 32
+            for x in range(-block, pattern_rect.width + block, block):
+                for y in range(-block, pattern_rect.height + block, block):
+                    shifted_x = x + (motion if (y // block) % 2 == 0 else -motion)
+                    color = (245, 245, 245) if ((x // block) + (y // block)) % 2 == 0 else (18, 18, 18)
+                    pygame.draw.rect(pattern_surface, color, pygame.Rect(shifted_x, y, block, block))
+        else:
+            stripe = 28
+            for idx, x in enumerate(range(-stripe * 2, pattern_rect.width + stripe * 2, stripe)):
+                shifted = x + motion
+                color = (248, 248, 248) if idx % 2 == 0 else (12, 12, 12)
+                pygame.draw.rect(pattern_surface, color, pygame.Rect(shifted, 0, stripe, pattern_rect.height))
+        mask_surface = pygame.Surface(pattern_rect.size, pygame.SRCALPHA)
+        pygame.draw.rect(mask_surface, (255, 255, 255, 255), mask_surface.get_rect(), border_radius=18)
+        pattern_surface.blit(mask_surface, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        screen.blit(pattern_surface, pattern_rect.topleft)
+        pygame.draw.rect(screen, (255, 255, 255), pattern_rect, 2, border_radius=18)
 
     def _draw_theme_decorations(self, screen):
         color = self.config.theme_color
@@ -728,11 +1040,15 @@ class ArcadeTrainingScene(BaseScene):
         }
         return badges.get(self.config.mechanic_type, 'PLAY')
 
-    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), icon_name=None):
+    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), icon_name=None, selected=False):
         hovered = rect.collidepoint(pygame.mouse.get_pos())
-        fill = tuple(min(255, c + 16) for c in color) if hovered else color
+        fill = tuple(min(255, c + 16) for c in color) if hovered or selected else color
+        border_color = (255, 250, 212) if selected else (255, 255, 255)
+        if selected:
+            glow = rect.inflate(10, 10)
+            pygame.draw.rect(screen, (255, 236, 176), glow, border_radius=16)
         pygame.draw.rect(screen, fill, rect, border_radius=12)
-        pygame.draw.rect(screen, (255, 255, 255), rect, 2, border_radius=12)
+        pygame.draw.rect(screen, border_color, rect, 3 if selected else 2, border_radius=12)
         label = self.option_font.render(text, True, text_color)
         icon = self._load_ui_icon(icon_name, light=sum(text_color) > 500, size=(18, 18)) if icon_name else None
         gap = 8 if icon is not None else 0
@@ -752,9 +1068,9 @@ class ArcadeTrainingScene(BaseScene):
         subtitle = self.subtitle_font.render(self.manager.t(self.config.subtitle_key), True, (86, 104, 130))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 86))
         screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 142))
-        self._draw_button(screen, self.btn_start, self.manager.t("arcade.home.start"), self.config.theme_color, icon_name="check")
-        self._draw_button(screen, self.btn_help, self.manager.t("arcade.home.help"), (120, 138, 170), icon_name="question")
-        self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow")
+        self._draw_button(screen, self.btn_start, self.manager.t("arcade.home.start"), self.config.theme_color, icon_name="check", selected=self.home_focus == 0)
+        self._draw_button(screen, self.btn_help, self.manager.t("arcade.home.help"), (120, 138, 170), icon_name="question", selected=self.home_focus == 1)
+        self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow", selected=self.home_focus == 2)
         hint = self.small_font.render(self.manager.t("arcade.home.tip"), True, (86, 104, 130))
         screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.btn_help.bottom + 22))
 
@@ -773,13 +1089,24 @@ class ArcadeTrainingScene(BaseScene):
         self._draw_button(screen, self.btn_ok, self.manager.t("arcade.help.ok"), (244, 214, 126), text_color=(110, 88, 46), icon_name="check")
 
     def _draw_play(self, screen):
-        pygame.draw.rect(screen, (245, 250, 255), self.play_area, border_radius=16)
-        pygame.draw.rect(screen, (182, 204, 226), self.play_area, 2, border_radius=16)
-        timer = max(0, int(self.config.session_seconds - self.session_elapsed))
-        items = [self.manager.t("arcade.time_left", sec=f"{timer // 60:02d}:{timer % 60:02d}"), self.manager.t("arcade.round", current=self.current_round + 1, total=self.config.rounds_total), self.manager.t("arcade.score", score=self.score)]
+        if self.config.play_background_style == "amblyopia_stimulus":
+            pygame.draw.rect(screen, (236, 236, 236), self.play_area, border_radius=18)
+            self._draw_amblyopia_stimulus_bg(screen)
+        else:
+            pygame.draw.rect(screen, (245, 250, 255), self.play_area, border_radius=16)
+            pygame.draw.rect(screen, (182, 204, 226), self.play_area, 2, border_radius=16)
+        timer = max(0, int(self._session_seconds() - self.session_elapsed))
+        items = [
+            self.manager.t("arcade.time_left", sec=f"{timer // 60:02d}:{timer % 60:02d}"),
+            self.manager.t("arcade.score", score=self.score),
+        ]
         for idx, text in enumerate(items):
             surf = self.small_font.render(text, True, (56, 82, 118))
-            screen.blit(surf, (24 + idx * 220, 20))
+            screen.blit(surf, (24 + idx * 240, 20))
+        stage = self.small_font.render(self.manager.t("arcade.play.stage", stage=self.mechanic.stage_label(self)), True, (72, 92, 126))
+        goal = self.small_font.render(self.manager.t("arcade.play.goal", goal=self.mechanic.goal_label(self)), True, (82, 100, 126))
+        screen.blit(stage, (24, 52))
+        screen.blit(goal, (24, 76))
         self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow")
         guide = self.small_font.render(self.manager.t(self.config.guide_key), True, (82, 100, 126))
         screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, self.play_area.bottom + 10))
@@ -802,12 +1129,15 @@ class ArcadeTrainingScene(BaseScene):
             self.manager.t("arcade.result.accuracy", value=self.final_stats.get("accuracy", 0.0)),
             self.manager.t("arcade.result.difficulty", level=self.final_stats.get("difficulty_level", self.config.difficulty_level)),
             self.manager.t("arcade.result.metric", label=self.final_stats.get("metric_label", "-"), value=self.final_stats.get("metric_value", "-")),
+            self.manager.t("arcade.result.stars", count=self.final_stats.get("stars", 1)),
+            self.manager.t("arcade.result.reward", reward=self.final_stats.get("reward_summary", "-")),
+            self.manager.t("arcade.result.next_goal", goal=self.final_stats.get("next_goal", "-")),
         ]
         for idx, text in enumerate(lines):
             surf = self.body_font.render(text, True, (58, 84, 118))
-            screen.blit(surf, (self.width // 2 - surf.get_width() // 2, 188 + idx * 38))
-        self._draw_button(screen, self.btn_continue, self.manager.t("arcade.result.continue"), (86, 152, 114), icon_name="check")
-        self._draw_button(screen, self.btn_exit, self.manager.t("arcade.result.exit"), (120, 134, 168), icon_name="cross")
+            screen.blit(surf, (self.width // 2 - surf.get_width() // 2, 176 + idx * 34))
+        self._draw_button(screen, self.btn_continue, self.manager.t("arcade.result.continue"), (86, 152, 114), icon_name="check", selected=self.result_focus == 0)
+        self._draw_button(screen, self.btn_exit, self.manager.t("arcade.result.exit"), (120, 134, 168), icon_name="cross", selected=self.result_focus == 1)
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()

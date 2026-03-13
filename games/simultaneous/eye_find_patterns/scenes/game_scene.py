@@ -20,7 +20,6 @@ class EyeFindPatternsScene(BaseScene):
     FILTER_LR = "left_red_right_blue"
     FILTER_RL = "left_blue_right_red"
 
-    SESSION_SECONDS = 300
     ATTEMPT_SECONDS = 30
     OVERLAP_TOLERANCE = 8
 
@@ -37,7 +36,7 @@ class EyeFindPatternsScene(BaseScene):
 
         self.pattern_service = EyeFindPatternService()
         self.scoring = EyeFindScoringService()
-        self.session = EyeFindSessionService(self.SESSION_SECONDS, self.ATTEMPT_SECONDS)
+        self.session = EyeFindSessionService(self._session_seconds(), self.ATTEMPT_SECONDS)
         self.final_stats = {}
 
         self.left_center = (0, 0)
@@ -107,12 +106,20 @@ class EyeFindPatternsScene(BaseScene):
         self.session.reset()
         self._new_pattern(reset_position=True)
 
+    def _session_seconds(self):
+        try:
+            minutes = int(self.manager.settings.get("session_duration_minutes", 5))
+        except (TypeError, ValueError):
+            minutes = 5
+        return max(60, minutes * 60)
+
     def _exit_to_main_menu(self):
         self.manager.set_scene("menu")
 
     def _start_game(self):
         self.state = self.STATE_PLAY
         self.scoring.reset()
+        self.session.session_seconds = self._session_seconds()
         self.session.start()
         self.session_elapsed = 0.0
         self.attempt_elapsed = 0.0
@@ -418,7 +425,7 @@ class EyeFindPatternsScene(BaseScene):
         mode_surface = self.body_font.render(mode_text, True, hud_primary)
         screen.blit(mode_surface, (24, 18))
 
-        remaining = max(0, self.SESSION_SECONDS - self.session_elapsed)
+        remaining = max(0, self._session_seconds() - self.session_elapsed)
         timer_color = hud_alert if remaining <= 30 else hud_primary
         timer_surface = self.body_font.render(self.manager.t("eye_find.time", sec=self._format_time(remaining)), True, timer_color)
         screen.blit(timer_surface, (self.width // 2 - timer_surface.get_width() // 2, 14))

@@ -72,6 +72,8 @@ class TrainingScene(BaseScene):
         pygame.K_LEFT: "LEFT",
         pygame.K_RIGHT: "RIGHT"
     }
+    MODE_TIME = "time"
+    MODE_QUESTIONS = "questions"
 
     def __init__(self, manager):
         super().__init__(manager)
@@ -122,12 +124,19 @@ class TrainingScene(BaseScene):
 
     def _reflow_layout(self):
         self.center_pos = (self.width // 2, self.height // 2 - 50)
-        self.progress_pos = (self.width // 2, self.height - 70)
+        self.progress_pos = (self.width // 2, 20)
         self.status_pos = (self.width // 2, self.height - 36)
         self.back_button_rect = pygame.Rect(self.width - 90, 15, 80, 30)
         self.pause_button_rect = pygame.Rect(self.width - 180, 15, 80, 30)
         if getattr(self, "rect", None):
             self.rect.center = self.center_pos
+
+    def _fit_surface_to_width(self, surface, max_width):
+        if surface.get_width() <= max_width:
+            return surface
+        target_width = max(1, max_width)
+        target_height = max(1, int(surface.get_height() * (target_width / surface.get_width())))
+        return pygame.transform.smoothscale(surface, (target_width, target_height))
 
     def on_resize(self, width, height):
         self.width = width
@@ -135,6 +144,7 @@ class TrainingScene(BaseScene):
         self._reflow_layout()
 
     def reset(self):
+        self.training_mode = self.manager.settings.get("e_training_mode", self.MODE_TIME)
         self.total = self.manager.settings["total_questions"]
         self.current = 0
         self.correct = 0
@@ -166,12 +176,22 @@ class TrainingScene(BaseScene):
         self.shake_intensity = 0
         self.shake_offset = (0, 0)
 
-        # 0题模式：直接结束并生成报告，避免进入无意义训练循环
-        if self.total <= 0:
+        # 题数模式下 0 题直接结束；时间模式总是按倒计时进入训练
+        if self.training_mode == self.MODE_QUESTIONS and self.total <= 0:
             self._finalize_finish_transition()
             return
 
         self.new_question()
+
+    def _session_seconds(self) -> int:
+        try:
+            minutes = int(self.manager.settings.get("session_duration_minutes", 5))
+        except (TypeError, ValueError):
+            minutes = 5
+        return max(60, minutes * 60)
+
+    def _is_time_mode(self) -> bool:
+        return self.training_mode == self.MODE_TIME
 
     def _pause_training(self):
         if self.is_paused:
@@ -255,16 +275,17 @@ class TrainingScene(BaseScene):
         """保存训练记录到数据管理器"""
         try:
             game_id = getattr(self.manager, "active_game_id", None) or "legacy_training"
+            total_answered = self.current if self._is_time_mode() else self.total
             session_data = {
                 "timestamp": datetime.now().isoformat(),
                 "game_id": game_id,
                 "difficulty_level": self.manager.settings["start_level"],
                 "e_size_px": self.base_size,
-                "total_questions": self.total,
+                "total_questions": total_answered,
                 "correct_count": self.correct,
                 "wrong_count": wrong,
                 "duration_seconds": duration,
-                "accuracy_rate": round((self.correct / self.total) * 100, 1) if self.total > 0 else 0.0
+                "accuracy_rate": round((self.correct / total_answered) * 100, 1) if total_answered > 0 else 0.0
             }
             
             success = self.records_service.save_session(session_data)
@@ -284,11 +305,12 @@ class TrainingScene(BaseScene):
         self.finish_transition_active = False
 
         duration = round(self._active_elapsed_seconds(), 2)
-        wrong = max(0, self.total - self.correct)
+        total_answered = self.current if self._is_time_mode() else self.total
+        wrong = max(0, total_answered - self.correct)
 
         self.manager.current_result["correct"] = self.correct
         self.manager.current_result["wrong"] = wrong
-        self.manager.current_result["total"] = self.total
+        self.manager.current_result["total"] = total_answered
         self.manager.current_result["duration"] = duration
         self.manager.current_result["max_combo"] = self.max_combo
         self.manager.current_result["game_id"] = getattr(self.manager, "active_game_id", None) or "legacy_training"
@@ -370,7 +392,7 @@ class TrainingScene(BaseScene):
                     particle_y = self.rect.centery - max(30, self.base_size // 2 + 10)
                     self._spawn_feedback_particles(is_correct, particle_x, particle_y)
 
-                    if self.current >= self.total:
+                    if (not self._is_time_mode()) and self.current >= self.total:
                         self._begin_finish_transition()
                     else:
                         # 设置回答后的延迟标志和结束时间（1秒延迟）
@@ -392,7 +414,9 @@ class TrainingScene(BaseScene):
             return
 
         current_time = time.time()
-        
+        if self._is_time_mode() and self._active_elapsed_seconds() >= self._session_seconds():
+            self._begin_finish_transition()
+
         # 更新粒子效果
         for particle in self.particles[:]:
             particle.update()
@@ -439,21 +463,32 @@ class TrainingScene(BaseScene):
 
         screen.blit(self.surface, self.rect.move(ox, oy))
 
-        progress = f"{self.current}/{self.total}"
-        progress_bar_rect = pygame.Rect(self.progress_pos[0] - 110, self.progress_pos[1] - 8, 220, 42)
-        pygame.draw.rect(screen, (255, 251, 245), progress_bar_rect, border_radius=16)
-        pygame.draw.rect(screen, PlatformTheme.BORDER, progress_bar_rect, 2, border_radius=16)
-        progress_surface = self.small_font.render(progress, True, PlatformTheme.TEXT_PRIMARY)
-        screen.blit(progress_surface, (self.progress_pos[0] - progress_surface.get_width() // 2, self.progress_pos[1]))
+        if self._is_time_mode():
+            remaining = max(0, int(self._session_seconds() - self._active_elapsed_seconds()))
+            progress = self.manager.t("training.time_left", sec=f"{remaining // 60:02d}:{remaining % 60:02d}")
+        else:
+            progress = f"{self.current}/{self.total}"
+        progress_bar_rect = pygame.Rect(self.progress_pos[0] - 130, self.progress_pos[1], 260, 42)
+        draw_chip(screen, progress_bar_rect, hovered=False, radius=16)
+        progress_surface = self.small_font.render(progress, True, PlatformTheme.CHIP_TEXT)
+        progress_surface = self._fit_surface_to_width(progress_surface, progress_bar_rect.width - 24)
+        screen.blit(
+            progress_surface,
+            (
+                progress_bar_rect.centerx - progress_surface.get_width() // 2,
+                progress_bar_rect.centery - progress_surface.get_height() // 2,
+            ),
+        )
 
         # 轻量训练状态信息：等级/尺寸/正确率
         accuracy = round((self.correct / self.current) * 100, 1) if self.current > 0 else 0.0
         level = self.manager.settings.get("start_level", 1)
-        status_text = f"L{level} | {self.base_size}px | {accuracy:.1f}%"
-        status_surface = self.back_button_font.render(status_text, True, PlatformTheme.TEXT_MUTED)
+        mode_label = self.manager.t("training.mode_time") if self._is_time_mode() else self.manager.t("training.mode_questions")
+        status_text = f"{mode_label} | L{level} | {self.base_size}px | {accuracy:.1f}%"
+        status_surface = self.back_button_font.render(status_text, True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(
             status_surface,
-            (self.status_pos[0] - status_surface.get_width() // 2, self.status_pos[1]),
+            (self.status_pos[0] - status_surface.get_width() // 2, self.status_pos[1] + 10),
         )
 
         pause_hint = self.back_button_font.render(self.manager.t("training.pause_hint"), True, PlatformTheme.TEXT_MUTED)
@@ -462,7 +497,7 @@ class TrainingScene(BaseScene):
         if self.combo >= 2 and self.combo_display_frames > 0:
             combo_color = (235, 174, 89) if self.combo < 5 else (205, 132, 64)
             combo_text = self.small_font.render(self.manager.t("training.combo", combo=self.combo), True, combo_color)
-            screen.blit(combo_text, (self.center_pos[0] - combo_text.get_width() // 2, 36))
+            screen.blit(combo_text, (self.center_pos[0] - combo_text.get_width() // 2, 72))
         
         # 绘制粒子效果（已经在update中处理了）
         for particle in self.particles:

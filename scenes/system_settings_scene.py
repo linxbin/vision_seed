@@ -14,6 +14,7 @@ class SystemSettingsScene(BaseScene):
         self.height = SCREEN_HEIGHT
         self.sound_rect = pygame.Rect(0, 0, 1, 1)
         self.language_rect = pygame.Rect(0, 0, 1, 1)
+        self.duration_rect = pygame.Rect(0, 0, 1, 1)
         self.back_rect = pygame.Rect(0, 0, 1, 1)
         self._reflow_layout()
 
@@ -31,6 +32,7 @@ class SystemSettingsScene(BaseScene):
         gap = 18
         self.sound_rect = pygame.Rect(x, y, card_w, card_h)
         self.language_rect = pygame.Rect(x, y + card_h + gap, card_w, card_h)
+        self.duration_rect = pygame.Rect(x, y + (card_h + gap) * 2, card_w, card_h)
         self.back_rect = pygame.Rect(self.width - 126, 24, 92, 40)
 
     def on_resize(self, width, height):
@@ -51,6 +53,16 @@ class SystemSettingsScene(BaseScene):
     def _go_back(self):
         self.manager.set_scene("menu")
 
+    def _cycle_session_duration(self):
+        options = (3, 5, 10)
+        current = int(self.manager.settings.get("session_duration_minutes", 5))
+        try:
+            idx = options.index(current)
+        except ValueError:
+            idx = 1
+        self.manager.settings["session_duration_minutes"] = options[(idx + 1) % len(options)]
+        self.manager.save_user_preferences()
+
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
         for event in events:
@@ -61,11 +73,15 @@ class SystemSettingsScene(BaseScene):
                     self._toggle_sound()
                 elif event.key == pygame.K_2:
                     self._toggle_language()
+                elif event.key == pygame.K_3:
+                    self._cycle_session_duration()
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.sound_rect.collidepoint(mouse_pos):
                     self._toggle_sound()
                 elif self.language_rect.collidepoint(mouse_pos):
                     self._toggle_language()
+                elif self.duration_rect.collidepoint(mouse_pos):
+                    self._cycle_session_duration()
                 elif self.back_rect.collidepoint(mouse_pos):
                     self._go_back()
 
@@ -95,8 +111,10 @@ class SystemSettingsScene(BaseScene):
 
         sound_on = self.manager.t("config.on") if self.manager.settings.get("sound_enabled", True) else self.manager.t("config.off")
         lang_text = self.manager.t("config.lang_en") if self.manager.settings.get("language") == "en-US" else self.manager.t("config.lang_zh")
+        duration_text = self.manager.t("system.duration_value", n=int(self.manager.settings.get("session_duration_minutes", 5)))
         self._draw_item(screen, self.sound_rect, self.manager.t("system.sound", value=sound_on))
         self._draw_item(screen, self.language_rect, self.manager.t("system.language", value=lang_text))
+        self._draw_item(screen, self.duration_rect, self.manager.t("system.duration", value=duration_text))
 
         mouse_pos = pygame.mouse.get_pos()
         hovered = self.back_rect.collidepoint(mouse_pos)

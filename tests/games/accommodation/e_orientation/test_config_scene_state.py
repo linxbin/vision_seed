@@ -14,6 +14,7 @@ class _ManagerStub:
             "start_level": 3,
             "total_questions": 30,
             "adaptive_enabled": True,
+            "e_training_mode": "time",
         }
         self.saved = 0
         self.last_scene = None
@@ -46,11 +47,13 @@ class ConfigSceneStateTests(unittest.TestCase):
         scene.draft_settings["start_level"] = 5
         scene.draft_settings["total_questions"] = 40
         scene.draft_settings["adaptive_enabled"] = False
+        scene.draft_settings["training_mode"] = "questions"
         scene._commit_settings()
 
         self.assertEqual(manager.settings["start_level"], 5)
         self.assertEqual(manager.settings["total_questions"], 40)
         self.assertFalse(manager.settings["adaptive_enabled"])
+        self.assertEqual(manager.settings["e_training_mode"], "questions")
         self.assertEqual(manager.saved, 1)
 
     def test_cancel_restores_original_settings(self):
@@ -61,11 +64,13 @@ class ConfigSceneStateTests(unittest.TestCase):
         scene.draft_settings["start_level"] = 7
         scene.draft_settings["total_questions"] = 100
         scene.draft_settings["adaptive_enabled"] = False
+        scene.draft_settings["training_mode"] = "questions"
         scene._cancel_changes()
 
         self.assertEqual(manager.settings["start_level"], 3)
         self.assertEqual(manager.settings["total_questions"], 30)
         self.assertTrue(manager.settings["adaptive_enabled"])
+        self.assertEqual(manager.settings["e_training_mode"], "time")
         self.assertEqual(manager.last_scene, "menu")
 
     def test_feedback_message_set_on_commit_and_validation_error(self):
@@ -148,6 +153,16 @@ class ConfigSceneStateTests(unittest.TestCase):
         scene.handle_events(events)
 
         self.assertFalse(scene.draft_settings["adaptive_enabled"])
+
+    def test_mode_shortcut_toggles_training_mode(self):
+        manager = _ManagerStub()
+        scene = ConfigScene(manager)
+        scene.on_enter()
+
+        events = [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_t, mod=0, unicode="t")]
+        scene.handle_events(events)
+
+        self.assertEqual(scene.draft_settings["training_mode"], "questions")
 
     def test_level_arrow_keys_clamp_to_bounds(self):
         manager = _ManagerStub()
