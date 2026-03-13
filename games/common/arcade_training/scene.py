@@ -616,7 +616,6 @@ class PrecisionAimMechanic(BaseArcadeMechanic):
 MECHANICS = {
     "catch_fruit": CatchFruitMechanic,
     "spot_difference": SpotDifferenceMechanic,
-    "path_fusion": PathFusionMechanic,
     "weak_eye_key": WeakEyeKeyMechanic,
     "depth_grab": DepthGrabMechanic,
     "precision_aim": PrecisionAimMechanic,
@@ -946,9 +945,6 @@ class ArcadeTrainingScene(BaseScene):
                     pygame.draw.circle(screen, color, (x, y), 12)
                 else:
                     pygame.draw.rect(screen, color, pygame.Rect(x - 12, y - 12, 24, 24), border_radius=6)
-        elif self.config.mechanic_type == 'path_fusion':
-            pygame.draw.line(screen, (255, 190, 122), (70, 84), (self.width // 2, 54), 6)
-            pygame.draw.line(screen, color, (self.width // 2, 54), (self.width - 80, 92), 6)
         elif self.config.mechanic_type == 'weak_eye_key':
             for idx in range(3):
                 self._draw_key_deco(screen, 90 + idx * 150, 70 + idx * 8, 0.9 + idx * 0.1)
@@ -999,12 +995,6 @@ class ArcadeTrainingScene(BaseScene):
                 pygame.draw.circle(screen, self.config.theme_color, (right.x + ox, right.y + 28), 8)
             pygame.draw.circle(screen, self.config.theme_color, (left.x + 54, left.y + 58), 8)
             pygame.draw.rect(screen, (255, 126, 126), pygame.Rect(right.x + 46, right.y + 50, 18, 18), border_radius=4)
-        elif kind == "path_fusion":
-            pygame.draw.line(screen, (120, 174, 255), (cx - 140, cy - 28), (cx - 18, cy - 2), 10)
-            pygame.draw.line(screen, (255, 192, 118), (cx + 18, cy - 2), (cx + 140, cy + 26), 10)
-            pygame.draw.line(screen, (218, 228, 240), (cx, cy - 52), (cx, cy + 54), 2)
-            for idx, px in enumerate((cx + 70, cx + 112, cx + 152)):
-                pygame.draw.circle(screen, (220, 228, 240) if idx != 1 else (255, 192, 118), (px, cy + 30), 14)
         elif kind == "weak_eye_key":
             board = pygame.Rect(cx - 150, cy - 42, 210, 92)
             clue = pygame.Rect(cx + 78, cy - 42, 58, 92)
@@ -1033,7 +1023,6 @@ class ArcadeTrainingScene(BaseScene):
         badges = {
             'catch_fruit': 'FOCUS',
             'spot_difference': 'SYNC',
-            'path_fusion': 'FUSE',
             'weak_eye_key': 'CLUE',
             'depth_grab': 'DEPTH',
             'precision_aim': 'AIM',

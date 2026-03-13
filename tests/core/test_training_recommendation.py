@@ -17,7 +17,7 @@ class _RegistryStub:
         mapping = {
             "accommodation": [GameDescriptor("accommodation.catch_fruit", "accommodation", "Catch", lambda m: None, "game.accommodation.catch_fruit")],
             "simultaneous": [GameDescriptor("simultaneous.spot_difference", "simultaneous", "Spot", lambda m: None, "game.simultaneous.spot_difference")],
-            "fusion": [GameDescriptor("fusion.path_fusion", "fusion", "Path", lambda m: None, "game.fusion.path_fusion")],
+            "fusion": [GameDescriptor("fusion.puzzle_fusion", "fusion", "Puzzle", lambda m: None, "game.fusion.puzzle_fusion")],
         }
         return mapping.get(category_id, [])
 
@@ -42,7 +42,7 @@ class _ManagerStub:
             "category.fusion": "Fusion",
             "game.accommodation.catch_fruit": "Catch Fruit",
             "game.simultaneous.spot_difference": "Spot Difference",
-            "game.fusion.path_fusion": "Path Fusion",
+            "game.fusion.puzzle_fusion": "Puzzle Fusion",
             "menu.recommend.none": "none",
             "menu.recommend.start_fresh": "fresh-first",
             "menu.recommend.review_focus": f"review {kwargs.get('category', '')}",

@@ -2,9 +2,8 @@ import math
 import random
 
 import pygame
-import pygame.surfarray
-
 from core.asset_loader import load_image_if_exists, project_path
+from games.common.anaglyph import BLUE_FILTER, GLASSES_BACKGROUND, RED_FILTER, apply_filter, blend_filtered_patterns
 
 
 class EyeFindPatternService:
@@ -32,9 +31,9 @@ class EyeFindPatternService:
         (198, 166, 255, 255),
         (255, 189, 118, 255),
     )
-    GLASSES_BACKGROUND = (255, 19, 255, 179)
-    RED_FILTER = (255, 0, 0, 255)
-    BLUE_FILTER = (0, 0, 255, 255)
+    GLASSES_BACKGROUND = GLASSES_BACKGROUND
+    RED_FILTER = RED_FILTER
+    BLUE_FILTER = BLUE_FILTER
 
     def _asset_path(self, pattern_id):
         return project_path("games", "simultaneous", "eye_find_patterns", "assets", "objects", f"{pattern_id}.png")
@@ -158,51 +157,7 @@ class EyeFindPatternService:
         return left_center, right_center
 
     def apply_filter(self, base, mode, filter_direction, side, mode_glasses, filter_lr):
-        if mode != mode_glasses:
-            return base
-        is_left_red = filter_direction == filter_lr
-        use_red = (side == "left" and is_left_red) or (side == "right" and not is_left_red)
-        color = self.RED_FILTER if use_red else self.BLUE_FILTER
-        result = pygame.Surface(base.get_size(), pygame.SRCALPHA)
-        result.fill(color)
-        base_alpha = pygame.surfarray.array_alpha(base)
-        result_alpha = pygame.surfarray.pixels_alpha(result)
-        tint_alpha = color[3]
-        result_alpha[:] = (base_alpha.astype("uint16") * tint_alpha // 255).astype("uint8")
-        del result_alpha
-        return result
+        return apply_filter(base, mode, filter_direction, side, mode_glasses, filter_lr)
 
     def blend_filtered_patterns(self, canvas_size, left_surface, left_rect, right_surface, right_rect):
-        left_layer = pygame.Surface(canvas_size, pygame.SRCALPHA)
-        right_layer = pygame.Surface(canvas_size, pygame.SRCALPHA)
-        left_layer.blit(left_surface, left_rect)
-        right_layer.blit(right_surface, right_rect)
-
-        left_rgb = pygame.surfarray.array3d(left_layer).astype("uint16")
-        right_rgb = pygame.surfarray.array3d(right_layer).astype("uint16")
-        left_alpha = pygame.surfarray.array_alpha(left_layer).astype("uint16")
-        right_alpha = pygame.surfarray.array_alpha(right_layer).astype("uint16")
-
-        output_rgb = left_rgb.copy()
-        output_alpha = left_alpha.copy()
-
-        only_right = (left_alpha == 0) & (right_alpha > 0)
-        output_rgb[only_right] = right_rgb[only_right]
-        output_alpha[only_right] = right_alpha[only_right]
-
-        overlap = (left_alpha > 0) & (right_alpha > 0)
-        if overlap.any():
-            mixed_rgb = (left_rgb[overlap] * right_rgb[overlap]) // 255
-            output_rgb[overlap] = mixed_rgb
-            output_alpha[overlap] = left_alpha[overlap] + right_alpha[overlap] - (
-                left_alpha[overlap] * right_alpha[overlap] // 255
-            )
-
-        blended = pygame.Surface(canvas_size, pygame.SRCALPHA)
-        blended_rgb = pygame.surfarray.pixels3d(blended)
-        blended_rgb[:] = output_rgb.astype("uint8")
-        del blended_rgb
-        blended_alpha = pygame.surfarray.pixels_alpha(blended)
-        blended_alpha[:] = output_alpha.astype("uint8")
-        del blended_alpha
-        return blended
+        return blend_filtered_patterns(canvas_size, left_surface, left_rect, right_surface, right_rect)

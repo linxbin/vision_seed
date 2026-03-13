@@ -7,7 +7,6 @@ import pygame
 
 from games.accommodation.catch_fruit.game import build_descriptor as build_catch_fruit_descriptor
 from games.amblyopia.precision_aim.game import build_descriptor as build_precision_aim_descriptor
-from games.fusion.path_fusion.game import build_descriptor as build_path_fusion_descriptor
 from games.simultaneous.spot_difference.game import build_descriptor as build_spot_difference_descriptor
 from games.stereopsis.depth_grab.game import build_descriptor as build_depth_grab_descriptor
 from games.suppression.weak_eye_key.game import build_descriptor as build_weak_eye_key_descriptor
@@ -75,7 +74,6 @@ class ArcadeTrainingGamesTests(unittest.TestCase):
         descriptors = [
             build_catch_fruit_descriptor(),
             build_spot_difference_descriptor(),
-            build_path_fusion_descriptor(),
             build_weak_eye_key_descriptor(),
             build_depth_grab_descriptor(),
             build_precision_aim_descriptor(),

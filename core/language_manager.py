@@ -2,7 +2,10 @@ from games.accommodation.catch_fruit.i18n import TRANSLATIONS as CATCH_FRUIT_TRA
 from games.accommodation.e_orientation.i18n import TRANSLATIONS as E_ORIENTATION_TRANSLATIONS
 from games.amblyopia.precision_aim.i18n import TRANSLATIONS as PRECISION_AIM_TRANSLATIONS
 from games.common.arcade_training.i18n import TRANSLATIONS as ARCADE_TRANSLATIONS
-from games.fusion.path_fusion.i18n import TRANSLATIONS as PATH_FUSION_TRANSLATIONS
+from games.common.binocular_fusion.i18n import TRANSLATIONS as FUSION_COMMON_TRANSLATIONS
+from games.fusion.bridge_fusion.i18n import TRANSLATIONS as BRIDGE_FUSION_TRANSLATIONS
+from games.fusion.puzzle_fusion.i18n import TRANSLATIONS as PUZZLE_FUSION_TRANSLATIONS
+from games.fusion.rail_fusion.i18n import TRANSLATIONS as RAIL_FUSION_TRANSLATIONS
 from games.simultaneous.eye_find_patterns.i18n import TRANSLATIONS as EYE_FIND_TRANSLATIONS
 from games.simultaneous.spot_difference.i18n import TRANSLATIONS as SPOT_DIFFERENCE_TRANSLATIONS
 from games.stereopsis.depth_grab.i18n import TRANSLATIONS as DEPTH_GRAB_TRANSLATIONS
@@ -191,11 +194,14 @@ class LanguageManager:
     TRANSLATIONS = _merge_translations(
         CORE_TRANSLATIONS,
         ARCADE_TRANSLATIONS,
+        FUSION_COMMON_TRANSLATIONS,
         E_ORIENTATION_TRANSLATIONS,
         CATCH_FRUIT_TRANSLATIONS,
         EYE_FIND_TRANSLATIONS,
         SPOT_DIFFERENCE_TRANSLATIONS,
-        PATH_FUSION_TRANSLATIONS,
+        PUZZLE_FUSION_TRANSLATIONS,
+        BRIDGE_FUSION_TRANSLATIONS,
+        RAIL_FUSION_TRANSLATIONS,
         WEAK_EYE_KEY_TRANSLATIONS,
         DEPTH_GRAB_TRANSLATIONS,
         PRECISION_AIM_TRANSLATIONS,
