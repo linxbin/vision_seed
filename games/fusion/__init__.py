@@ -1,3 +1,1 @@
-from .bridge_fusion import build_descriptor as build_bridge_fusion_descriptor
-from .puzzle_fusion import build_descriptor as build_puzzle_fusion_descriptor
-from .rail_fusion import build_descriptor as build_rail_fusion_descriptor
+"""Fusion game package placeholder."""

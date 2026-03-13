@@ -10,14 +10,14 @@ class _RegistryStub:
         return [
             {"id": "accommodation", "name_key": "category.accommodation"},
             {"id": "simultaneous", "name_key": "category.simultaneous"},
-            {"id": "fusion", "name_key": "category.fusion"},
+            {"id": "suppression", "name_key": "category.suppression"},
         ]
 
     def get_games_by_category(self, category_id):
         mapping = {
             "accommodation": [GameDescriptor("accommodation.catch_fruit", "accommodation", "Catch", lambda m: None, "game.accommodation.catch_fruit")],
             "simultaneous": [GameDescriptor("simultaneous.spot_difference", "simultaneous", "Spot", lambda m: None, "game.simultaneous.spot_difference")],
-            "fusion": [GameDescriptor("fusion.puzzle_fusion", "fusion", "Puzzle", lambda m: None, "game.fusion.puzzle_fusion")],
+            "suppression": [GameDescriptor("suppression.weak_eye_key", "suppression", "WeakEye", lambda m: None, "game.suppression.weak_eye_key")],
         }
         return mapping.get(category_id, [])
 
@@ -39,10 +39,10 @@ class _ManagerStub:
         values = {
             "category.accommodation": "Accommodation",
             "category.simultaneous": "Simultaneous",
-            "category.fusion": "Fusion",
+            "category.suppression": "Suppression",
             "game.accommodation.catch_fruit": "Catch Fruit",
             "game.simultaneous.spot_difference": "Spot Difference",
-            "game.fusion.puzzle_fusion": "Puzzle Fusion",
+            "game.suppression.weak_eye_key": "Weak Eye Key",
             "menu.recommend.none": "none",
             "menu.recommend.start_fresh": "fresh-first",
             "menu.recommend.review_focus": f"review {kwargs.get('category', '')}",
@@ -56,8 +56,8 @@ class TrainingRecommendationTests(unittest.TestCase):
             "accommodation.catch_fruit": {"timestamp": "2026-03-12T09:00:00", "accuracy_rate": 92.0},
         })
         plans = build_daily_plan(manager)
-        self.assertEqual(plans[0]["category_id"], "fusion")
-        self.assertEqual(plans[1]["category_id"], "simultaneous")
+        self.assertEqual(plans[0]["category_id"], "simultaneous")
+        self.assertEqual(plans[1]["category_id"], "suppression")
         self.assertEqual(plans[2]["category_id"], "accommodation")
 
     def test_suggestion_prefers_fresh_start(self):

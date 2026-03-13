@@ -46,6 +46,25 @@ class DataManagerIOTests(unittest.TestCase):
                 self.assertEqual(after, baseline)
                 self.assertEqual(list(Path(tmp_dir).glob(".records.*.tmp")), [])
 
+    def test_save_training_session_returns_false_when_write_fails(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with patch("core.data_manager.get_user_data_dir", return_value=tmp_dir), patch(
+                "core.data_manager.get_install_root", return_value=tmp_dir
+            ):
+                manager = DataManager()
+                with patch("core.data_manager.os.replace", side_effect=OSError("replace failed")):
+                    ok = manager.save_training_session(
+                        {
+                            "timestamp": "2026-02-27T00:00:00",
+                            "difficulty_level": 3,
+                            "total_questions": 10,
+                            "correct_count": 7,
+                            "wrong_count": 3,
+                            "duration_seconds": 12.3,
+                        }
+                    )
+                self.assertFalse(ok)
+
     def test_get_sessions_by_game_filters_namespace(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             with patch("core.data_manager.get_user_data_dir", return_value=tmp_dir), patch(

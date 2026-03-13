@@ -134,7 +134,7 @@ class DataManager:
             self._init_records_file()
             return {"schema_version": self.CURRENT_SCHEMA_VERSION, "sessions": []}
 
-    def _write_json(self, data: Dict[str, Any]):
+    def _write_json(self, data: Dict[str, Any]) -> bool:
         temp_path = ""
         try:
             os.makedirs(os.path.dirname(self.records_file), exist_ok=True)
@@ -144,6 +144,7 @@ class DataManager:
                 f.flush()
                 os.fsync(f.fileno())
             os.replace(temp_path, self.records_file)
+            return True
         except IOError as e:
             print(f"Error writing records file: {e}")
             if temp_path and os.path.exists(temp_path):
@@ -151,6 +152,7 @@ class DataManager:
                     os.remove(temp_path)
                 except OSError:
                     pass
+            return False
 
     def save_training_session(self, session_data: Dict[str, Any]) -> bool:
         try:
@@ -162,8 +164,7 @@ class DataManager:
             data = self._read_json()
             data['sessions'].insert(0, normalized_session)
             data['schema_version'] = self.CURRENT_SCHEMA_VERSION
-            self._write_json(data)
-            return True
+            return self._write_json(data)
         except Exception as e:
             print(f"Error saving training session: {e}")
             return False
