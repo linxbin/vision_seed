@@ -260,9 +260,12 @@ class SpotDifferenceScene(BaseScene):
             return
         if index in self.pending_indices:
             self.pending_indices.remove(index)
+            if self.selected_index == index:
+                self.selected_index = -1
             self._set_feedback("spot_difference.feedback.unselect", (130, 146, 188))
         else:
             self.pending_indices.add(index)
+            self.selected_index = index
             self._set_feedback("spot_difference.feedback.select", (96, 156, 214))
 
     def _draw_chip(self, screen, rect, text, bg_color, text_color=(255, 255, 255)):
@@ -416,7 +419,7 @@ class SpotDifferenceScene(BaseScene):
             (244, 210, 126),
             text_color=(88, 72, 32),
         )
-        tip = self.small_font.render(self.manager.t("spot_difference.play.guide"), True, (74, 92, 118))
+        tip = self.small_font.render(self.manager.t("spot_difference.play.guide"), True, (54, 70, 96))
         screen.blit(tip, (self.width // 2 - tip.get_width() // 2, 68))
         self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow")
         if self.round_flash_until > time.time():

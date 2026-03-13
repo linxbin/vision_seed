@@ -93,3 +93,33 @@ def build_daily_suggestion(manager, plans):
         return manager.t("menu.recommend.start_fresh")
     lowest = min(plans, key=lambda item: item["accuracy"])
     return manager.t("menu.recommend.review_focus", category=lowest["category_name"])
+
+
+def build_recent_completions(manager, limit=2):
+    registry = getattr(manager, "game_registry", None)
+    data_manager = getattr(manager, "data_manager", None)
+    if not registry or not data_manager or not hasattr(data_manager, "get_all_sessions"):
+        return []
+
+    sessions = _safe_sequence(data_manager.get_all_sessions())
+    items = []
+    for session in sessions:
+        if not isinstance(session, dict):
+            continue
+        game_id = session.get("game_id")
+        if not isinstance(game_id, str) or not game_id:
+            continue
+        game = registry.get_game(game_id) if hasattr(registry, "get_game") else None
+        if game is None:
+            continue
+        items.append(
+            {
+                "game_id": game_id,
+                "game_name": manager.t(game.name_key) if getattr(game, "name_key", "") else game.name,
+                "accuracy": float(session.get("accuracy_rate", 0.0)),
+                "duration": float(session.get("duration_seconds", 0.0)),
+            }
+        )
+        if len(items) >= limit:
+            break
+    return items

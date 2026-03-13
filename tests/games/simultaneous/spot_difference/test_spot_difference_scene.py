@@ -90,8 +90,23 @@ class SpotDifferenceSceneTests(unittest.TestCase):
         scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)])
         self.assertGreaterEqual(scene.scoring.success_count, before + len(targets))
 
+    def test_mouse_click_same_shape_toggles_pending_selection(self):
+        manager = _ManagerStub()
+        scene = SpotDifferenceScene(manager)
+        scene._start_game()
+        target = scene.round_data["diff_indices"][0]
+        item = scene.round_data["right"][target]
+        pos = (scene.right_panel.x + item["center"][0], scene.right_panel.y + item["center"][1])
+        with patch("pygame.mouse.get_pos", return_value=pos):
+            scene.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=pos)])
+            self.assertIn(target, scene.pending_indices)
+            scene.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=pos)])
+            self.assertNotIn(target, scene.pending_indices)
+            self.assertEqual(scene.selected_index, -1)
+
     def test_board_service_generates_local_centers_and_multiple_differences(self):
         service = SpotDifferenceBoardService()
+        self.assertGreaterEqual(len(service.SHAPES), 6)
         board = pygame.Rect(84, 148, 300, 260)
         round_data = service.create_round(board, diff_count=4)
         self.assertEqual(len(round_data["diff_indices"]), 4)
@@ -101,6 +116,20 @@ class SpotDifferenceSceneTests(unittest.TestCase):
             self.assertLessEqual(item["center"][0], board.width)
             self.assertGreaterEqual(item["center"][1], 0)
             self.assertLessEqual(item["center"][1], board.height)
+        size_details = [detail for detail in round_data["diff_details"] if detail["type"] == service.DIFF_SIZE]
+        for detail in size_details:
+            left_size = round_data["left"][detail["index"]]["size"]
+            right_size = round_data["right"][detail["index"]]["size"]
+            self.assertGreaterEqual(abs(left_size - right_size), 14)
+
+    def test_board_service_can_draw_extended_shapes(self):
+        service = SpotDifferenceBoardService()
+        surface = pygame.Surface((120, 120), pygame.SRCALPHA)
+        for shape in service.SHAPES:
+            service.draw_shape(surface, shape, (60, 60), 36, (255, 120, 90))
+        bounds = surface.get_bounding_rect()
+        self.assertGreater(bounds.width, 0)
+        self.assertGreater(bounds.height, 0)
 
     def test_round_clear_waits_for_flash_then_refreshes(self):
         manager = _ManagerStub()

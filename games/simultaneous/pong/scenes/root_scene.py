@@ -480,7 +480,7 @@ class PongScene(BaseScene):
         screen.blit(score_text, (84, 22))
         rally_chip = pygame.Rect(84, 56, 184, 34)
         self._draw_chip(screen, rally_chip, self.manager.t("pong.rally", n=max(self.current_rally, self.best_rally)), (244, 210, 126), text_color=(88, 72, 32))
-        guide = self.small_font.render(self.manager.t("pong.play.guide"), True, (74, 92, 118))
+        guide = self.small_font.render(self.manager.t("pong.play.guide"), True, (54, 70, 96))
         screen.blit(guide, (self.width // 2 - guide.get_width() // 2, 68))
         self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow")
         for y in range(self.play_rect.top, self.play_rect.bottom, 28):
@@ -495,7 +495,7 @@ class PongScene(BaseScene):
         pygame.draw.rect(screen, right_color, self._ai_paddle_rect(), border_radius=8)
         pygame.draw.circle(screen, (255, 226, 96), (int(self.ball_x), int(self.ball_y)), 10)
         if self.serve_until > time.time():
-            serve_text = self.body_font.render(self.manager.t("pong.serve", n=self._serve_countdown()), True, (88, 96, 120))
+            serve_text = self.body_font.render(self.manager.t("pong.serve", n=self._serve_countdown()), True, (56, 68, 94))
             screen.blit(serve_text, (self.width // 2 - serve_text.get_width() // 2, self.play_rect.centery - serve_text.get_height() // 2))
         if self.feedback_text:
             feedback = self.body_font.render(self.feedback_text, True, self.feedback_color)

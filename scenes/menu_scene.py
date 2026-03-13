@@ -4,7 +4,7 @@ import sys
 from config import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.asset_loader import load_image_if_exists, project_path
 from core.base_scene import BaseScene
-from core.training_recommendation import build_daily_plan, build_daily_suggestion
+from core.training_recommendation import build_daily_plan, build_daily_suggestion, build_recent_completions
 from core.ui_theme import PlatformTheme, draw_card, draw_chip_label, draw_platform_background
 
 
@@ -19,7 +19,9 @@ class MenuScene(BaseScene):
         self.templates = []
         self.recommendations = []
         self.recommendation_hint = ""
+        self.recent_completions = []
         self.recommend_panel = pygame.Rect(0, 0, 1, 1)
+        self._recent_row_y = 0
         self.control_items = []
         self._recommendation_lines = 3
         self._compact_recommendation = False
@@ -50,7 +52,7 @@ class MenuScene(BaseScene):
             {"index": len(categories) + 2, "rect": pygame.Rect(control_x, exit_y, control_w, control_h), "kind": "exit", "label": self.manager.t("menu.exit"), "icon": "power"},
         ]
 
-        bottom_reserved = 210
+        bottom_reserved = 236
         start_y = 150
         available_h = max(240, self.height - start_y - bottom_reserved)
         card_gap = 10
@@ -71,15 +73,17 @@ class MenuScene(BaseScene):
             })
 
         rec_x = margin
-        rec_y = self.height - 188
+        rec_y = self.height - 224
         rec_w = max(260, control_x - gutter - rec_x)
-        rec_h = 132
+        rec_h = 170
         self.recommend_panel = pygame.Rect(rec_x, rec_y, rec_w, rec_h)
         self._compact_recommendation = self.width < 760 or self.height < 620
         self._recommendation_lines = 1 if self.width < 720 or self.height < 600 else (2 if self.width < 840 or self.height < 660 else 3)
 
         self.recommendations = build_daily_plan(self.manager, limit=3)
         self.recommendation_hint = build_daily_suggestion(self.manager, self.recommendations)
+        self.recent_completions = build_recent_completions(self.manager, limit=2)
+        self._recent_row_y = self.recommend_panel.bottom - 38
         self._sync_legacy_ui_shape()
         if self._all_items():
             self.focused_index = max(0, min(previous_focus, len(self._all_items()) - 1))
@@ -198,6 +202,33 @@ class MenuScene(BaseScene):
                 screen.blit(bullet_icon, (line_x, line_y + 3))
                 line_x += bullet_icon.get_width() + 6
             screen.blit(line, (line_x, line_y))
+
+        recent_title = self.meta_font.render(self.manager.t("menu.recent.title"), True, PlatformTheme.TEXT_PRIMARY)
+        recent_y = self._recent_row_y + 4
+        divider_y = recent_y - 12
+        pygame.draw.line(
+            screen,
+            PlatformTheme.BORDER,
+            (self.recommend_panel.x + 14, divider_y),
+            (self.recommend_panel.right - 14, divider_y),
+            1,
+        )
+        screen.blit(recent_title, (self.recommend_panel.x + 16, recent_y))
+        if self.recent_completions:
+            parts = []
+            for item in self.recent_completions[:2]:
+                parts.append(
+                    self.manager.t(
+                        "menu.recent.item",
+                        game=item["game_name"],
+                        accuracy=f"{item['accuracy']:.1f}",
+                    )
+                )
+            recent_text = self.meta_font.render("  |  ".join(parts), True, PlatformTheme.TEXT_MUTED)
+            screen.blit(recent_text, (self.recommend_panel.x + 118, recent_y))
+        else:
+            empty = self.meta_font.render(self.manager.t("menu.recent.none"), True, PlatformTheme.TEXT_MUTED)
+            screen.blit(empty, (self.recommend_panel.x + 118, recent_y))
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()

@@ -36,6 +36,28 @@ class TestMenuSceneUI(UITestCase):
         panel_color = self.get_surface_average_color(frame, (180, 520, 540, 100))
         self.assertGreater(sum(panel_color[:3]), 30)
 
+    def test_recent_completion_uses_latest_game_results(self):
+        latest_sessions = [
+            {"game_id": "simultaneous.pong", "accuracy_rate": 88.5, "duration_seconds": 120.0},
+            {"game_id": "simultaneous.spot_difference", "accuracy_rate": 76.0, "duration_seconds": 95.0},
+        ]
+        self.mock_manager.data_manager.get_all_sessions.return_value = latest_sessions
+        self.mock_manager.game_registry.get_game.side_effect = lambda game_id: type(
+            "GameStub",
+            (),
+            {
+                "game_id": game_id,
+                "name": game_id,
+                "name_key": "game.simultaneous.pong" if game_id == "simultaneous.pong" else "game.simultaneous.spot_difference",
+            },
+        )()
+        self.scene._build_items()
+        self.assertEqual(len(self.scene.recent_completions), 2)
+        self.assertEqual(self.scene.recent_completions[0]["game_id"], "simultaneous.pong")
+        visible_lines = min(len(self.scene.recommendations), self.scene._recommendation_lines)
+        last_recommendation_y = self.scene.recommend_panel.y + 72 + max(0, visible_lines - 1) * 18 + 20
+        self.assertGreater(self.scene._recent_row_y, last_recommendation_y)
+
     def test_mouse_hover_interaction(self):
         first_menu_rect = self.scene._items[1]["rect"]
         hover_pos = (first_menu_rect.centerx, first_menu_rect.centery)

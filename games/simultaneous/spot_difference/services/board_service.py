@@ -7,7 +7,19 @@ class SpotDifferenceBoardService:
     SHAPE_CIRCLE = "circle"
     SHAPE_SQUARE = "square"
     SHAPE_TRIANGLE = "triangle"
-    SHAPES = (SHAPE_CIRCLE, SHAPE_SQUARE, SHAPE_TRIANGLE)
+    SHAPE_DIAMOND = "diamond"
+    SHAPE_STAR = "star"
+    SHAPE_HEXAGON = "hexagon"
+    SHAPE_PLUS = "plus"
+    SHAPES = (
+        SHAPE_CIRCLE,
+        SHAPE_SQUARE,
+        SHAPE_TRIANGLE,
+        SHAPE_DIAMOND,
+        SHAPE_STAR,
+        SHAPE_HEXAGON,
+        SHAPE_PLUS,
+    )
     COLORS = ((246, 174, 112), (122, 190, 255), (162, 228, 168), (245, 210, 110))
     DIFF_SHAPE = "shape"
     DIFF_COLOR = "color"
@@ -53,8 +65,8 @@ class SpotDifferenceBoardService:
                 right_spots[diff_index]["color"] = random.choice(candidates)
             else:
                 base_size = right_spots[diff_index]["size"]
-                delta = random.choice((-10, -8, 8, 10))
-                right_spots[diff_index]["size"] = max(26, min(54, base_size + delta))
+                delta = random.choice((-16, -14, 14, 16))
+                right_spots[diff_index]["size"] = max(20, min(60, base_size + delta))
             diff_details.append({"index": diff_index, "type": diff_type})
         return {
             "left": spots,
@@ -74,10 +86,44 @@ class SpotDifferenceBoardService:
             rect = pygame.Rect(0, 0, size, size)
             rect.center = (int(cx), int(cy))
             pygame.draw.rect(surface, color, rect, border_radius=8)
-        else:
+        elif shape == self.SHAPE_TRIANGLE:
             points = [
                 (cx, cy - size // 2),
                 (cx - size // 2, cy + size // 2),
                 (cx + size // 2, cy + size // 2),
             ]
             pygame.draw.polygon(surface, color, points)
+        elif shape == self.SHAPE_DIAMOND:
+            points = [
+                (cx, cy - size // 2),
+                (cx - size // 2, cy),
+                (cx, cy + size // 2),
+                (cx + size // 2, cy),
+            ]
+            pygame.draw.polygon(surface, color, points)
+        elif shape == self.SHAPE_STAR:
+            outer = size // 2
+            inner = max(10, size // 4)
+            points = []
+            for index in range(10):
+                radius = outer if index % 2 == 0 else inner
+                angle = -90 + index * 36
+                radians = angle * 3.141592653589793 / 180.0
+                points.append((cx + radius * pygame.math.Vector2(1, 0).rotate(angle).x, cy + radius * pygame.math.Vector2(1, 0).rotate(angle).y))
+            pygame.draw.polygon(surface, color, points)
+        elif shape == self.SHAPE_HEXAGON:
+            points = []
+            radius = size // 2
+            for index in range(6):
+                angle = 30 + index * 60
+                vector = pygame.math.Vector2(radius, 0).rotate(angle)
+                points.append((cx + vector.x, cy + vector.y))
+            pygame.draw.polygon(surface, color, points)
+        else:
+            bar = max(8, size // 4)
+            rect_h = pygame.Rect(0, 0, size, bar)
+            rect_h.center = (int(cx), int(cy))
+            rect_v = pygame.Rect(0, 0, bar, size)
+            rect_v.center = (int(cx), int(cy))
+            pygame.draw.rect(surface, color, rect_h, border_radius=bar // 2)
+            pygame.draw.rect(surface, color, rect_v, border_radius=bar // 2)
