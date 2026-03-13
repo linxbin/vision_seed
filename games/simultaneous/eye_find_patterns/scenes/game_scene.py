@@ -5,6 +5,7 @@ import pygame
 
 from core.asset_loader import load_image_if_exists, project_path
 from core.base_scene import BaseScene
+from games.common.anaglyph import BLUE_FILTER, GLASSES_BUTTON_COLOR, RED_FILTER
 from ..services import EyeFindPatternService, EyeFindScoringService, EyeFindSessionService
 
 
@@ -369,7 +370,7 @@ class EyeFindPatternsScene(BaseScene):
         title = self.title_font.render(self.manager.t("eye_find.title"), True, (38, 66, 108))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 86))
         self._draw_button(screen, self.btn_naked, self.manager.t("eye_find.home.naked"), (64, 138, 212), icon_name="check")
-        self._draw_button(screen, self.btn_glasses, self.manager.t("eye_find.home.glasses"), (90, 126, 222), icon_name="target")
+        self._draw_button(screen, self.btn_glasses, self.manager.t("eye_find.home.glasses"), GLASSES_BUTTON_COLOR, icon_name="target")
         self._draw_button(screen, self.btn_help, self.manager.t("eye_find.home.help"), (126, 142, 174), icon_name="question")
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (88, 116, 168), icon_name="back_arrow")
 
@@ -384,16 +385,16 @@ class EyeFindPatternsScene(BaseScene):
                 screen,
                 self.filter_lr,
                 self.manager.t("eye_find.filter.lr"),
-                (255, 0, 0),
-                (0, 0, 255),
+                RED_FILTER[:3],
+                BLUE_FILTER[:3],
                 self.filter_direction == self.FILTER_LR,
             )
             self._draw_filter_option(
                 screen,
                 self.filter_rl,
                 self.manager.t("eye_find.filter.rl"),
-                (0, 0, 255),
-                (255, 0, 0),
+                BLUE_FILTER[:3],
+                RED_FILTER[:3],
                 self.filter_direction == self.FILTER_RL,
             )
             self._draw_button(screen, self.filter_start, self.manager.t("eye_find.filter.start"), (86, 150, 108), icon_name="check")

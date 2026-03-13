@@ -9,6 +9,7 @@ FILTER_RL = "left_blue_right_red"
 GLASSES_BACKGROUND = (255, 19, 255, 179)
 RED_FILTER = (255, 0, 0, 255)
 BLUE_FILTER = (0, 0, 255, 255)
+GLASSES_BUTTON_COLOR = (134, 142, 176)
 
 
 def apply_filter(base, mode, filter_direction, side, mode_glasses=MODE_GLASSES, filter_lr=FILTER_LR):

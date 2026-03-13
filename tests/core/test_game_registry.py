@@ -19,6 +19,7 @@ class GameRegistryTests(unittest.TestCase):
             "simultaneous.eye_find_patterns": "simultaneous",
             "simultaneous.spot_difference": "simultaneous",
             "simultaneous.pong": "simultaneous",
+            "fusion.push_box": "fusion",
             "suppression.weak_eye_key": "suppression",
             "stereopsis.depth_grab": "stereopsis",
             "amblyopia.precision_aim": "amblyopia",

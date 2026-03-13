@@ -2,6 +2,7 @@ from typing import Dict, List, Optional
 
 from games.accommodation import build_catch_fruit_descriptor, build_descriptor as build_accommodation_descriptor
 from games.amblyopia import build_precision_aim_descriptor
+from games.fusion import build_push_box_descriptor
 from games.simultaneous import build_eye_find_patterns_descriptor, build_pong_descriptor, build_spot_difference_descriptor
 from games.stereopsis import build_depth_grab_descriptor
 from games.suppression import build_weak_eye_key_descriptor
@@ -30,6 +31,7 @@ class GameRegistry:
         self.register(build_eye_find_patterns_descriptor())
         self.register(build_spot_difference_descriptor())
         self.register(build_pong_descriptor())
+        self.register(build_push_box_descriptor())
         self.register(build_weak_eye_key_descriptor())
         self.register(build_depth_grab_descriptor())
         self.register(build_precision_aim_descriptor())

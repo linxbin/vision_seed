@@ -13,10 +13,10 @@ TRANSLATIONS = {
         "game.stereopsis.depth_grab": "抓星星立体视",
         "depth_grab.title": "抓星星立体视",
         "depth_grab.subtitle": "选出看起来离你最近的星星。",
-        "depth_grab.help.step1": "先比较三颗星星，看看谁更靠近你。",
+        "depth_grab.help.step1": "先比较几颗星星，看看谁更靠近你。",
         "depth_grab.help.step2": "不要只看平面位置，要感受前后深度。",
         "depth_grab.help.step3": "点击最近的星星就能得分。",
-        "depth_grab.play.guide": "找出最靠近你的星星并点击它。",
-        "depth_grab.metric.label": "深度判断正确率",
+        "depth_grab.play.guide": "找出看起来最近的星星并点击它。",
+        "depth_grab.metric.label": "深度判断准确率",
     },
 }

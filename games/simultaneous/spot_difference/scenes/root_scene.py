@@ -5,7 +5,7 @@ import pygame
 
 from core.asset_loader import load_image_if_exists, project_path
 from core.base_scene import BaseScene
-from games.common.anaglyph import FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, MODE_GLASSES, apply_filter
+from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER, apply_filter
 from ..services import SpotDifferenceBoardService, SpotDifferenceScoringService, SpotDifferenceSessionService
 
 
@@ -343,7 +343,7 @@ class SpotDifferenceScene(BaseScene):
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 82))
         screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 138))
         self._draw_button(screen, self.btn_naked, self.manager.t("spot_difference.home.naked"), (96, 140, 214), selected=self.home_focus == 0)
-        self._draw_button(screen, self.btn_glasses, self.manager.t("spot_difference.home.glasses"), (110, 128, 172), selected=self.home_focus == 1)
+        self._draw_button(screen, self.btn_glasses, self.manager.t("spot_difference.home.glasses"), GLASSES_BUTTON_COLOR, selected=self.home_focus == 1)
         self._draw_button(screen, self.btn_help, self.manager.t("spot_difference.home.help"), (124, 140, 168), icon_name="question", selected=self.home_focus == 2)
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow", selected=self.home_focus == 3)
 
@@ -400,8 +400,8 @@ class SpotDifferenceScene(BaseScene):
         pygame.draw.rect(screen, (190, 206, 228), self.filter_modal, 2, border_radius=18)
         title = self.sub_font.render(self.manager.t("spot_difference.filter.pick"), True, (52, 70, 100))
         screen.blit(title, (self.filter_modal.centerx - title.get_width() // 2, self.filter_modal.y + 20))
-        self._draw_filter_option(screen, self.filter_lr, self.manager.t("spot_difference.filter.lr"), (255, 0, 0), (0, 0, 255), self.filter_direction == self.FILTER_LR)
-        self._draw_filter_option(screen, self.filter_rl, self.manager.t("spot_difference.filter.rl"), (0, 0, 255), (255, 0, 0), self.filter_direction == self.FILTER_RL)
+        self._draw_filter_option(screen, self.filter_lr, self.manager.t("spot_difference.filter.lr"), RED_FILTER[:3], BLUE_FILTER[:3], self.filter_direction == self.FILTER_LR)
+        self._draw_filter_option(screen, self.filter_rl, self.manager.t("spot_difference.filter.rl"), BLUE_FILTER[:3], RED_FILTER[:3], self.filter_direction == self.FILTER_RL)
         self._draw_button(screen, self.filter_start, self.manager.t("spot_difference.filter.start"), (92, 152, 114), icon_name="check")
 
     def _draw_play(self, screen):

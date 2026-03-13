@@ -6,7 +6,7 @@ import pygame
 
 from core.asset_loader import load_image_if_exists, project_path
 from core.base_scene import BaseScene
-from games.common.anaglyph import FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, MODE_GLASSES
+from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER
 
 
 class PongScene(BaseScene):
@@ -240,10 +240,10 @@ class PongScene(BaseScene):
         return pygame.Rect(int(self.ball_x - 10), int(self.ball_y - 10), 20, 20)
 
     def _left_color(self):
-        return (255, 0, 0) if self.filter_direction == self.FILTER_LR else (0, 0, 255)
+        return RED_FILTER[:3] if self.filter_direction == self.FILTER_LR else BLUE_FILTER[:3]
 
     def _right_color(self):
-        return (0, 0, 255) if self.filter_direction == self.FILTER_LR else (255, 0, 0)
+        return BLUE_FILTER[:3] if self.filter_direction == self.FILTER_LR else RED_FILTER[:3]
 
     def handle_events(self, events):
         for event in events:
@@ -411,7 +411,7 @@ class PongScene(BaseScene):
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 82))
         screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 138))
         self._draw_button(screen, self.btn_naked, self.manager.t("pong.home.naked"), (96, 140, 214), selected=self.home_focus == 0)
-        self._draw_button(screen, self.btn_glasses, self.manager.t("pong.home.glasses"), (110, 128, 172), selected=self.home_focus == 1)
+        self._draw_button(screen, self.btn_glasses, self.manager.t("pong.home.glasses"), GLASSES_BUTTON_COLOR, selected=self.home_focus == 1)
         self._draw_button(screen, self.btn_help, self.manager.t("pong.home.help"), (124, 140, 168), icon_name="question", selected=self.home_focus == 2)
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow", selected=self.home_focus == 3)
 
@@ -444,8 +444,8 @@ class PongScene(BaseScene):
         if idx == 0:
             left = pygame.Rect(area.x + 8, area.y + 10, 18, area.height - 20)
             right = pygame.Rect(area.right - 26, area.y + 10, 18, area.height - 20)
-            pygame.draw.rect(screen, (255, 0, 0), left, border_radius=8)
-            pygame.draw.rect(screen, (0, 0, 255), right, border_radius=8)
+            pygame.draw.rect(screen, RED_FILTER[:3], left, border_radius=8)
+            pygame.draw.rect(screen, BLUE_FILTER[:3], right, border_radius=8)
             pygame.draw.circle(screen, (255, 226, 96), area.center, 9)
         elif idx == 1:
             paddle = pygame.Rect(area.centerx - 8, area.y + 8, 16, area.height - 16)
@@ -468,8 +468,8 @@ class PongScene(BaseScene):
         pygame.draw.rect(screen, (190, 206, 228), self.filter_modal, 2, border_radius=18)
         title = self.sub_font.render(self.manager.t("pong.filter.pick"), True, (52, 70, 100))
         screen.blit(title, (self.filter_modal.centerx - title.get_width() // 2, self.filter_modal.y + 20))
-        self._draw_filter_option(screen, self.filter_lr, self.manager.t("pong.filter.lr"), (255, 0, 0), (0, 0, 255), self.filter_direction == self.FILTER_LR)
-        self._draw_filter_option(screen, self.filter_rl, self.manager.t("pong.filter.rl"), (0, 0, 255), (255, 0, 0), self.filter_direction == self.FILTER_RL)
+        self._draw_filter_option(screen, self.filter_lr, self.manager.t("pong.filter.lr"), RED_FILTER[:3], BLUE_FILTER[:3], self.filter_direction == self.FILTER_LR)
+        self._draw_filter_option(screen, self.filter_rl, self.manager.t("pong.filter.rl"), BLUE_FILTER[:3], RED_FILTER[:3], self.filter_direction == self.FILTER_RL)
         self._draw_button(screen, self.filter_start, self.manager.t("pong.filter.start"), (92, 152, 114), icon_name="check")
 
     def _draw_play(self, screen):

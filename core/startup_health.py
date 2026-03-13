@@ -1,11 +1,13 @@
 import os
+from typing import Any, Dict, List
+
 import pygame
-from typing import Dict, Any, List
+
 from core.app_paths import get_resource_path
 
 
 def run_startup_health_check() -> Dict[str, Any]:
-    """启动健康检查：资源缺失仅告警，不阻断启动。"""
+    """Run a lightweight startup health check without blocking launch."""
     assets_dir = get_resource_path("assets")
 
     checks = {
@@ -30,7 +32,7 @@ def run_startup_health_check() -> Dict[str, Any]:
 
 
 def safe_init_audio() -> bool:
-    """安全初始化音频。失败时降级运行，不抛异常。"""
+    """Initialize audio safely and fall back to silent mode on failure."""
     try:
         pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
         return True

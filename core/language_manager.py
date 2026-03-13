@@ -2,6 +2,7 @@ from games.accommodation.catch_fruit.i18n import TRANSLATIONS as CATCH_FRUIT_TRA
 from games.accommodation.e_orientation.i18n import TRANSLATIONS as E_ORIENTATION_TRANSLATIONS
 from games.amblyopia.precision_aim.i18n import TRANSLATIONS as PRECISION_AIM_TRANSLATIONS
 from games.common.arcade_training.i18n import TRANSLATIONS as ARCADE_TRANSLATIONS
+from games.fusion.push_box.i18n import TRANSLATIONS as FUSION_PUSH_BOX_TRANSLATIONS
 from games.simultaneous.eye_find_patterns.i18n import TRANSLATIONS as EYE_FIND_TRANSLATIONS
 from games.simultaneous.pong.i18n import TRANSLATIONS as PONG_TRANSLATIONS
 from games.simultaneous.spot_difference.i18n import TRANSLATIONS as SPOT_DIFFERENCE_TRANSLATIONS
@@ -199,6 +200,7 @@ class LanguageManager:
         ARCADE_TRANSLATIONS,
         E_ORIENTATION_TRANSLATIONS,
         CATCH_FRUIT_TRANSLATIONS,
+        FUSION_PUSH_BOX_TRANSLATIONS,
         EYE_FIND_TRANSLATIONS,
         PONG_TRANSLATIONS,
         SPOT_DIFFERENCE_TRANSLATIONS,
