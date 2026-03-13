@@ -1,50 +1,70 @@
-# VisionSeed (视芽)
+# VisionSeed
 
-VisionSeed 是一个基于 Python + Pygame 的多游戏视觉训练应用，提供主菜单、分类导航、游戏内流程和系统设置等完整闭环。
+VisionSeed 是一个基于 Python + Pygame 的视觉训练应用。项目目标不是单一小游戏，而是提供一个可扩展的多游戏训练平台，统一承载分类导航、游戏接入、训练记录、多语言、授权和系统设置。
 
-当前仓库已发布初代版本标签：`v1.0.0`。
+当前仓库的真实状态已经超过最初的 `v1.0.0` 文档基线，代码里现已接入多款训练游戏，并完成了多游戏架构、统一游戏宿主页、训练记录落盘、红蓝眼镜模式复用和本地授权流程。
 
-## 核心功能
+## 当前已接入游戏
 
-- 多游戏流程：主菜单 -> 分类 -> 游戏入口/游戏内菜单 -> 训练流程
-- E 方向训练：配置、训练、报告、历史完整闭环
-- 双眼找图案：裸眼/红蓝眼镜两种模式，含帮助页与结算页
-- 即时反馈：对错音效、粒子反馈、连击展示
-- 暂停友好：支持暂停/继续，窗口失焦自动暂停
-- 难度等级：10 级（`5px` 到 `85px`）
-- 历史记录：本地 JSON 持久化，筛选/排序/分页查看
-- 自适应难度（V1）：基于最近 3 次训练自动调级，可开关
-- 系统设置：全局语言/音效集中管理
-- 多语言：`en-US` / `zh-CN`，游戏文案按模块拆分
-- 首次引导：首次启动显示 30 秒快速上手页
-- 启动健康检查：资源缺失或音频初始化失败时自动降级，不阻断启动
-- 本地授权：设备绑定激活码校验（未激活进入授权页）
+按分类统计，当前代码中已注册 9 个游戏：
+
+- 调节训练
+  - `accommodation.e_orientation`
+  - `accommodation.catch_fruit`
+- 同时视训练
+  - `simultaneous.eye_find_patterns`
+  - `simultaneous.spot_difference`
+  - `simultaneous.pong`
+- 融合训练
+  - `fusion.push_box`
+- 脱抑制训练
+  - `suppression.weak_eye_key`
+- 立体视训练
+  - `stereopsis.depth_grab`
+- 弱视训练
+  - `amblyopia.precision_aim`
+
+游戏注册位置见 [core/game_registry.py](/C:/workspace/python/vision_seed/core/game_registry.py)。
+
+## 核心能力
+
+- 多游戏平台架构：主菜单 -> 分类页 -> 游戏宿主页 -> 游戏内部流程
+- 统一游戏接入协议：`GameDescriptor`
+- 场景统一调度：`SceneManager + GameHostScene`
+- 本地训练记录：按 `game_id` 命名空间保存
+- 中英双语：`en-US` / `zh-CN`
+- 系统设置：语言、音效、训练时长等
+- 本地授权：设备绑定激活码校验
+- 启动健康检查：音频或资源异常时降级启动
+- 红蓝眼镜模式：公共滤镜、方向切换、统一色板
+
+## 当前进度判断
+
+从代码状态看，项目当前更接近：
+
+- 平台层：已完成首版并可持续扩展
+- 多游戏接入：已落地
+- 内容覆盖：已有代表性样板，但仍未铺满完整内容矩阵
+- 文档状态：本 README 已同步到当前代码状态，规划文档见 `docs/`
+
+目前最成熟的游戏模块仍然是 `E Orientation Training`，但同时视和融合训练也已经形成了统一菜单、统一文案和统一红蓝模式基线。
 
 ## 运行环境
 
-- Python 3.10+（推荐 3.11+）
-- Windows 10/11（当前主要面向 Windows 桌面）
+- Python 3.10+
+- Windows 10/11
 - 依赖见 `requirements.txt`
 
 ## 快速开始
 
 ```bash
 python -m venv venv
-venv\Scriptsctivate
+venv\Scripts\activate
 pip install -r requirements.txt
 python main.py
 ```
 
-## 快捷键
-
-- 主菜单：`1-9` 选择分类/系统设置/退出
-- 游戏内菜单（E方向训练）：`1-4` 选择训练/配置/历史/返回
-- 训练：方向键作答，`P` 暂停/继续，`Esc` 返回游戏内菜单
-- 全屏：`F11` 或 `Alt+Enter` 切换，`Esc` 可退出全屏
-- 配置（E方向训练）：`Enter` 开训，`Ctrl+S` 保存返回，`A` 切换自适应
-- 系统设置：`1` 切换音效，`2` 切换语言，`Esc` 返回主菜单
-
-## 运行测试
+## 测试
 
 ```bash
 python -m unittest discover -s tests -p "test_*.py"
@@ -54,92 +74,47 @@ python tests/run_ui_tests.py
 ## 项目结构
 
 ```text
-├── assets/
-├── config/
-├── core/
-│   ├── game_contract.py
-│   ├── game_registry.py
-│   ├── language_manager.py
-│   ├── scene_manager.py
-│   └── ...
-├── scenes/
-│   ├── menu_scene.py
-│   ├── category_scene.py
-│   ├── system_settings_scene.py
-│   ├── license_scene.py
-│   ├── onboarding_scene.py
-│   └── game_host_scene.py
-├── games/
-│   ├── accommodation/
-│   │   └── e_orientation/
-│   │       ├── game.py
-│   │       ├── i18n.py
-│   │       ├── scenes/
-│   │       ├── services/
-│   │       └── README.md
-│   └── simultaneous/
-│       └── eye_find_patterns/
-│           ├── game.py
-│           ├── i18n.py
-│           ├── scenes/
-│           ├── services/
-│           └── README.md
-├── tests/
-│   ├── core/
-│   ├── scenes/
-│   └── games/
-├── docs/
-├── tools/
-└── main.py
+assets/
+core/
+scenes/
+games/
+tests/
+docs/
+tools/
+main.py
 ```
 
-## 架构说明
+更具体的分层：
 
-- `core/` 只放平台能力和公共基础设施。
-- `scenes/` 只放全局公共页面，不放具体游戏私有页面。
-- `games/<category>/<game>/` 存放游戏自己的入口、文案、场景和服务。
-- 游戏名称和私有文案优先放在各自 `i18n.py`，由 `LanguageManager` 合并加载。
-- 多页面游戏通过各自的 `root_scene.py` 管理内部路由，`GameHostScene` 仅负责挂载游戏根场景。
-- `DataManager` 通过 `game_id` 命名空间读取训练记录，游戏优先通过各自的 `services/` 访问记录和规则。
+- `core/`：平台能力，如注册表、场景管理、语言、音效、授权、记录
+- `scenes/`：主菜单、分类页、系统设置、授权页、首次引导、游戏宿主页
+- `games/<category>/<game>/`：游戏自己的入口、文案、场景、服务
+- `tests/`：按核心层、全局场景、游戏模块分层测试
 
-## 数据与文件位置
+## 数据位置
 
-VisionSeed 运行时数据默认写入：
+运行时数据默认写入：
 
 - `%LOCALAPPDATA%/VisionSeed/data/records.json`
 - `%LOCALAPPDATA%/VisionSeed/config/user_preferences.json`
 - `%LOCALAPPDATA%/VisionSeed/license/license.json`
 
-训练记录格式（`schema_version=3`）包含：
+## 授权
 
-- `timestamp`, `session_id`
-- `game_id`
-- `difficulty_level`, `e_size_px`
-- `total_questions`, `correct_count`, `wrong_count`
-- `duration_seconds`, `accuracy_rate`
+项目包含本地授权流程。激活码采用设备绑定 token，入口和校验逻辑在 `core/license_manager.py`。
 
-读取旧记录时会自动做兼容迁移与字段规范化。
-
-## 授权码（交易层）
-
-- 启动时校验本地授权；未激活则进入授权页
-- 授权码格式为设备绑定 token：`VS1.*`
-- 卖家侧可使用工具脚本生成：
+生成工具示例：
 
 ```bash
 python tools/generate_license_token.py --license-id LIC_20260228_0001 --order-ref ORDER_001 --device-hash sha256:xxxxxxxx
 ```
 
-## 打包发布
+## 打包
 
-请参考 [Packaging_README.md](Packaging_README.md)。
+打包说明见 [Packaging_README.md](/C:/workspace/python/vision_seed/Packaging_README.md)。
 
-## 已知限制
+## 下一步建议
 
-- 当前测试主要覆盖核心逻辑与关键场景状态，不包含完整 UI 自动化回放。
-- 若 `assets/SimHei.ttf` 缺失，中文字体会回退系统字体，显示效果依赖系统环境。
-- 当前授权密钥策略为本地最小可落地方案，若仓库公开请评估更高强度的签发架构。
-
-## 许可证
-
-本项目仅供学习和非商业用途。
+- 继续统一现有游戏的最小产品标准
+- 补多游戏主链路回归测试
+- 再决定是否扩展下一款融合训练游戏
