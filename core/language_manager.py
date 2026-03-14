@@ -19,7 +19,7 @@ def _merge_translations(*translation_sets):
 
 
 class LanguageManager:
-    """多语言管理器 - 管理当前语言并提供文案翻译。"""
+    """Manages the current language and text translations."""
 
     DEFAULT_LANGUAGE = "en-US"
     SUPPORTED_LANGUAGES = ("en-US", "zh-CN")
@@ -110,7 +110,7 @@ class LanguageManager:
             "category.latest_metric": "{label}: {value}",
         },
         "zh-CN": {
-            "menu.title": "视芽",
+            "menu.title": "视觉芽",
             "menu.subtitle": "视觉训练系统",
             "menu.start_training": "开始训练",
             "menu.system_settings": "系统设置",
@@ -146,7 +146,7 @@ class LanguageManager:
             "license.device_hash": "设备哈希",
             "license.copy_hash": "复制哈希",
             "license.paste": "粘贴",
-            "license.paste_tip": "提示：可点“粘贴”或按 Ctrl+V",
+            "license.paste_tip": "提示：可点击“粘贴”或按 Ctrl+V",
             "license.input_placeholder": "请粘贴授权码（VS1....）",
             "license.activate": "激活",
             "license.exit": "退出",

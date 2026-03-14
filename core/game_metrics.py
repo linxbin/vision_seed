@@ -9,10 +9,16 @@ def format_metric_value(value):
 METRIC_LABEL_KEYS = {
     "clear_window_hits": "catch_fruit.metric.label",
     "smallest_caught_size_px": "catch_fruit.metric.smallest",
+    "fusion_clear_count": "fusion_push_box.metric.label",
     "binocular_merge_accuracy": "spot_difference.metric.label",
     "pong_best_rally": "pong.metric.label",
+    "weak_eye_accuracy": "weak_eye_key.metric.accuracy",
     "weak_eye_usage_rate": "weak_eye_key.metric.label",
+    "clue_match_accuracy": "weak_eye_key.metric.label",
     "depth_accuracy": "depth_grab.metric.label",
+    "front_back_confusion_count": "depth_grab.metric.confusion",
+    "hit_accuracy": "precision_aim.metric.accuracy",
+    "center_hit_rate": "precision_aim.metric.center_rate",
     "average_click_deviation_px": "precision_aim.metric.label",
 }
 

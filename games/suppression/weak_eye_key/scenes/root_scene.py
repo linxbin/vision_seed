@@ -138,6 +138,28 @@ class WeakEyeKeyScene(BaseScene):
             text_surface = pygame.transform.smoothscale(text_surface, (max(1, max_text_width), text_surface.get_height()))
         screen.blit(text_surface, (text_x, text_y))
 
+    def _draw_wrapped_text(self, screen, text, font, color, topleft, max_width, line_gap=4):
+        units = text.split() if " " in text else list(text)
+        if not units:
+            return 0
+        lines = []
+        current = units[0]
+        joiner = " " if " " in text else ""
+        for word in units[1:]:
+            candidate = f"{current}{joiner}{word}"
+            if font.size(candidate)[0] <= max_width:
+                current = candidate
+            else:
+                lines.append(current)
+                current = word
+        lines.append(current)
+        y = topleft[1]
+        for line in lines:
+            surface = font.render(line, True, color)
+            screen.blit(surface, (topleft[0], y))
+            y += surface.get_height() + line_gap
+        return y - topleft[1] - line_gap
+
     def _set_feedback(self, key, color):
         self.feedback_text = self.manager.t(key)
         self.feedback_color = color
@@ -311,11 +333,19 @@ class WeakEyeKeyScene(BaseScene):
         screen.blit(panel, card.topleft)
         pygame.draw.rect(screen, (214, 228, 244), card, 1, border_radius=14)
         title = self.small_font.render(self.manager.t("weak_eye_key.clue"), True, (70, 90, 120))
-        hint = self.small_font.render(self.manager.t("weak_eye_key.clue_hint"), True, (92, 106, 130))
-        screen.blit(title, (self.clue_rect.x + 18, self.clue_rect.y + 14))
-        screen.blit(hint, (self.clue_rect.x + 18, self.clue_rect.y + 38))
-        clue = self.round_data["clue"]
         key_rect = pygame.Rect(self.clue_rect.right - 152, self.clue_rect.y + 20, 112, 46)
+        text_max_width = key_rect.left - (self.clue_rect.x + 18) - 18
+        screen.blit(title, (self.clue_rect.x + 18, self.clue_rect.y + 12))
+        self._draw_wrapped_text(
+            screen,
+            self.manager.t("weak_eye_key.clue_hint"),
+            self.small_font,
+            (92, 106, 130),
+            (self.clue_rect.x + 18, self.clue_rect.y + 34),
+            text_max_width,
+            line_gap=2,
+        )
+        clue = self.round_data["clue"]
         local = key_rect.move(-self.clue_rect.x, -self.clue_rect.y)
         neutral = pygame.Surface(self.clue_rect.size, pygame.SRCALPHA)
         left = pygame.Surface(self.clue_rect.size, pygame.SRCALPHA)
@@ -347,8 +377,7 @@ class WeakEyeKeyScene(BaseScene):
         else:
             pygame.draw.circle(screen, (162, 225, 162), icon_center, 14)
             pygame.draw.rect(screen, (255, 255, 255), pygame.Rect(icon_center[0] - 4, icon_center[1] - 8, 8, 16), border_radius=3)
-        step = self.small_font.render(f"{idx}. {text}", True, (58, 84, 118))
-        screen.blit(step, (x + 52, y + 6))
+        self._draw_wrapped_text(screen, f"{idx}. {text}", self.small_font, (58, 84, 118), (x + 52, y + 2), self.width - (x + 150), line_gap=2)
 
     def _draw_home(self, screen):
         title = self.title_font.render(self.manager.t("weak_eye_key.title"), True, (38, 66, 108))

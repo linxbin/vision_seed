@@ -144,6 +144,28 @@ class SpotDifferenceScene(BaseScene):
         text_surface = self.small_font.render(text, True, (62, 72, 98))
         screen.blit(text_surface, (preview_rect.right + 16, rect.centery - text_surface.get_height() // 2))
 
+    def _draw_wrapped_text(self, screen, text, font, color, topleft, max_width, line_gap=6):
+        units = text.split() if " " in text else list(text)
+        if not units:
+            return 0
+        lines = []
+        current = units[0]
+        joiner = " " if " " in text else ""
+        for word in units[1:]:
+            candidate = f"{current}{joiner}{word}"
+            if font.size(candidate)[0] <= max_width:
+                current = candidate
+            else:
+                lines.append(current)
+                current = word
+        lines.append(current)
+        y = topleft[1]
+        for line in lines:
+            surface = font.render(line, True, color)
+            screen.blit(surface, (topleft[0], y))
+            y += surface.get_height() + line_gap
+        return y - topleft[1] - line_gap
+
     def _new_round(self):
         self.found_indices = set()
         self.pending_indices = set()
@@ -376,8 +398,7 @@ class SpotDifferenceScene(BaseScene):
             num = self.body_font.render(str(idx + 1), True, (92, 76, 34))
             screen.blit(num, (badge.centerx - num.get_width() // 2, badge.centery - num.get_height() // 2))
             self._draw_help_illustration(screen, idx, card)
-            line = self.body_font.render(text, True, (72, 90, 116))
-            screen.blit(line, (card.x + 162, card.y + 22))
+            self._draw_wrapped_text(screen, text, self.body_font, (72, 90, 116), (card.x + 162, card.y + 18), card.width - 184, line_gap=4)
         self._draw_button(screen, self.help_ok, self.manager.t("spot_difference.help.ok"), (244, 208, 120), text_color=(92, 76, 34), icon_name="check")
 
     def _draw_help_illustration(self, screen, idx, card):

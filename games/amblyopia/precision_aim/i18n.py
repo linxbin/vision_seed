@@ -39,6 +39,8 @@ TRANSLATIONS = {
         "precision_aim.result.continue": "Continue",
         "precision_aim.result.exit": "Back to Menu",
         "precision_aim.metric.label": "Average click deviation",
+        "precision_aim.metric.accuracy": "Hit accuracy",
+        "precision_aim.metric.center_rate": "Center hit rate",
     },
     "zh-CN": {
         "game.amblyopia.precision_aim": "精确瞄准",
@@ -80,5 +82,7 @@ TRANSLATIONS = {
         "precision_aim.result.continue": "继续训练",
         "precision_aim.result.exit": "返回菜单",
         "precision_aim.metric.label": "平均点击偏差",
+        "precision_aim.metric.accuracy": "命中准确率",
+        "precision_aim.metric.center_rate": "靶心命中率",
     },
 }
