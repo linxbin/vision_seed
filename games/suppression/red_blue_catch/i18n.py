@@ -34,6 +34,8 @@ TRANSLATIONS = {
         "red_blue_catch.result.filter": "Filter: {direction}",
         "red_blue_catch.result.continue": "Continue",
         "red_blue_catch.result.exit": "Back to Menu",
+        "red_blue_catch.metric.accuracy": "Color match accuracy",
+        "red_blue_catch.metric.combo": "Best combo",
     },
     "zh-CN": {
         "game.suppression.red_blue_catch": "红蓝接球",
@@ -70,6 +72,7 @@ TRANSLATIONS = {
         "red_blue_catch.result.filter": "滤镜方向：{direction}",
         "red_blue_catch.result.continue": "继续训练",
         "red_blue_catch.result.exit": "返回菜单",
+        "red_blue_catch.metric.accuracy": "颜色匹配准确率",
+        "red_blue_catch.metric.combo": "最佳连击",
     },
 }
-

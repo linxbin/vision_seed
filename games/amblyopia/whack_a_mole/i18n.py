@@ -36,6 +36,7 @@ TRANSLATIONS = {
         "whack_a_mole.result.continue": "Continue",
         "whack_a_mole.result.exit": "Back to Menu",
         "whack_a_mole.metric.label": "Center hit rate",
+        "whack_a_mole.metric.streak": "Best hit streak",
     },
     "zh-CN": {
         "game.amblyopia.whack_a_mole": "弱视打地鼠",
@@ -74,6 +75,6 @@ TRANSLATIONS = {
         "whack_a_mole.result.continue": "继续训练",
         "whack_a_mole.result.exit": "返回菜单",
         "whack_a_mole.metric.label": "中心命中率",
+        "whack_a_mole.metric.streak": "最佳连击",
     },
 }
-

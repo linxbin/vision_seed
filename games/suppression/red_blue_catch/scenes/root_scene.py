@@ -74,6 +74,24 @@ class RedBlueCatchScene(BaseScene):
         label = self.option_font.render(text, True, text_color)
         screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
 
+    def _draw_wrapped_text(self, screen, text, x, y, max_width):
+        units = text.split() if " " in text else list(text)
+        line = ""
+        current_y = y
+        joiner = " " if " " in text else ""
+        for unit in units:
+            candidate = f"{line}{joiner}{unit}" if line else unit
+            if line and self.body_font.size(candidate)[0] > max_width:
+                surf = self.body_font.render(line, True, (58, 84, 118))
+                screen.blit(surf, (x, current_y))
+                current_y += surf.get_height() + 4
+                line = unit
+            else:
+                line = candidate
+        if line:
+            surf = self.body_font.render(line, True, (58, 84, 118))
+            screen.blit(surf, (x, current_y))
+
     def _set_feedback(self, key, color):
         self.feedback_text = self.manager.t(key)
         self.feedback_color = color
@@ -170,8 +188,10 @@ class RedBlueCatchScene(BaseScene):
         title = self.title_font.render(self.manager.t("red_blue_catch.help.title"), True, (34, 60, 96))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 76))
         for idx, key in enumerate(("red_blue_catch.help.step1", "red_blue_catch.help.step2", "red_blue_catch.help.step3")):
-            line = self.body_font.render(f"{idx + 1}. {self.manager.t(key)}", True, (58, 84, 118))
-            screen.blit(line, (106, 196 + idx * 90))
+            card = pygame.Rect(90, 170 + idx * 104, self.width - 180, 88)
+            pygame.draw.rect(screen, (246, 250, 255), card, border_radius=16)
+            pygame.draw.rect(screen, (196, 212, 234), card, 2, border_radius=16)
+            self._draw_wrapped_text(screen, f"{idx + 1}. {self.manager.t(key)}", card.x + 20, card.y + 16, card.width - 40)
         self._draw_button(screen, self.help_ok, self.manager.t("red_blue_catch.help.ok"), (244, 208, 120), text_color=(92, 76, 34))
 
     def _draw_play(self, screen):

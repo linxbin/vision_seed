@@ -31,6 +31,7 @@ TRANSLATIONS = {
         "snake_focus.result.continue": "Continue",
         "snake_focus.result.exit": "Back to Menu",
         "snake_focus.metric.label": "Best length",
+        "snake_focus.metric.foods": "Foods eaten",
     },
     "zh-CN": {
         "game.accommodation.snake": "专注贪吃蛇",
@@ -64,6 +65,6 @@ TRANSLATIONS = {
         "snake_focus.result.continue": "继续训练",
         "snake_focus.result.exit": "返回菜单",
         "snake_focus.metric.label": "最佳长度",
+        "snake_focus.metric.foods": "吃到目标",
     },
 }
-

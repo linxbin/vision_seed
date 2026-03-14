@@ -29,6 +29,8 @@ TRANSLATIONS = {
         "frogger.result.score": "Score Earned: {n}",
         "frogger.result.continue": "Continue",
         "frogger.result.exit": "Back to Menu",
+        "frogger.metric.crosses": "Safe crosses",
+        "frogger.metric.accuracy": "Depth accuracy",
     },
     "zh-CN": {
         "game.stereopsis.frogger": "立体青蛙过河",
@@ -60,6 +62,7 @@ TRANSLATIONS = {
         "frogger.result.score": "获得积分：{n}",
         "frogger.result.continue": "继续训练",
         "frogger.result.exit": "返回菜单",
+        "frogger.metric.crosses": "安全通过",
+        "frogger.metric.accuracy": "深度判断率",
     },
 }
-

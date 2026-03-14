@@ -25,6 +25,8 @@ TRANSLATIONS = {
         "fruit_slice.result.combo": "Best Combo: {n}",
         "fruit_slice.result.continue": "Continue",
         "fruit_slice.result.exit": "Back to Menu",
+        "fruit_slice.metric.accuracy": "Slice accuracy",
+        "fruit_slice.metric.combo": "Best combo",
     },
     "zh-CN": {
         "game.amblyopia.fruit_slice": "切水果专注",
@@ -52,6 +54,7 @@ TRANSLATIONS = {
         "fruit_slice.result.combo": "最佳连击：{n}",
         "fruit_slice.result.continue": "继续训练",
         "fruit_slice.result.exit": "返回菜单",
+        "fruit_slice.metric.accuracy": "切中准确率",
+        "fruit_slice.metric.combo": "最佳连击",
     },
 }
-

@@ -29,6 +29,7 @@ TRANSLATIONS = {
         "path_fusion.result.score": "Score Earned: {n}",
         "path_fusion.result.continue": "Continue",
         "path_fusion.result.exit": "Back to Menu",
+        "path_fusion.metric.accuracy": "Fusion path accuracy",
     },
     "zh-CN": {
         "game.fusion.path_fusion": "融合路径",
@@ -60,6 +61,6 @@ TRANSLATIONS = {
         "path_fusion.result.score": "获得积分：{n}",
         "path_fusion.result.continue": "继续训练",
         "path_fusion.result.exit": "返回菜单",
+        "path_fusion.metric.accuracy": "融合路径准确率",
     },
 }
-

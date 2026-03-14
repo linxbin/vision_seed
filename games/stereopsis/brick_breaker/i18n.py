@@ -30,6 +30,8 @@ TRANSLATIONS = {
         "brick_breaker.result.depth": "Depth Confusions: {n}",
         "brick_breaker.result.continue": "Continue",
         "brick_breaker.result.exit": "Back to Menu",
+        "brick_breaker.metric.cleared": "Bricks cleared",
+        "brick_breaker.metric.depth": "Front/back confusions",
     },
     "zh-CN": {
         "game.stereopsis.brick_breaker": "立体打砖块",
@@ -62,6 +64,7 @@ TRANSLATIONS = {
         "brick_breaker.result.depth": "前后混淆：{n}",
         "brick_breaker.result.continue": "继续训练",
         "brick_breaker.result.exit": "返回菜单",
+        "brick_breaker.metric.cleared": "清除砖块",
+        "brick_breaker.metric.depth": "前后混淆",
     },
 }
-

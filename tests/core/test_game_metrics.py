@@ -19,18 +19,20 @@ class _ManagerStub:
             return "Front/back confusions"
         if key == "snake_focus.metric.label":
             return "Best length"
-        if key == "red_blue_catch.combo":
-            return "Best Combo"
-        if key == "brick_breaker.result.success":
+        if key == "snake_focus.metric.foods":
+            return "Foods eaten"
+        if key == "red_blue_catch.metric.accuracy":
+            return "Color match accuracy"
+        if key == "brick_breaker.metric.cleared":
             return "Bricks Cleared"
-        if key == "frogger.result.success":
+        if key == "frogger.metric.crosses":
             return "Safe Crosses"
-        if key == "fusion_tetris.result.success":
+        if key == "fusion_tetris.metric.lines":
             return "Lines Cleared"
-        if key == "path_fusion.result.accuracy":
-            return "Fusion Accuracy"
-        if key == "fruit_slice.result.accuracy":
-            return "Accuracy"
+        if key == "path_fusion.metric.accuracy":
+            return "Fusion path accuracy"
+        if key == "fruit_slice.metric.accuracy":
+            return "Slice accuracy"
         if key == "category.latest_summary":
             return f"Latest: {kwargs['accuracy']}% / {kwargs['duration']}s"
         if key == "category.latest_metric":
@@ -90,6 +92,15 @@ class GameMetricsTests(unittest.TestCase):
             "training_metrics": {"lines_cleared": 4},
         })
         self.assertEqual(line2, "Lines Cleared: 4")
+
+    def test_summarize_session_uses_color_match_metric_label(self):
+        manager = _ManagerStub()
+        _line1, line2 = summarize_session(manager, {
+            "accuracy_rate": 76.0,
+            "duration_seconds": 29.0,
+            "training_metrics": {"color_match_accuracy": 76.0},
+        })
+        self.assertEqual(line2, "Color match accuracy: 76.0")
 
 
 if __name__ == "__main__":

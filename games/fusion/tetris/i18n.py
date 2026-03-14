@@ -29,6 +29,8 @@ TRANSLATIONS = {
         "fusion_tetris.result.score": "Score Earned: {n}",
         "fusion_tetris.result.continue": "Continue",
         "fusion_tetris.result.exit": "Back to Menu",
+        "fusion_tetris.metric.lines": "Lines cleared",
+        "fusion_tetris.metric.accuracy": "Fusion accuracy",
     },
     "zh-CN": {
         "game.fusion.tetris": "融合俄罗斯方块",
@@ -60,6 +62,7 @@ TRANSLATIONS = {
         "fusion_tetris.result.score": "获得积分：{n}",
         "fusion_tetris.result.continue": "继续训练",
         "fusion_tetris.result.exit": "返回菜单",
+        "fusion_tetris.metric.lines": "消除行数",
+        "fusion_tetris.metric.accuracy": "融合准确率",
     },
 }
-
