@@ -8,6 +8,11 @@ import pygame
 
 from core.asset_loader import load_image_if_exists, project_path
 from core.base_scene import BaseScene
+from .feedback import FeedbackState
+from .result_payload import build_training_result_payload
+from .scoring import ScoreState
+from .session import SessionState
+from .widgets import draw_button, draw_top_stat_text
 
 
 @dataclass(frozen=True)
@@ -634,10 +639,13 @@ class ArcadeTrainingScene(BaseScene):
         self.width = 900
         self.height = 700
         self.state = self.STATE_HOME
+        self.scoring = ScoreState()
         self.attempt_count = 0
         self.correct_count = 0
         self.wrong_count = 0
         self.score = 0
+        self.session = SessionState()
+        self.feedback = FeedbackState()
         self.session_started_at = 0.0
         self.round_started_at = 0.0
         self.session_elapsed = 0.0
@@ -692,10 +700,13 @@ class ArcadeTrainingScene(BaseScene):
 
     def reset(self):
         self.state = self.STATE_HOME
+        self.scoring.reset()
         self.attempt_count = 0
         self.correct_count = 0
         self.wrong_count = 0
         self.score = 0
+        self.session.reset()
+        self.feedback = FeedbackState()
         self.session_started_at = 0.0
         self.round_started_at = 0.0
         self.session_elapsed = 0.0
@@ -706,13 +717,13 @@ class ArcadeTrainingScene(BaseScene):
         self._result_saved = False
 
     def accuracy_rate(self):
-        total = self.correct_count + self.wrong_count
-        return round((self.correct_count / total) * 100, 1) if total else 0.0
+        return self.scoring.accuracy_rate()
 
     def _set_feedback(self, key, color):
-        self.feedback_text = self.manager.t(key)
-        self.feedback_color = color
-        self.feedback_until = time.time() + 1.0
+        self.feedback.set(self.manager.t(key), color, duration=1.0)
+        self.feedback_text = self.feedback.text
+        self.feedback_color = self.feedback.color
+        self.feedback_until = self.feedback.until
 
     def _play_feedback_sound(self, success):
         sound_manager = getattr(self.manager, 'sound_manager', None)
@@ -725,33 +736,34 @@ class ArcadeTrainingScene(BaseScene):
 
     def _start_session(self):
         self.state = self.STATE_PLAY
+        self.scoring.reset()
         self.attempt_count = 0
         self.correct_count = 0
         self.wrong_count = 0
         self.score = 0
-        self.session_started_at = time.time()
+        self.session.start_session()
+        self.session_started_at = self.session.session_started_at
         self._result_saved = False
         self._start_round()
 
     def _start_round(self):
-        self.round_started_at = time.time()
-        self.round_elapsed = 0.0
+        self.session.start_round()
+        self.round_started_at = self.session.round_started_at
+        self.round_elapsed = self.session.round_elapsed
         self.mechanic.start_round()
 
     def _apply_outcome(self, success):
         self._play_feedback_sound(success)
         points = self.mechanic.score_for_outcome(success)
         key, color = self.mechanic.feedback_for_outcome(self, success)
-        if success:
-            self.correct_count += 1
-            self.score += points
-            self._set_feedback(key, color)
-            if points > 10:
-                self.feedback_text = f"{self.feedback_text}  +{points}"
-        else:
-            self.wrong_count += 1
-            self._set_feedback(key, color)
-        self.attempt_count += 1
+        self.scoring.apply(success, points)
+        self.attempt_count = self.scoring.attempt_count
+        self.correct_count = self.scoring.correct_count
+        self.wrong_count = self.scoring.wrong_count
+        self.score = self.scoring.score
+        self._set_feedback(key, color)
+        if success and points > 10:
+            self.feedback_text = f"{self.feedback_text}  +{points}"
         if self.session_elapsed >= self._session_seconds():
             self._finish_session()
         else:
@@ -774,16 +786,14 @@ class ArcadeTrainingScene(BaseScene):
             "stars": max(1, min(3, int(round(self.accuracy_rate() / 33.4)))),
         }
         if not self._result_saved:
-            payload = {
-                "timestamp": datetime.now().replace(microsecond=0).isoformat(),
-                "game_id": self.config.game_id,
-                "difficulty_level": self.config.difficulty_level,
-                "total_questions": self.correct_count + self.wrong_count,
-                "correct_count": self.correct_count,
-                "wrong_count": self.wrong_count,
-                "duration_seconds": round(duration, 1),
-                "training_metrics": self.mechanic.training_metrics(self),
-            }
+            payload = build_training_result_payload(
+                game_id=self.config.game_id,
+                difficulty_level=self.config.difficulty_level,
+                correct_count=self.correct_count,
+                wrong_count=self.wrong_count,
+                duration_seconds=duration,
+                training_metrics=self.mechanic.training_metrics(self),
+            )
             self.manager.current_result = {"correct": self.correct_count, "total": self.correct_count + self.wrong_count, "game_id": self.config.game_id}
             self.manager.data_manager.save_training_session(payload)
             self.saved_session = payload
@@ -875,8 +885,9 @@ class ArcadeTrainingScene(BaseScene):
     def update(self):
         now = time.time()
         if self.state == self.STATE_PLAY:
-            self.session_elapsed = now - self.session_started_at
-            self.round_elapsed = now - self.round_started_at
+            self.session.tick(now)
+            self.session_elapsed = self.session.session_elapsed
+            self.round_elapsed = self.session.round_elapsed
             if self.session_elapsed >= self._session_seconds():
                 self._finish_session()
                 return
@@ -886,8 +897,8 @@ class ArcadeTrainingScene(BaseScene):
             outcome = self.mechanic.consume_outcome()
             if outcome is not None:
                 self._apply_outcome(outcome)
-        if self.feedback_text and now > self.feedback_until:
-            self.feedback_text = ""
+        self.feedback.clear_if_expired(now)
+        self.feedback_text = self.feedback.text
 
     def _draw_gradient_bg(self, screen):
         top = tuple(min(255, c + 88) for c in self.config.theme_color)
@@ -1030,23 +1041,18 @@ class ArcadeTrainingScene(BaseScene):
         return badges.get(self.config.mechanic_type, 'PLAY')
 
     def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), icon_name=None, selected=False):
-        hovered = rect.collidepoint(pygame.mouse.get_pos())
-        fill = tuple(min(255, c + 16) for c in color) if hovered or selected else color
-        border_color = (255, 250, 212) if selected else (255, 255, 255)
-        if selected:
-            glow = rect.inflate(10, 10)
-            pygame.draw.rect(screen, (255, 236, 176), glow, border_radius=16)
-        pygame.draw.rect(screen, fill, rect, border_radius=12)
-        pygame.draw.rect(screen, border_color, rect, 3 if selected else 2, border_radius=12)
-        label = self.option_font.render(text, True, text_color)
         icon = self._load_ui_icon(icon_name, light=sum(text_color) > 500, size=(18, 18)) if icon_name else None
-        gap = 8 if icon is not None else 0
-        content_width = label.get_width() + (icon.get_width() + gap if icon is not None else 0)
-        start_x = rect.centerx - content_width // 2
-        if icon is not None:
-            screen.blit(icon, (start_x, rect.centery - icon.get_height() // 2))
-            start_x += icon.get_width() + gap
-        screen.blit(label, (start_x, rect.centery - label.get_height() // 2))
+        draw_button(
+            screen=screen,
+            rect=rect,
+            text=text,
+            color=color,
+            font=self.option_font,
+            mouse_pos=pygame.mouse.get_pos(),
+            text_color=text_color,
+            icon=icon,
+            selected=selected,
+        )
 
     def _draw_home(self, screen):
         badge_rect = pygame.Rect(self.width // 2 - 62, 52, 124, 28)
@@ -1090,8 +1096,7 @@ class ArcadeTrainingScene(BaseScene):
             self.manager.t("arcade.score", score=self.score),
         ]
         for idx, text in enumerate(items):
-            surf = self.small_font.render(text, True, (56, 82, 118))
-            screen.blit(surf, (24 + idx * 240, 20))
+            draw_top_stat_text(screen=screen, font=self.small_font, text=text, pos=(24 + idx * 240, 20))
         stage = self.small_font.render(self.manager.t("arcade.play.stage", stage=self.mechanic.stage_label(self)), True, (72, 92, 126))
         goal = self.small_font.render(self.manager.t("arcade.play.goal", goal=self.mechanic.goal_label(self)), True, (82, 100, 126))
         screen.blit(stage, (24, 52))

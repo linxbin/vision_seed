@@ -5,7 +5,7 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
 import pygame
 
-from games.common.arcade_training.scene import ArcadeGameConfig, ArcadeTrainingScene
+from games.common.training_runtime.arcade_scene import ArcadeGameConfig, ArcadeTrainingScene
 
 
 class _ManagerStub:
@@ -239,9 +239,9 @@ class ArcadeTrainingMechanicTests(unittest.TestCase):
         screen_a = pygame.Surface((scene.width, scene.height))
         screen_b = pygame.Surface((scene.width, scene.height))
         from unittest.mock import patch
-        with patch("games.common.arcade_training.scene.time.time", return_value=100.0):
+        with patch("games.common.training_runtime.arcade_scene.time.time", return_value=100.0):
             scene.draw(screen_a)
-        with patch("games.common.arcade_training.scene.time.time", return_value=104.0):
+        with patch("games.common.training_runtime.arcade_scene.time.time", return_value=104.0):
             scene.draw(screen_b)
         sample_points = [
             (scene.play_area.x + 28, scene.play_area.y + 28),
@@ -278,7 +278,7 @@ class ArcadeTrainingMechanicTests(unittest.TestCase):
         scene._start_session()
         scene.state = scene.STATE_PLAY
         screen = pygame.Surface((scene.width, scene.height))
-        with unittest.mock.patch("games.common.arcade_training.scene.time.time", return_value=100.0):
+        with unittest.mock.patch("games.common.training_runtime.arcade_scene.time.time", return_value=100.0):
             scene.draw(screen)
         outside_point = (scene.play_area.x - 8, scene.play_area.y + 28)
         inside_point = (scene.play_area.x + 28, scene.play_area.y + 28)

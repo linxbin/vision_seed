@@ -1,7 +1,7 @@
 from games.accommodation.catch_fruit.i18n import TRANSLATIONS as CATCH_FRUIT_TRANSLATIONS
 from games.accommodation.e_orientation.i18n import TRANSLATIONS as E_ORIENTATION_TRANSLATIONS
 from games.amblyopia.precision_aim.i18n import TRANSLATIONS as PRECISION_AIM_TRANSLATIONS
-from games.common.arcade_training.i18n import TRANSLATIONS as ARCADE_TRANSLATIONS
+from games.common.training_runtime.i18n import TRANSLATIONS as ARCADE_TRANSLATIONS
 from games.fusion.push_box.i18n import TRANSLATIONS as FUSION_PUSH_BOX_TRANSLATIONS
 from games.simultaneous.eye_find_patterns.i18n import TRANSLATIONS as EYE_FIND_TRANSLATIONS
 from games.simultaneous.pong.i18n import TRANSLATIONS as PONG_TRANSLATIONS
