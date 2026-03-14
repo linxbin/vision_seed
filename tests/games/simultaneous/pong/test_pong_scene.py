@@ -60,9 +60,11 @@ class PongSceneTests(unittest.TestCase):
         scene = PongScene(manager)
         scene._start_match()
         scene.player_score = 11
+        scene.player_hits = 7
         scene.update()
         self.assertEqual(scene.state, scene.STATE_RESULT)
         self.assertEqual(manager.data_manager.saved[-1]["game_id"], "simultaneous.pong")
+        self.assertIn("return_accuracy", manager.data_manager.saved[-1]["training_metrics"])
 
     def test_keyboard_moves_player_paddle(self):
         manager = _ManagerStub()
@@ -86,6 +88,7 @@ class PongSceneTests(unittest.TestCase):
         scene.update()
         self.assertGreater(scene.current_rally, 0)
         self.assertGreater(scene.ball_vx, 5.0)
+        self.assertEqual(scene.player_hits, 1)
 
     def test_match_starts_with_serve_delay(self):
         manager = _ManagerStub()
@@ -99,9 +102,11 @@ class PongSceneTests(unittest.TestCase):
         scene._start_match()
         scene.player_score = 5
         scene.ai_score = 2
+        scene.player_hits = 9
         scene.best_rally = 4
         scene._finish_match()
         self.assertIn("encouragement", scene.final_stats)
+        self.assertIn("accuracy", scene.final_stats)
 
 
 if __name__ == "__main__":

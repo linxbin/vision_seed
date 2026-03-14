@@ -39,6 +39,7 @@ class PongScene(BaseScene):
         self.current_rally = 0
         self.player_score = 0
         self.ai_score = 0
+        self.player_hits = 0
         self.session_started_at = 0.0
         self.serve_until = 0.0
         self.serve_direction = 1
@@ -141,6 +142,7 @@ class PongScene(BaseScene):
         self.current_rally = 0
         self.player_score = 0
         self.ai_score = 0
+        self.player_hits = 0
         self.serve_until = 0.0
         self.serve_direction = 1
 
@@ -204,7 +206,9 @@ class PongScene(BaseScene):
             "duration": duration,
             "player_score": self.player_score,
             "ai_score": self.ai_score,
+            "player_hits": self.player_hits,
             "best_rally": self.best_rally,
+            "accuracy": round((self.player_hits / max(1, self.player_hits + self.ai_score)) * 100, 1),
             "encouragement": self._result_encouragement(),
             "mode": self.mode,
             "filter_direction": self.filter_direction,
@@ -225,8 +229,12 @@ class PongScene(BaseScene):
             "correct_count": self.player_score,
             "wrong_count": self.ai_score,
             "duration_seconds": float(self.final_stats.get("duration", 0)),
-            "accuracy_rate": accuracy,
-            "training_metrics": {"pong_best_rally": self.best_rally},
+            "accuracy_rate": self.final_stats.get("accuracy", accuracy),
+            "training_metrics": {
+                "pong_best_rally": self.best_rally,
+                "player_hits": self.player_hits,
+                "return_accuracy": self.final_stats.get("accuracy", accuracy),
+            },
         }
         data_manager.save_training_session(payload)
 
@@ -359,6 +367,7 @@ class PongScene(BaseScene):
                 self.ball_vx = min(8.6, abs(self.ball_vx) * 1.06)
                 self.ball_vy = max(-6.2, min(6.2, self.ball_vy + random.choice((-0.5, 0.5))))
                 self.current_rally += 1
+                self.player_hits += 1
                 self.best_rally = max(self.best_rally, self.current_rally)
                 self.hit_flash_side = "left"
                 self.hit_flash_until = now + 0.18
@@ -376,7 +385,7 @@ class PongScene(BaseScene):
             if self.ball_x < self.play_rect.left:
                 self.ai_score += 1
                 self.current_rally = 0
-                self._set_feedback("pong.feedback.point", 0.8)
+                self._set_feedback_text(self.manager.t("pong.feedback.miss"), color=(232, 110, 110), duration=0.8)
                 self._start_serve(1)
             elif self.ball_x > self.play_rect.right:
                 self.player_score += 1
@@ -478,8 +487,18 @@ class PongScene(BaseScene):
         self._draw_chip(screen, chip, self.manager.t("pong.time", sec=f"{time_left // 60:02d}:{time_left % 60:02d}"), (86, 116, 170))
         score_text = self.body_font.render(self.manager.t("pong.score", player=self.player_score, ai=self.ai_score), True, (44, 60, 88))
         screen.blit(score_text, (84, 22))
-        rally_chip = pygame.Rect(84, 56, 184, 34)
-        self._draw_chip(screen, rally_chip, self.manager.t("pong.rally", n=max(self.current_rally, self.best_rally)), (244, 210, 126), text_color=(88, 72, 32))
+        rally_text = self.body_font.render(
+            self.manager.t("pong.rally", n=self.current_rally),
+            True,
+            (88, 72, 32),
+        )
+        screen.blit(rally_text, (84, 58))
+        best_rally_text = self.body_font.render(
+            self.manager.t("pong.best_rally", n=self.best_rally),
+            True,
+            (92, 102, 120),
+        )
+        screen.blit(best_rally_text, (self.width - 124 - best_rally_text.get_width(), 26))
         guide = self.small_font.render(self.manager.t("pong.play.guide"), True, (54, 70, 96))
         screen.blit(guide, (self.width // 2 - guide.get_width() // 2, 68))
         self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow")
@@ -496,7 +515,7 @@ class PongScene(BaseScene):
         pygame.draw.circle(screen, (255, 226, 96), (int(self.ball_x), int(self.ball_y)), 10)
         if self.serve_until > time.time():
             serve_text = self.body_font.render(self.manager.t("pong.serve", n=self._serve_countdown()), True, (56, 68, 94))
-            screen.blit(serve_text, (self.width // 2 - serve_text.get_width() // 2, self.play_rect.centery - serve_text.get_height() // 2))
+            screen.blit(serve_text, (self.width - 84 - serve_text.get_width(), 56))
         if self.feedback_text:
             feedback = self.body_font.render(self.feedback_text, True, self.feedback_color)
             screen.blit(feedback, (self.width // 2 - feedback.get_width() // 2, self.height - 76))
@@ -511,15 +530,18 @@ class PongScene(BaseScene):
         lines = [
             self.manager.t("pong.result.score", player=self.final_stats.get("player_score", 0), ai=self.final_stats.get("ai_score", 0)),
             self.manager.t("pong.result.duration", sec=self.final_stats.get("duration", 0)),
+            self.manager.t("pong.result.player_hits", n=self.final_stats.get("player_hits", 0)),
+            self.manager.t("pong.result.ai_points", n=self.final_stats.get("ai_score", 0)),
+            self.manager.t("pong.result.accuracy", value=self.final_stats.get("accuracy", 0.0)),
             self.manager.t("pong.result.mode", mode=mode_text),
             self.manager.t("pong.result.filter", direction=filter_text),
             self.manager.t("pong.result.metric", n=self.final_stats.get("best_rally", 0)),
         ]
         for idx, text in enumerate(lines):
             line = self.body_font.render(text, True, (66, 84, 114))
-            screen.blit(line, (self.width // 2 - line.get_width() // 2, 176 + idx * 38))
+            screen.blit(line, (self.width // 2 - line.get_width() // 2, 164 + idx * 34))
         encouragement = self.body_font.render(self.final_stats.get("encouragement", ""), True, (88, 118, 82))
-        screen.blit(encouragement, (self.width // 2 - encouragement.get_width() // 2, 386))
+        screen.blit(encouragement, (self.width // 2 - encouragement.get_width() // 2, 428))
         self._draw_button(screen, self.btn_continue, self.manager.t("pong.result.continue"), (84, 148, 108), icon_name="check", selected=self.result_focus == 0)
         self._draw_button(screen, self.btn_exit, self.manager.t("pong.result.exit"), (120, 134, 168), icon_name="cross", selected=self.result_focus == 1)
 

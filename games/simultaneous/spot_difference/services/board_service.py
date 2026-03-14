@@ -127,3 +127,15 @@ class SpotDifferenceBoardService:
             rect_v.center = (int(cx), int(cy))
             pygame.draw.rect(surface, color, rect_h, border_radius=bar // 2)
             pygame.draw.rect(surface, color, rect_v, border_radius=bar // 2)
+
+    def hit_test_shape(self, shape, center, size, point):
+        local_size = size + 18
+        surface = pygame.Surface((local_size, local_size), pygame.SRCALPHA)
+        local_center = (local_size // 2, local_size // 2)
+        self.draw_shape(surface, shape, local_center, size, (255, 255, 255))
+        local_x = int(point[0] - center[0] + local_center[0])
+        local_y = int(point[1] - center[1] + local_center[1])
+        if not (0 <= local_x < local_size and 0 <= local_y < local_size):
+            return False
+        mask = pygame.mask.from_surface(surface)
+        return bool(mask.get_at((local_x, local_y)))

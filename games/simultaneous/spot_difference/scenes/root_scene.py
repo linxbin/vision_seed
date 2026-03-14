@@ -38,6 +38,7 @@ class SpotDifferenceScene(BaseScene):
         self.feedback_until = 0.0
         self.final_stats = {}
         self.failure_count = 0
+        self.round_started_at = 0.0
         self.board_service = SpotDifferenceBoardService()
         self.scoring = SpotDifferenceScoringService()
         self.session = SpotDifferenceSessionService(self._session_seconds())
@@ -148,6 +149,7 @@ class SpotDifferenceScene(BaseScene):
         self.pending_indices = set()
         self.round_data = self.board_service.create_round(self.left_panel, self._target_difference_count())
         self.selected_index = min(self.selected_index, len(self.round_data["right"]) - 1)
+        self.round_started_at = time.time()
 
     def _target_difference_count(self):
         progress = 0.0
@@ -179,9 +181,11 @@ class SpotDifferenceScene(BaseScene):
         self.final_stats = {
             "duration": duration,
             "success": self.scoring.success_count,
+            "wrong": self.failure_count,
             "score": self.scoring.score,
             "accuracy": accuracy,
             "best_combo": self.scoring.best_combo,
+            "avg_find_time": self.scoring.average_reaction_time(),
             "encouragement": self._result_encouragement(),
             "mode": self.mode,
             "filter_direction": self.filter_direction,
@@ -212,6 +216,7 @@ class SpotDifferenceScene(BaseScene):
             "training_metrics": {
                 "binocular_merge_accuracy": self.final_stats.get("accuracy", 0.0),
                 "best_combo": self.scoring.best_combo,
+                "avg_find_time": self.final_stats.get("avg_find_time", 0.0),
             },
         }
         data_manager.save_training_session(payload)
@@ -239,8 +244,9 @@ class SpotDifferenceScene(BaseScene):
             self.pending_indices.clear()
             return
         if pending.issubset(set(self.round_data["diff_indices"])):
+            reaction_time = time.time() - self.round_started_at if self.round_started_at > 0 else None
             for _ in pending:
-                self.scoring.on_success()
+                self.scoring.on_success(reaction_time)
             self.found_indices.update(pending)
             self.pending_indices.clear()
             if len(self.found_indices) >= len(self.round_data["diff_indices"]):
@@ -297,6 +303,10 @@ class SpotDifferenceScene(BaseScene):
             screen.blit(overlay, (0, 0))
 
     def _draw_boards(self, screen):
+        label_left = self.small_font.render(self.manager.t("spot_difference.panel.left"), True, (78, 96, 124))
+        label_right = self.small_font.render(self.manager.t("spot_difference.panel.right"), True, (78, 96, 124))
+        screen.blit(label_left, (self.left_panel.centerx - label_left.get_width() // 2, self.left_panel.y - 28))
+        screen.blit(label_right, (self.right_panel.centerx - label_right.get_width() // 2, self.right_panel.y - 28))
         pygame.draw.line(
             screen,
             (164, 186, 216),
@@ -410,17 +420,21 @@ class SpotDifferenceScene(BaseScene):
         self._draw_chip(screen, chip, self.manager.t("spot_difference.time", sec=f"{time_left // 60:02d}:{time_left % 60:02d}"), (86, 116, 170))
         score_text = self.body_font.render(self.manager.t("spot_difference.score", score=self.scoring.score), True, (44, 60, 88))
         screen.blit(score_text, (84, 22))
-        target_chip = pygame.Rect(84, 56, 196, 34)
-        remaining = len(self.round_data["diff_indices"]) - len(self.found_indices)
-        self._draw_chip(
-            screen,
-            target_chip,
-            self.manager.t("spot_difference.target", remaining=remaining),
-            (244, 210, 126),
-            text_color=(88, 72, 32),
+        combo_text = self.body_font.render(
+            self.manager.t("spot_difference.combo", combo=self.scoring.best_combo),
+            True,
+            (92, 102, 120),
         )
+        screen.blit(combo_text, (self.width - 124 - combo_text.get_width(), 26))
+        remaining = len(self.round_data["diff_indices"]) - len(self.found_indices)
+        target_text = self.body_font.render(
+            self.manager.t("spot_difference.target", remaining=remaining),
+            True,
+            (88, 72, 32),
+        )
+        screen.blit(target_text, (84, 58))
         tip = self.small_font.render(self.manager.t("spot_difference.play.guide"), True, (54, 70, 96))
-        screen.blit(tip, (self.width // 2 - tip.get_width() // 2, 68))
+        screen.blit(tip, (self.width // 2 - tip.get_width() // 2, 98))
         self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow")
         if self.round_flash_until > time.time():
             flash = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
@@ -442,15 +456,19 @@ class SpotDifferenceScene(BaseScene):
         lines = [
             self.manager.t("spot_difference.result.duration", sec=self.final_stats.get("duration", 0)),
             self.manager.t("spot_difference.result.success", n=self.final_stats.get("success", 0)),
+            self.manager.t("spot_difference.result.wrong", n=self.final_stats.get("wrong", 0)),
+            self.manager.t("spot_difference.result.accuracy", value=self.final_stats.get("accuracy", 0.0)),
             self.manager.t("spot_difference.result.score", n=self.final_stats.get("score", 0)),
+            self.manager.t("spot_difference.result.avg_find_time", sec=self.final_stats.get("avg_find_time", 0.0)),
+            self.manager.t("spot_difference.result.combo", n=self.final_stats.get("best_combo", 0)),
             self.manager.t("spot_difference.result.mode", mode=mode_text),
             self.manager.t("spot_difference.result.filter", direction=filter_text),
         ]
         for idx, text in enumerate(lines):
             line = self.body_font.render(text, True, (66, 84, 114))
-            screen.blit(line, (self.width // 2 - line.get_width() // 2, 176 + idx * 38))
+            screen.blit(line, (self.width // 2 - line.get_width() // 2, 164 + idx * 34))
         encouragement = self.body_font.render(self.final_stats.get("encouragement", ""), True, (88, 118, 82))
-        screen.blit(encouragement, (self.width // 2 - encouragement.get_width() // 2, 372))
+        screen.blit(encouragement, (self.width // 2 - encouragement.get_width() // 2, 446))
         self._draw_button(screen, self.btn_continue, self.manager.t("spot_difference.result.continue"), (84, 148, 108), icon_name="check", selected=self.result_focus == 0)
         self._draw_button(screen, self.btn_exit, self.manager.t("spot_difference.result.exit"), (120, 134, 168), icon_name="cross", selected=self.result_focus == 1)
 
@@ -534,9 +552,8 @@ class SpotDifferenceScene(BaseScene):
                         self._confirm_selection()
                     else:
                         for idx, item in enumerate(self.round_data["right"]):
-                            rect = pygame.Rect(0, 0, item["size"] + 20, item["size"] + 20)
-                            rect.center = (self.right_panel.x + item["center"][0], self.right_panel.y + item["center"][1])
-                            if rect.collidepoint(pos):
+                            center = (self.right_panel.x + item["center"][0], self.right_panel.y + item["center"][1])
+                            if self.board_service.hit_test_shape(item["shape"], center, item["size"], pos):
                                 self.selected_index = idx
                                 self._toggle_pending_selection(idx)
                                 break

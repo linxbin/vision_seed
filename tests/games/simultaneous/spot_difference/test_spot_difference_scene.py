@@ -61,6 +61,7 @@ class SpotDifferenceSceneTests(unittest.TestCase):
         scene.update()
         self.assertEqual(scene.state, scene.STATE_RESULT)
         self.assertEqual(manager.data_manager.saved[-1]["game_id"], "simultaneous.spot_difference")
+        self.assertIn("avg_find_time", manager.data_manager.saved[-1]["training_metrics"])
 
     def test_keyboard_selection_can_move_and_confirm(self):
         manager = _ManagerStub()
@@ -131,6 +132,12 @@ class SpotDifferenceSceneTests(unittest.TestCase):
         self.assertGreater(bounds.width, 0)
         self.assertGreater(bounds.height, 0)
 
+    def test_board_service_hit_test_uses_shape_not_large_rect(self):
+        service = SpotDifferenceBoardService()
+        center = (60, 60)
+        self.assertTrue(service.hit_test_shape(service.SHAPE_CIRCLE, center, 36, center))
+        self.assertFalse(service.hit_test_shape(service.SHAPE_TRIANGLE, center, 36, (40, 40)))
+
     def test_round_clear_waits_for_flash_then_refreshes(self):
         manager = _ManagerStub()
         scene = SpotDifferenceScene(manager)
@@ -146,6 +153,21 @@ class SpotDifferenceSceneTests(unittest.TestCase):
         scene.round_flash_until = __import__("time").time() - 0.1
         scene.update()
         self.assertIsNot(scene.round_data, original_round)
+
+    def test_finish_result_includes_accuracy_and_wrong_count(self):
+        manager = _ManagerStub()
+        scene = SpotDifferenceScene(manager)
+        scene._start_game()
+        scene.scoring.success_count = 4
+        scene.failure_count = 2
+        scene.scoring.score = 60
+        scene.scoring.best_combo = 3
+        scene.scoring.reaction_times = [1.2, 1.4]
+        scene.session.session_started_at = __import__("time").time() - scene._session_seconds()
+        scene.update()
+        self.assertEqual(scene.final_stats["wrong"], 2)
+        self.assertEqual(scene.final_stats["accuracy"], round((4 / 6) * 100, 1))
+        self.assertEqual(scene.final_stats["avg_find_time"], 1.3)
 
 
 if __name__ == "__main__":
