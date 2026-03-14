@@ -18,10 +18,27 @@ class _DataManagerStub:
         return True
 
 
+class _SoundManagerStub:
+    def __init__(self):
+        self.correct_calls = 0
+        self.wrong_calls = 0
+        self.completed_calls = 0
+
+    def play_correct(self):
+        self.correct_calls += 1
+
+    def play_wrong(self):
+        self.wrong_calls += 1
+
+    def play_completed(self):
+        self.completed_calls += 1
+
+
 class _ManagerStub:
     def __init__(self):
         self.settings = {"language": "en-US", "session_duration_minutes": 5}
         self.data_manager = _DataManagerStub()
+        self.sound_manager = _SoundManagerStub()
         self.last_scene = None
 
     def t(self, key, **kwargs):
@@ -60,13 +77,16 @@ class WhackAMoleSceneTests(unittest.TestCase):
         scene._handle_hit(pos)
         self.assertEqual(scene.scoring.success_count, 1)
         self.assertGreater(scene.scoring.score, 0)
+        self.assertEqual(manager.sound_manager.correct_calls, 1)
 
     def test_timeout_counts_failure(self):
-        scene = WhackAMoleScene(_ManagerStub())
+        manager = _ManagerStub()
+        scene = WhackAMoleScene(manager)
         scene._start_game()
         scene.session.round_started_at = time.time() - scene.session.ROUND_SECONDS
         scene.update()
         self.assertGreaterEqual(scene.scoring.failure_count, 1)
+        self.assertEqual(manager.sound_manager.wrong_calls, 1)
 
     def test_finish_saves_result(self):
         manager = _ManagerStub()
@@ -76,3 +96,4 @@ class WhackAMoleSceneTests(unittest.TestCase):
         scene.update()
         self.assertEqual(scene.state, scene.STATE_RESULT)
         self.assertEqual(manager.data_manager.saved[-1]["game_id"], "amblyopia.whack_a_mole")
+        self.assertEqual(manager.sound_manager.completed_calls, 1)

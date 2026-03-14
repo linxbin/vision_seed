@@ -51,6 +51,21 @@ class BaseScene:
         if callable(refresher):
             refresher()
 
+    def play_correct_sound(self):
+        sound_manager = getattr(self.manager, "sound_manager", None)
+        if sound_manager is not None:
+            sound_manager.play_correct()
+
+    def play_wrong_sound(self):
+        sound_manager = getattr(self.manager, "sound_manager", None)
+        if sound_manager is not None:
+            sound_manager.play_wrong()
+
+    def play_completed_sound(self):
+        sound_manager = getattr(self.manager, "sound_manager", None)
+        if sound_manager is not None:
+            sound_manager.play_completed()
+
     def handle_events(self, events):
         pass
 

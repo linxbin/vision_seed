@@ -4,7 +4,7 @@ from datetime import datetime
 import pygame
 
 from core.base_scene import BaseScene
-from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER
+from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER, apply_filter, blend_filtered_patterns
 from ..services import PathFusionBoardService, PathFusionScoringService, PathFusionSessionService
 
 
@@ -147,6 +147,7 @@ class PathFusionScene(BaseScene):
             "score": self.scoring.score,
         }
         self.state = self.STATE_RESULT
+        self.play_completed_sound()
         self._save_result()
 
     def _set_feedback(self, key, color):
@@ -207,11 +208,23 @@ class PathFusionScene(BaseScene):
         start = (board.x + 90, board.y + 80)
         mid = (board.centerx, board.centery)
         target_points = [(board.right - 90, board.y + 70), (board.right - 90, board.centery), (board.right - 90, board.bottom - 70)]
-        pygame.draw.circle(screen, (82, 130, 232), start, 10)
-        for idx, point in enumerate(target_points):
-            pygame.draw.circle(screen, (232, 78, 78) if idx == self.round_data["target"] else (180, 188, 204), point, 12, 3)
-            pygame.draw.line(screen, (96, 140, 214) if idx == self.selected_path else (154, 170, 196), mid, point, 5)
-        pygame.draw.line(screen, (154, 170, 196), start, mid, 5)
+        if self.mode == self.MODE_GLASSES:
+            left_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            right_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            pygame.draw.circle(left_layer, (255, 255, 255, 255), start, 10)
+            pygame.draw.line(left_layer, (255, 255, 255, 255), start, mid, 5)
+            for idx, point in enumerate(target_points):
+                pygame.draw.circle(right_layer, (255, 255, 255, 255), point, 12, 3)
+                pygame.draw.line(right_layer, (255, 255, 255, 255), mid, point, 5 if idx == self.selected_path else 3)
+            left_surface = apply_filter(left_layer, self.mode, self.filter_direction, "left")
+            right_surface = apply_filter(right_layer, self.mode, self.filter_direction, "right")
+            screen.blit(blend_filtered_patterns((self.width, self.height), left_surface, (0, 0), right_surface, (0, 0)), (0, 0))
+        else:
+            pygame.draw.circle(screen, (82, 130, 232), start, 10)
+            for idx, point in enumerate(target_points):
+                pygame.draw.circle(screen, (232, 78, 78) if idx == self.round_data["target"] else (180, 188, 204), point, 12, 3)
+                pygame.draw.line(screen, (96, 140, 214) if idx == self.selected_path else (154, 170, 196), mid, point, 5)
+            pygame.draw.line(screen, (154, 170, 196), start, mid, 5)
         for idx, rect in enumerate(self.option_rects):
             self._draw_button(screen, rect, str(idx + 1), (96, 140, 214) if idx == self.selected_path else (124, 140, 168))
         if self.feedback_text and time.time() <= self.feedback_until:
@@ -278,6 +291,10 @@ class PathFusionScene(BaseScene):
                         self.selected_path = min(2, self.selected_path + 1)
                     elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                         correct = self.scoring.on_answer(self.selected_path == self.round_data["target"])
+                        if correct:
+                            self.play_correct_sound()
+                        else:
+                            self.play_wrong_sound()
                         self._set_feedback("path_fusion.feedback.hit" if correct else "path_fusion.feedback.miss", (86, 174, 112) if correct else (214, 96, 96))
                         self._new_round()
                     elif event.key == pygame.K_ESCAPE:
@@ -291,6 +308,10 @@ class PathFusionScene(BaseScene):
                             if rect.collidepoint(pos):
                                 self.selected_path = idx
                                 correct = self.scoring.on_answer(idx == self.round_data["target"])
+                                if correct:
+                                    self.play_correct_sound()
+                                else:
+                                    self.play_wrong_sound()
                                 self._set_feedback("path_fusion.feedback.hit" if correct else "path_fusion.feedback.miss", (86, 174, 112) if correct else (214, 96, 96))
                                 self._new_round()
                                 break

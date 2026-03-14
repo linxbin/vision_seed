@@ -19,6 +19,22 @@ class _DataManagerStub:
         return True
 
 
+class _SoundManagerStub:
+    def __init__(self):
+        self.correct_calls = 0
+        self.wrong_calls = 0
+        self.completed_calls = 0
+
+    def play_correct(self):
+        self.correct_calls += 1
+
+    def play_wrong(self):
+        self.wrong_calls += 1
+
+    def play_completed(self):
+        self.completed_calls += 1
+
+
 class _ManagerStub:
     def __init__(self):
         self.settings = {"language": "en-US", "session_duration_minutes": 5}
@@ -26,6 +42,7 @@ class _ManagerStub:
         self.active_category = "suppression"
         self.last_scene = None
         self.data_manager = _DataManagerStub()
+        self.sound_manager = _SoundManagerStub()
 
     def t(self, key, **kwargs):
         if kwargs:
@@ -61,6 +78,8 @@ class FindSameSceneTests(unittest.TestCase):
         scene.update()
         self.assertEqual(scene.state, scene.STATE_RESULT)
         self.assertEqual(manager.data_manager.saved[-1]["game_id"], "suppression.find_same")
+        self.assertEqual(manager.sound_manager.correct_calls, 1)
+        self.assertEqual(manager.sound_manager.completed_calls, 1)
 
     def test_keyboard_selection_can_move_and_confirm(self):
         manager = _ManagerStub()
@@ -82,6 +101,25 @@ class FindSameSceneTests(unittest.TestCase):
         scene.pending_indices = {wrong_index}
         scene._confirm_selection()
         self.assertEqual(scene.failure_count, 1)
+        self.assertEqual(manager.sound_manager.wrong_calls, 1)
+
+    def test_glasses_filter_direction_changes_render(self):
+        scene = FindSameScene(_ManagerStub())
+        scene._start_game()
+        scene.mode = scene.MODE_GLASSES
+        first = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
+        second = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
+        scene.filter_direction = "left_red_right_blue"
+        scene.draw(first)
+        scene.filter_direction = "left_blue_right_red"
+        scene.draw(second)
+        self.assertNotEqual(pygame.image.tostring(first, "RGBA"), pygame.image.tostring(second, "RGBA"))
+
+    def test_filter_picker_can_draw_without_crashing(self):
+        scene = FindSameScene(_ManagerStub())
+        scene.show_filter_picker = True
+        surface = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
+        scene.draw(surface)
 
     def test_mouse_click_shape_toggles_pending_selection(self):
         manager = _ManagerStub()

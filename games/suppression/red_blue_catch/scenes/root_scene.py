@@ -4,7 +4,7 @@ from datetime import datetime
 import pygame
 
 from core.base_scene import BaseScene
-from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER
+from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER, apply_filter, blend_filtered_patterns
 from ..services import RedBlueCatchBoardService, RedBlueCatchScoringService, RedBlueCatchSessionService
 
 
@@ -149,12 +149,36 @@ class RedBlueCatchScene(BaseScene):
             "filter_direction": self.filter_direction,
         }
         self.state = self.STATE_RESULT
+        self.play_completed_sound()
         self._save_result()
 
     def _handle_catch(self):
         correct = self.scoring.on_hit(self.round_data["ball_color"] == self.round_data["target_color"])
+        if correct:
+            self.play_correct_sound()
+        else:
+            self.play_wrong_sound()
         self._set_feedback("red_blue_catch.feedback.hit" if correct else "red_blue_catch.feedback.miss", (86, 174, 112) if correct else (214, 96, 96))
         self._new_round()
+
+    def _draw_glasses_play_content(self, screen):
+        left_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        right_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        basket = pygame.Rect(0, 0, self.round_data["basket_width"], 24)
+        basket.center = (int(self.round_data["basket_x"]), self.play_area.bottom - 24)
+        pygame.draw.rect(screen, (92, 108, 134), basket, border_radius=10)
+
+        cue_rect = pygame.Rect(self.play_area.x, 92, 116, 40)
+        cue_layer = left_layer
+        ball_layer = right_layer
+        pygame.draw.rect(cue_layer, (255, 255, 255, 255), cue_rect, border_radius=12)
+        cue_label = self.small_font.render(self.round_data["target_color"].upper(), True, (255, 255, 255))
+        cue_layer.blit(cue_label, (cue_rect.centerx - cue_label.get_width() // 2, cue_rect.centery - cue_label.get_height() // 2))
+        pygame.draw.circle(ball_layer, (255, 255, 255, 255), (int(self.round_data["ball_x"]), int(self.round_data["ball_y"])), 18)
+
+        left_surface = apply_filter(left_layer, self.mode, self.filter_direction, "left")
+        right_surface = apply_filter(right_layer, self.mode, self.filter_direction, "right")
+        screen.blit(blend_filtered_patterns((self.width, self.height), left_surface, (0, 0), right_surface, (0, 0)), (0, 0))
 
     def _draw_filter_picker(self, screen):
         overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
@@ -205,14 +229,17 @@ class RedBlueCatchScene(BaseScene):
         screen.blit(score_text, (84, 22))
         screen.blit(combo_text, (self.width - 124 - combo_text.get_width(), 26))
         screen.blit(guide, (self.width // 2 - guide.get_width() // 2, 98))
-        basket = pygame.Rect(0, 0, self.round_data["basket_width"], 24)
-        basket.center = (int(self.round_data["basket_x"]), self.play_area.bottom - 24)
-        pygame.draw.rect(screen, (88, 116, 170), basket, border_radius=10)
-        target_color = (232, 78, 78) if self.round_data["target_color"] == "red" else (82, 130, 232)
-        ball_color = (232, 78, 78) if self.round_data["ball_color"] == "red" else (82, 130, 232)
-        target_text = self.small_font.render(self.round_data["target_color"].upper(), True, target_color)
-        screen.blit(target_text, (self.play_area.x, 98))
-        pygame.draw.circle(screen, ball_color, (int(self.round_data["ball_x"]), int(self.round_data["ball_y"])), 18)
+        if self.mode == self.MODE_GLASSES:
+            self._draw_glasses_play_content(screen)
+        else:
+            basket = pygame.Rect(0, 0, self.round_data["basket_width"], 24)
+            basket.center = (int(self.round_data["basket_x"]), self.play_area.bottom - 24)
+            pygame.draw.rect(screen, (88, 116, 170), basket, border_radius=10)
+            target_color = (232, 78, 78) if self.round_data["target_color"] == "red" else (82, 130, 232)
+            ball_color = (232, 78, 78) if self.round_data["ball_color"] == "red" else (82, 130, 232)
+            target_text = self.small_font.render(self.round_data["target_color"].upper(), True, target_color)
+            screen.blit(target_text, (self.play_area.x, 98))
+            pygame.draw.circle(screen, ball_color, (int(self.round_data["ball_x"]), int(self.round_data["ball_y"])), 18)
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.option_font.render(self.feedback_text, True, self.feedback_color)
             screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 20))
@@ -312,6 +339,7 @@ class RedBlueCatchScene(BaseScene):
                     self._handle_catch()
                 else:
                     self.scoring.on_hit(False)
+                    self.play_wrong_sound()
                     self._set_feedback("red_blue_catch.feedback.drop", (214, 96, 96))
                     self._new_round()
         if self.feedback_text and now > self.feedback_until:

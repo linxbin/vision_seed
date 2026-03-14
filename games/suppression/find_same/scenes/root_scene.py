@@ -132,6 +132,7 @@ class FindSameScene(BaseScene):
         accuracy = round((self.scoring.success_count / total) * 100, 1) if total else 0.0
         self.final_stats = {"duration": int(self.session.session_elapsed), "success": self.scoring.success_count, "wrong": self.failure_count, "score": self.scoring.score, "accuracy": accuracy, "avg_find_time": self.scoring.average_reaction_time(), "best_combo": self.scoring.best_combo}
         self.state = self.STATE_RESULT
+        self.play_completed_sound()
         self._save_result()
 
     def _set_feedback(self, key, color):
@@ -225,6 +226,17 @@ class FindSameScene(BaseScene):
         self._draw_filter_option(screen, self.filter_lr, self.manager.t("find_same.filter.lr"), RED_FILTER[:3], BLUE_FILTER[:3], self.filter_direction == FILTER_LR)
         self._draw_filter_option(screen, self.filter_rl, self.manager.t("find_same.filter.rl"), BLUE_FILTER[:3], RED_FILTER[:3], self.filter_direction == FILTER_RL)
         self._draw_button(screen, self.filter_start, self.manager.t("find_same.filter.start"), (92, 152, 114))
+
+    def _draw_filter_option(self, screen, rect, text, left_color, right_color, selected):
+        self._draw_button(screen, rect, "", (244, 247, 255), text_color=(62, 72, 98))
+        preview_rect = pygame.Rect(rect.x + 16, rect.y + 10, 56, rect.height - 20)
+        left_rect = pygame.Rect(preview_rect.x, preview_rect.y, preview_rect.width // 2, preview_rect.height)
+        right_rect = pygame.Rect(left_rect.right, preview_rect.y, preview_rect.width - left_rect.width, preview_rect.height)
+        pygame.draw.rect(screen, left_color, left_rect, border_top_left_radius=8, border_bottom_left_radius=8)
+        pygame.draw.rect(screen, right_color, right_rect, border_top_right_radius=8, border_bottom_right_radius=8)
+        pygame.draw.rect(screen, (255, 255, 255) if selected else (190, 206, 228), preview_rect, 2, border_radius=8)
+        label = self.small_font.render(text, True, (62, 72, 98))
+        screen.blit(label, (preview_rect.right + 16, rect.centery - label.get_height() // 2))
 
     def _draw_play(self, screen):
         remaining = len(self.round_data["match_indices"])
@@ -340,6 +352,7 @@ class FindSameScene(BaseScene):
             reaction_time = time.time() - self.round_started_at if self.round_started_at > 0 else None
             for _ in self.pending_indices:
                 self.scoring.on_success(reaction_time)
+            self.play_correct_sound()
             self.pending_indices.clear()
             self.round_flash_until = time.time() + 0.2
             self._set_feedback("find_same.feedback.round_clear", (90, 226, 132))
@@ -347,6 +360,7 @@ class FindSameScene(BaseScene):
         else:
             self.scoring.on_failure()
             self.failure_count += 1
+            self.play_wrong_sound()
             self.pending_indices.clear()
             self._set_feedback("find_same.feedback.fail", (238, 118, 118))
 

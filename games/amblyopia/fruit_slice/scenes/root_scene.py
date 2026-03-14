@@ -136,6 +136,7 @@ class FruitSliceScene(BaseScene):
             "best_combo": self.scoring.best_combo,
         }
         self.state = self.STATE_RESULT
+        self.play_completed_sound()
         self._save_result()
 
     def _draw_home(self, screen):
@@ -227,9 +228,11 @@ class FruitSliceScene(BaseScene):
                         if distance <= self.round_data["radius"]:
                             if self.round_data["is_bomb"]:
                                 self.scoring.on_failure()
+                                self.play_wrong_sound()
                                 self._set_feedback("fruit_slice.feedback.bomb", (214, 96, 96))
                             else:
                                 self.scoring.on_target()
+                                self.play_correct_sound()
                                 self._set_feedback("fruit_slice.feedback.hit", (86, 174, 112))
                             self._new_round()
             else:
@@ -252,6 +255,7 @@ class FruitSliceScene(BaseScene):
                 self._finish_game()
             elif self.session.is_round_complete():
                 self.scoring.on_failure()
+                self.play_wrong_sound()
                 self._set_feedback("fruit_slice.feedback.miss", (214, 96, 96))
                 self._new_round()
         if self.feedback_text and now > self.feedback_until:

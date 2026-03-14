@@ -4,7 +4,7 @@ from datetime import datetime
 import pygame
 
 from core.base_scene import BaseScene
-from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER
+from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER, apply_filter, blend_filtered_patterns
 from ..services import FusionTetrisBoardService, FusionTetrisScoringService, FusionTetrisSessionService
 
 
@@ -143,6 +143,7 @@ class FusionTetrisScene(BaseScene):
             "score": self.scoring.score,
         }
         self.state = self.STATE_RESULT
+        self.play_completed_sound()
         self._save_result()
 
     def _set_feedback(self, key, color):
@@ -160,6 +161,7 @@ class FusionTetrisScene(BaseScene):
             y = self.round_data["piece_y"] + dy
             if y < 0:
                 self.scoring.on_failure()
+                self.play_wrong_sound()
                 self._set_feedback("fusion_tetris.feedback.stack", (214, 96, 96))
                 self._new_round()
                 return
@@ -172,6 +174,7 @@ class FusionTetrisScene(BaseScene):
             for cleared in sorted(full_rows):
                 self.round_data["stack"] = [(x, y + 1 if y < cleared else y) for (x, y) in self.round_data["stack"]]
             self.scoring.on_line(len(full_rows))
+            self.play_correct_sound()
             self._set_feedback("fusion_tetris.feedback.line", (86, 174, 112))
         else:
             self.scoring.on_safe_drop()
@@ -240,13 +243,27 @@ class FusionTetrisScene(BaseScene):
         pygame.draw.rect(screen, (246, 250, 255), self.board_rect, border_radius=14)
         pygame.draw.rect(screen, (190, 206, 228), self.board_rect, 2, border_radius=14)
         cell = self.board_rect.width // self.round_data["cols"]
-        for x, y in self.round_data["stack"]:
-            rect = pygame.Rect(self.board_rect.x + x * cell + 1, self.board_rect.y + y * cell + 1, cell - 2, cell - 2)
-            pygame.draw.rect(screen, (132, 188, 244), rect)
-        piece_color = (232, 78, 78) if self.mode == self.MODE_GLASSES and self.filter_direction == FILTER_LR else (82, 130, 232)
-        for dx, dy in self.round_data["piece"]:
-            rect = pygame.Rect(self.board_rect.x + (self.round_data["piece_x"] + dx) * cell + 1, self.board_rect.y + (self.round_data["piece_y"] + dy) * cell + 1, cell - 2, cell - 2)
-            pygame.draw.rect(screen, piece_color, rect)
+        if self.mode == self.MODE_GLASSES:
+            left_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            right_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            for x, y in self.round_data["stack"]:
+                rect = pygame.Rect(self.board_rect.x + x * cell + 1, self.board_rect.y + y * cell + 1, cell - 2, cell - 2)
+                pygame.draw.rect(left_layer, (255, 255, 255, 255), rect.move(-4, 0))
+                pygame.draw.rect(right_layer, (255, 255, 255, 255), rect.move(4, 0))
+            for dx, dy in self.round_data["piece"]:
+                rect = pygame.Rect(self.board_rect.x + (self.round_data["piece_x"] + dx) * cell + 1, self.board_rect.y + (self.round_data["piece_y"] + dy) * cell + 1, cell - 2, cell - 2)
+                pygame.draw.rect(left_layer, (255, 255, 255, 255), rect.move(-7, 0))
+                pygame.draw.rect(right_layer, (255, 255, 255, 255), rect.move(7, 0))
+            left_surface = apply_filter(left_layer, self.mode, self.filter_direction, "left")
+            right_surface = apply_filter(right_layer, self.mode, self.filter_direction, "right")
+            screen.blit(blend_filtered_patterns((self.width, self.height), left_surface, (0, 0), right_surface, (0, 0)), (0, 0))
+        else:
+            for x, y in self.round_data["stack"]:
+                rect = pygame.Rect(self.board_rect.x + x * cell + 1, self.board_rect.y + y * cell + 1, cell - 2, cell - 2)
+                pygame.draw.rect(screen, (132, 188, 244), rect)
+            for dx, dy in self.round_data["piece"]:
+                rect = pygame.Rect(self.board_rect.x + (self.round_data["piece_x"] + dx) * cell + 1, self.board_rect.y + (self.round_data["piece_y"] + dy) * cell + 1, cell - 2, cell - 2)
+                pygame.draw.rect(screen, (82, 130, 232), rect)
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.option_font.render(self.feedback_text, True, self.feedback_color)
             screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.board_rect.bottom + 16))

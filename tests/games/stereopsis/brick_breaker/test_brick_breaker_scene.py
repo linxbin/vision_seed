@@ -19,10 +19,27 @@ class _DataManagerStub:
         return True
 
 
+class _SoundManagerStub:
+    def __init__(self):
+        self.correct_calls = 0
+        self.wrong_calls = 0
+        self.completed_calls = 0
+
+    def play_correct(self):
+        self.correct_calls += 1
+
+    def play_wrong(self):
+        self.wrong_calls += 1
+
+    def play_completed(self):
+        self.completed_calls += 1
+
+
 class _ManagerStub:
     def __init__(self):
         self.settings = {"language": "en-US", "session_duration_minutes": 5}
         self.data_manager = _DataManagerStub()
+        self.sound_manager = _SoundManagerStub()
         self.last_scene = None
 
     def t(self, key, **kwargs):
@@ -54,13 +71,27 @@ class BrickBreakerSceneTests(unittest.TestCase):
         self.assertEqual(scene.state, scene.STATE_PLAY)
 
     def test_brick_hit_scores(self):
-        scene = BrickBreakerScene(_ManagerStub())
+        manager = _ManagerStub()
+        scene = BrickBreakerScene(manager)
         scene._start_game()
         brick = scene.round_data["bricks"][0]
         scene.round_data["ball"] = [brick["rect"][0] + brick["rect"][2] // 2, brick["rect"][1] + brick["rect"][3] // 2]
         scene.round_data["velocity"] = [0, 0]
         scene.update()
         self.assertGreaterEqual(scene.scoring.brick_count, 1)
+        self.assertEqual(manager.sound_manager.correct_calls, 1)
+
+    def test_glasses_filter_direction_changes_render(self):
+        scene = BrickBreakerScene(_ManagerStub())
+        scene._start_game()
+        scene.mode = scene.MODE_GLASSES
+        first = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
+        second = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
+        scene.filter_direction = "left_red_right_blue"
+        scene.draw(first)
+        scene.filter_direction = "left_blue_right_red"
+        scene.draw(second)
+        self.assertNotEqual(pygame.image.tostring(first, "RGBA"), pygame.image.tostring(second, "RGBA"))
 
     def test_finish_saves_result(self):
         manager = _ManagerStub()
@@ -70,3 +101,4 @@ class BrickBreakerSceneTests(unittest.TestCase):
         scene.update()
         self.assertEqual(scene.state, scene.STATE_RESULT)
         self.assertEqual(manager.data_manager.saved[-1]["game_id"], "stereopsis.brick_breaker")
+        self.assertEqual(manager.sound_manager.completed_calls, 1)

@@ -109,6 +109,7 @@ class SnakeFocusScene(BaseScene):
                     "foods_eaten": self.final_stats["success"],
                 },
             })
+        self.play_completed_sound()
 
     def _speed_seconds(self):
         progress = min(1.0, self.session.session_elapsed / max(1, self.session.session_seconds)) if self.session.session_seconds else 0.0
@@ -121,12 +122,14 @@ class SnakeFocusScene(BaseScene):
         snake = self.round_data["snake"]
         if next_head[0] < 0 or next_head[1] < 0 or next_head[0] >= self.round_data["cols"] or next_head[1] >= self.round_data["rows"] or next_head in snake[:-1]:
             self.scoring.on_collision()
+            self.play_wrong_sound()
             self._set_feedback("snake_focus.feedback.crash", (214, 96, 96))
             self.round_data = self.board_service.create_round(self.play_area)
             return
         snake.insert(0, next_head)
         if next_head == self.round_data["food"]:
             self.scoring.on_food(len(snake))
+            self.play_correct_sound()
             self._set_feedback("snake_focus.feedback.food", (86, 174, 112))
             self.round_data["food"] = self.board_service._spawn_food(self.round_data["cols"], self.round_data["rows"], snake)
         else:

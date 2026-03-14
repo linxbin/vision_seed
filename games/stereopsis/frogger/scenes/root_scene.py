@@ -4,7 +4,7 @@ from datetime import datetime
 import pygame
 
 from core.base_scene import BaseScene
-from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER
+from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER, apply_filter, blend_filtered_patterns
 from ..services import FroggerBoardService, FroggerScoringService, FroggerSessionService
 
 
@@ -141,12 +141,34 @@ class FroggerScene(BaseScene):
             "score": self.scoring.score,
         }
         self.state = self.STATE_RESULT
+        self.play_completed_sound()
         self._save_result()
 
     def _set_feedback(self, key, color):
         self.feedback_text = self.manager.t(key)
         self.feedback_color = color
         self.feedback_until = time.time() + 0.8
+
+    def _draw_glasses_play_content(self, screen):
+        left_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        right_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        safe_zone = pygame.Rect(self.play_area.left, self.play_area.top, self.play_area.width, 44)
+        pygame.draw.rect(screen, (212, 220, 232), safe_zone)
+        for lane_index, lane in enumerate(self.round_data["lanes"]):
+            pygame.draw.rect(screen, (228, 232, 242), pygame.Rect(self.play_area.left, lane["y"] - 26, self.play_area.width, 52))
+            shift = max(6, 16 - lane_index * 3)
+            for car in lane["cars"]:
+                left_rect = pygame.Rect(car[0] - 28 - shift // 2, lane["y"] - 18, 56, 36)
+                right_rect = pygame.Rect(car[0] - 28 + shift // 2, lane["y"] - 18, 56, 36)
+                pygame.draw.rect(left_layer, (255, 255, 255, 255), left_rect, border_radius=8)
+                pygame.draw.rect(right_layer, (255, 255, 255, 255), right_rect, border_radius=8)
+        frog = self.round_data["frog"]
+        frog_shift = 18
+        pygame.draw.circle(left_layer, (255, 255, 255, 255), (int(frog[0] - frog_shift // 2), int(frog[1])), 18)
+        pygame.draw.circle(right_layer, (255, 255, 255, 255), (int(frog[0] + frog_shift // 2), int(frog[1])), 18)
+        left_surface = apply_filter(left_layer, self.mode, self.filter_direction, "left")
+        right_surface = apply_filter(right_layer, self.mode, self.filter_direction, "right")
+        screen.blit(blend_filtered_patterns((self.width, self.height), left_surface, (0, 0), right_surface, (0, 0)), (0, 0))
 
     def _draw_filter_picker(self, screen):
         overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
@@ -195,14 +217,17 @@ class FroggerScene(BaseScene):
         screen.blit(timer, (self.width // 2 - timer.get_width() // 2, 18))
         screen.blit(score, (84, 22))
         screen.blit(guide, (self.width // 2 - guide.get_width() // 2, 98))
-        safe_zone = pygame.Rect(self.play_area.left, self.play_area.top, self.play_area.width, 44)
-        pygame.draw.rect(screen, (190, 230, 190), safe_zone)
-        for lane in self.round_data["lanes"]:
-            pygame.draw.rect(screen, (228, 232, 242), pygame.Rect(self.play_area.left, lane["y"] - 26, self.play_area.width, 52))
-            for car in lane["cars"]:
-                pygame.draw.rect(screen, (242, 132, 132), pygame.Rect(car[0] - 28, lane["y"] - 18, 56, 36), border_radius=8)
-        frog = self.round_data["frog"]
-        pygame.draw.circle(screen, (92, 182, 112), (int(frog[0]), int(frog[1])), 18)
+        if self.mode == self.MODE_GLASSES:
+            self._draw_glasses_play_content(screen)
+        else:
+            safe_zone = pygame.Rect(self.play_area.left, self.play_area.top, self.play_area.width, 44)
+            pygame.draw.rect(screen, (190, 230, 190), safe_zone)
+            for lane in self.round_data["lanes"]:
+                pygame.draw.rect(screen, (228, 232, 242), pygame.Rect(self.play_area.left, lane["y"] - 26, self.play_area.width, 52))
+                for car in lane["cars"]:
+                    pygame.draw.rect(screen, (242, 132, 132), pygame.Rect(car[0] - 28, lane["y"] - 18, 56, 36), border_radius=8)
+            frog = self.round_data["frog"]
+            pygame.draw.circle(screen, (92, 182, 112), (int(frog[0]), int(frog[1])), 18)
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.option_font.render(self.feedback_text, True, self.feedback_color)
             screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 20))
@@ -303,11 +328,13 @@ class FroggerScene(BaseScene):
                         car[0] = self.play_area.left - 40
                     if abs(car[0] - self.round_data["frog"][0]) < 34 and abs(lane["y"] - self.round_data["frog"][1]) < 22:
                         self.scoring.on_fail()
+                        self.play_wrong_sound()
                         self._set_feedback("frogger.feedback.hit", (214, 96, 96))
                         self._new_round()
                         return
             if self.round_data["frog"][1] <= self.play_area.top + 26:
                 self.scoring.on_cross()
+                self.play_correct_sound()
                 self._set_feedback("frogger.feedback.safe", (86, 174, 112))
                 self._new_round()
         if self.feedback_text and now > self.feedback_until:

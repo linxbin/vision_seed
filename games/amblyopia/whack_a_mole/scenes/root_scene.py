@@ -138,6 +138,7 @@ class WhackAMoleScene(BaseScene):
                     "best_streak": self.final_stats["best_streak"],
                 },
             })
+        self.play_completed_sound()
 
     def _set_feedback(self, key, color):
         self.feedback_text = self.manager.t(key)
@@ -148,10 +149,13 @@ class WhackAMoleScene(BaseScene):
         distance = self.board_service.hit_distance(pos, self.round_data["target_center"])
         result, gained = self.scoring.on_hit(distance, self.round_data["radius"], self.session.round_elapsed)
         if result == "center":
+            self.play_correct_sound()
             self._set_feedback("whack_a_mole.feedback.center", (82, 152, 222))
         elif result == "good":
+            self.play_correct_sound()
             self._set_feedback("whack_a_mole.feedback.good", (86, 174, 112))
         else:
+            self.play_wrong_sound()
             self._set_feedback("whack_a_mole.feedback.miss", (214, 96, 96))
         if result != "miss":
             self.feedback_text = f"{self.feedback_text}  +{gained}"
@@ -281,6 +285,7 @@ class WhackAMoleScene(BaseScene):
                 self._finish_game()
             elif self.session.is_round_timed_out():
                 self.scoring.on_timeout()
+                self.play_wrong_sound()
                 self._set_feedback("whack_a_mole.feedback.timeout", (214, 96, 96))
                 self._new_round()
         if self.feedback_text and now > self.feedback_until:
