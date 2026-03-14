@@ -140,13 +140,22 @@ class FindSameScene(BaseScene):
         self.feedback_color = color
         self.feedback_until = time.time() + 1.0
 
-    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255)):
+    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), selected=False):
         hovered = rect.collidepoint(pygame.mouse.get_pos())
         fill = tuple(min(255, c + 18) for c in color) if hovered else color
+        border = (255, 255, 255) if hovered else (202, 223, 246)
+        if selected:
+            glow_rect = rect.inflate(10, 10)
+            pygame.draw.rect(screen, (255, 248, 196), glow_rect, border_radius=14)
+            fill = tuple(min(255, c + 24) for c in color)
+            border = (255, 244, 160)
         pygame.draw.rect(screen, fill, rect, border_radius=10)
-        pygame.draw.rect(screen, (255, 255, 255), rect, 2, border_radius=10)
+        pygame.draw.rect(screen, border, rect, 3 if selected else 2, border_radius=10)
         label = self.option_font.render(text, True, text_color)
         screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
+        if selected:
+            pygame.draw.circle(screen, (255, 250, 210), (rect.right - 18, rect.centery), 9)
+            pygame.draw.circle(screen, (200, 84, 54), (rect.right - 18, rect.centery), 4)
 
     def _draw_wrapped(self, screen, text, x, y, width):
         units = text.split() if " " in text else list(text)
@@ -228,7 +237,7 @@ class FindSameScene(BaseScene):
         self._draw_button(screen, self.filter_start, self.manager.t("find_same.filter.start"), (92, 152, 114))
 
     def _draw_filter_option(self, screen, rect, text, left_color, right_color, selected):
-        self._draw_button(screen, rect, "", (244, 247, 255), text_color=(62, 72, 98))
+        self._draw_button(screen, rect, "", (244, 247, 255), text_color=(62, 72, 98), selected=selected)
         preview_rect = pygame.Rect(rect.x + 16, rect.y + 10, 56, rect.height - 20)
         left_rect = pygame.Rect(preview_rect.x, preview_rect.y, preview_rect.width // 2, preview_rect.height)
         right_rect = pygame.Rect(left_rect.right, preview_rect.y, preview_rect.width - left_rect.width, preview_rect.height)

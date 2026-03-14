@@ -99,3 +99,16 @@ class SnakeFocusSceneTests(unittest.TestCase):
         self.assertEqual(scene.state, scene.STATE_RESULT)
         self.assertEqual(manager.data_manager.saved[-1]["game_id"], "accommodation.snake")
         self.assertEqual(manager.sound_manager.completed_calls, 1)
+
+    def test_play_layout_keeps_guide_above_board_and_border_visible(self):
+        scene = SnakeFocusScene(_ManagerStub())
+        scene._start_game()
+        screen = pygame.Surface((scene.width, scene.height))
+        scene.draw(screen)
+        inner_board = scene._inner_board_rect()
+        self.assertLess(scene.play_area.y - 26, inner_board.y)
+        border_color = (176, 204, 176)
+        self.assertEqual(screen.get_at((inner_board.centerx, inner_board.y + 1))[:3], border_color)
+        self.assertEqual(screen.get_at((inner_board.x + 1, inner_board.centery))[:3], border_color)
+        self.assertEqual(screen.get_at((inner_board.centerx, inner_board.bottom - 2))[:3], border_color)
+        self.assertEqual(screen.get_at((inner_board.right - 2, inner_board.centery))[:3], border_color)

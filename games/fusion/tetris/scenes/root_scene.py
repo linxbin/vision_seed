@@ -4,7 +4,7 @@ from datetime import datetime
 import pygame
 
 from core.base_scene import BaseScene
-from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER, apply_filter, blend_filtered_patterns
+from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER
 from ..services import FusionTetrisBoardService, FusionTetrisScoringService, FusionTetrisSessionService
 
 
@@ -58,7 +58,7 @@ class FusionTetrisScene(BaseScene):
         self.filter_lr = pygame.Rect(self.filter_modal.x + 24, self.filter_modal.y + 68, 210, 46)
         self.filter_rl = pygame.Rect(self.filter_modal.x + 266, self.filter_modal.y + 68, 210, 46)
         self.filter_start = pygame.Rect(self.filter_modal.centerx - 90, self.filter_modal.y + 150, 180, 44)
-        self.board_rect = pygame.Rect(self.width // 2 - 140, 148, 280, 420)
+        self.board_rect = pygame.Rect(self.width // 2 - 112, 156, 224, 392)
 
     def _session_seconds(self):
         try:
@@ -67,13 +67,22 @@ class FusionTetrisScene(BaseScene):
             minutes = 5
         return max(60, minutes * 60)
 
-    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255)):
+    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), selected=False):
         hovered = rect.collidepoint(pygame.mouse.get_pos())
         fill = tuple(min(255, c + 18) for c in color) if hovered else color
+        border = (255, 255, 255) if hovered else (202, 223, 246)
+        if selected:
+            glow_rect = rect.inflate(10, 10)
+            pygame.draw.rect(screen, (255, 248, 196), glow_rect, border_radius=14)
+            fill = tuple(min(255, c + 24) for c in color)
+            border = (255, 244, 160)
         pygame.draw.rect(screen, fill, rect, border_radius=10)
-        pygame.draw.rect(screen, (255, 255, 255), rect, 2, border_radius=10)
+        pygame.draw.rect(screen, border, rect, 3 if selected else 2, border_radius=10)
         label = self.option_font.render(text, True, text_color)
         screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
+        if selected:
+            pygame.draw.circle(screen, (255, 250, 210), (rect.right - 18, rect.centery), 9)
+            pygame.draw.circle(screen, (200, 84, 54), (rect.right - 18, rect.centery), 4)
 
     def _draw_wrapped_text(self, screen, text, x, y, max_width):
         units = text.split() if " " in text else list(text)
@@ -108,6 +117,30 @@ class FusionTetrisScene(BaseScene):
     def _new_round(self):
         self.round_data = self.board_service.create_round()
         self.last_drop = time.time()
+
+    def _cell_size(self):
+        return min(self.board_rect.width // self.round_data["cols"], self.board_rect.height // self.round_data["rows"])
+
+    def _grid_origin(self):
+        cell = self._cell_size()
+        grid_w = cell * self.round_data["cols"]
+        grid_h = cell * self.round_data["rows"]
+        return self.board_rect.x + (self.board_rect.width - grid_w) // 2, self.board_rect.y + (self.board_rect.height - grid_h) // 2, cell
+
+    def _piece_color(self, side):
+        left_color = RED_FILTER[:3] if self.filter_direction == FILTER_LR else BLUE_FILTER[:3]
+        right_color = BLUE_FILTER[:3] if self.filter_direction == FILTER_LR else RED_FILTER[:3]
+        return left_color if side == "left" else right_color
+
+    def _rotate_piece(self):
+        rotated = [(-dy, dx) for dx, dy in self.round_data["piece"]]
+        min_x = min(x for x, _ in rotated)
+        min_y = min(y for _, y in rotated)
+        normalized = [(x - min_x, y - min_y) for x, y in rotated]
+        original = self.round_data["piece"]
+        self.round_data["piece"] = normalized
+        if not self._can_move(self.round_data["piece_x"], self.round_data["piece_y"]):
+            self.round_data["piece"] = original
 
     def _start_game(self):
         self.state = self.STATE_PLAY
@@ -154,7 +187,7 @@ class FusionTetrisScene(BaseScene):
     def _lock_piece(self):
         cols = self.round_data["cols"]
         rows = self.round_data["rows"]
-        occupied = {(x, y) for x, y in self.round_data["stack"]}
+        occupied = {(cell["x"], cell["y"]) for cell in self.round_data["stack"]}
         cells = []
         for dx, dy in self.round_data["piece"]:
             x = self.round_data["piece_x"] + dx
@@ -165,14 +198,16 @@ class FusionTetrisScene(BaseScene):
                 self._set_feedback("fusion_tetris.feedback.stack", (214, 96, 96))
                 self._new_round()
                 return
-            cells.append((x, y))
+            cells.append({"x": x, "y": y, "side": self.round_data["piece_side"]})
             occupied.add((x, y))
         self.round_data["stack"].extend(cells)
         full_rows = [row for row in range(rows) if all((x, row) in occupied for x in range(cols))]
         if full_rows:
-            self.round_data["stack"] = [(x, y) for (x, y) in self.round_data["stack"] if y not in full_rows]
+            self.round_data["stack"] = [cell for cell in self.round_data["stack"] if cell["y"] not in full_rows]
             for cleared in sorted(full_rows):
-                self.round_data["stack"] = [(x, y + 1 if y < cleared else y) for (x, y) in self.round_data["stack"]]
+                for cell in self.round_data["stack"]:
+                    if cell["y"] < cleared:
+                        cell["y"] += 1
             self.scoring.on_line(len(full_rows))
             self.play_correct_sound()
             self._set_feedback("fusion_tetris.feedback.line", (86, 174, 112))
@@ -181,11 +216,12 @@ class FusionTetrisScene(BaseScene):
         self.round_data["piece"] = self.board_service.SHAPES[(self.scoring.lines_cleared + len(self.round_data["stack"])) % len(self.board_service.SHAPES)]
         self.round_data["piece_x"] = cols // 2 - 1
         self.round_data["piece_y"] = 0
+        self.round_data["piece_side"] = self.board_service.create_round(cols, rows)["piece_side"]
 
     def _can_move(self, new_x, new_y):
         cols = self.round_data["cols"]
         rows = self.round_data["rows"]
-        occupied = set(self.round_data["stack"])
+        occupied = {(cell["x"], cell["y"]) for cell in self.round_data["stack"]}
         for dx, dy in self.round_data["piece"]:
             x = new_x + dx
             y = new_y + dy
@@ -204,7 +240,7 @@ class FusionTetrisScene(BaseScene):
             (self.filter_lr, self.manager.t("fusion_tetris.filter.lr"), RED_FILTER[:3], BLUE_FILTER[:3], self.filter_direction == FILTER_LR),
             (self.filter_rl, self.manager.t("fusion_tetris.filter.rl"), BLUE_FILTER[:3], RED_FILTER[:3], self.filter_direction == FILTER_RL),
         ):
-            self._draw_button(screen, rect, "", (244, 247, 255), text_color=(62, 72, 98))
+            self._draw_button(screen, rect, "", (244, 247, 255), text_color=(62, 72, 98), selected=selected)
             preview_rect = pygame.Rect(rect.x + 16, rect.y + 10, 56, rect.height - 20)
             pygame.draw.rect(screen, left, pygame.Rect(preview_rect.x, preview_rect.y, preview_rect.width // 2, preview_rect.height), border_top_left_radius=8, border_bottom_left_radius=8)
             pygame.draw.rect(screen, right, pygame.Rect(preview_rect.centerx, preview_rect.y, preview_rect.width // 2, preview_rect.height), border_top_right_radius=8, border_bottom_right_radius=8)
@@ -235,34 +271,29 @@ class FusionTetrisScene(BaseScene):
         remaining = max(0, int(self.session.session_seconds - self.session.session_elapsed))
         timer = self.body_font.render(self.manager.t("fusion_tetris.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"), True, (86, 116, 170))
         score = self.body_font.render(self.manager.t("fusion_tetris.score", score=self.scoring.score), True, (44, 60, 88))
+        mode = self.body_font.render(self.manager.t("fusion_tetris.mode.glasses" if self.mode == self.MODE_GLASSES else "fusion_tetris.mode.naked"), True, (44, 60, 88))
         guide = self.small_font.render(self.manager.t("fusion_tetris.play.guide"), True, (54, 70, 96))
-        screen.blit(self.body_font.render(self.manager.t("fusion_tetris.mode.glasses" if self.mode == self.MODE_GLASSES else "fusion_tetris.mode.naked"), True, (44, 60, 88)), (24, 18))
+        screen.blit(mode, (self.width - mode.get_width() - 126, 18))
         screen.blit(timer, (self.width // 2 - timer.get_width() // 2, 18))
         screen.blit(score, (84, 22))
         screen.blit(guide, (self.width // 2 - guide.get_width() // 2, 98))
-        pygame.draw.rect(screen, (246, 250, 255), self.board_rect, border_radius=14)
+        if self.mode != self.MODE_GLASSES:
+            pygame.draw.rect(screen, (246, 250, 255), self.board_rect, border_radius=14)
         pygame.draw.rect(screen, (190, 206, 228), self.board_rect, 2, border_radius=14)
-        cell = self.board_rect.width // self.round_data["cols"]
+        origin_x, origin_y, cell = self._grid_origin()
         if self.mode == self.MODE_GLASSES:
-            left_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            right_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            for x, y in self.round_data["stack"]:
-                rect = pygame.Rect(self.board_rect.x + x * cell + 1, self.board_rect.y + y * cell + 1, cell - 2, cell - 2)
-                pygame.draw.rect(left_layer, (255, 255, 255, 255), rect.move(-4, 0))
-                pygame.draw.rect(right_layer, (255, 255, 255, 255), rect.move(4, 0))
+            for entry in self.round_data["stack"]:
+                rect = pygame.Rect(origin_x + entry["x"] * cell + 2, origin_y + entry["y"] * cell + 2, cell - 4, cell - 4)
+                pygame.draw.rect(screen, self._piece_color(entry["side"]), rect, border_radius=5)
             for dx, dy in self.round_data["piece"]:
-                rect = pygame.Rect(self.board_rect.x + (self.round_data["piece_x"] + dx) * cell + 1, self.board_rect.y + (self.round_data["piece_y"] + dy) * cell + 1, cell - 2, cell - 2)
-                pygame.draw.rect(left_layer, (255, 255, 255, 255), rect.move(-7, 0))
-                pygame.draw.rect(right_layer, (255, 255, 255, 255), rect.move(7, 0))
-            left_surface = apply_filter(left_layer, self.mode, self.filter_direction, "left")
-            right_surface = apply_filter(right_layer, self.mode, self.filter_direction, "right")
-            screen.blit(blend_filtered_patterns((self.width, self.height), left_surface, (0, 0), right_surface, (0, 0)), (0, 0))
+                rect = pygame.Rect(origin_x + (self.round_data["piece_x"] + dx) * cell + 2, origin_y + (self.round_data["piece_y"] + dy) * cell + 2, cell - 4, cell - 4)
+                pygame.draw.rect(screen, self._piece_color(self.round_data["piece_side"]), rect, border_radius=5)
         else:
-            for x, y in self.round_data["stack"]:
-                rect = pygame.Rect(self.board_rect.x + x * cell + 1, self.board_rect.y + y * cell + 1, cell - 2, cell - 2)
+            for entry in self.round_data["stack"]:
+                rect = pygame.Rect(origin_x + entry["x"] * cell + 2, origin_y + entry["y"] * cell + 2, cell - 4, cell - 4)
                 pygame.draw.rect(screen, (132, 188, 244), rect)
             for dx, dy in self.round_data["piece"]:
-                rect = pygame.Rect(self.board_rect.x + (self.round_data["piece_x"] + dx) * cell + 1, self.board_rect.y + (self.round_data["piece_y"] + dy) * cell + 1, cell - 2, cell - 2)
+                rect = pygame.Rect(origin_x + (self.round_data["piece_x"] + dx) * cell + 2, origin_y + (self.round_data["piece_y"] + dy) * cell + 2, cell - 4, cell - 4)
                 pygame.draw.rect(screen, (82, 130, 232), rect)
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.option_font.render(self.feedback_text, True, self.feedback_color)
@@ -326,6 +357,8 @@ class FusionTetrisScene(BaseScene):
                         self.round_data["piece_x"] -= 1
                     elif event.key == pygame.K_RIGHT and self._can_move(self.round_data["piece_x"] + 1, self.round_data["piece_y"]):
                         self.round_data["piece_x"] += 1
+                    elif event.key == pygame.K_UP:
+                        self._rotate_piece()
                     elif event.key == pygame.K_DOWN:
                         self.last_drop = 0
                     elif event.key == pygame.K_ESCAPE:

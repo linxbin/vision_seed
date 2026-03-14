@@ -71,13 +71,22 @@ class PathFusionScene(BaseScene):
             minutes = 5
         return max(60, minutes * 60)
 
-    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255)):
+    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), selected=False):
         hovered = rect.collidepoint(pygame.mouse.get_pos())
         fill = tuple(min(255, c + 18) for c in color) if hovered else color
+        border = (255, 255, 255) if hovered else (202, 223, 246)
+        if selected:
+            glow_rect = rect.inflate(10, 10)
+            pygame.draw.rect(screen, (255, 248, 196), glow_rect, border_radius=14)
+            fill = tuple(min(255, c + 24) for c in color)
+            border = (255, 244, 160)
         pygame.draw.rect(screen, fill, rect, border_radius=10)
-        pygame.draw.rect(screen, (255, 255, 255), rect, 2, border_radius=10)
+        pygame.draw.rect(screen, border, rect, 3 if selected else 2, border_radius=10)
         label = self.option_font.render(text, True, text_color)
         screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
+        if selected:
+            pygame.draw.circle(screen, (255, 250, 210), (rect.right - 18, rect.centery), 9)
+            pygame.draw.circle(screen, (200, 84, 54), (rect.right - 18, rect.centery), 4)
 
     def _draw_wrapped_text(self, screen, text, x, y, max_width):
         units = text.split() if " " in text else list(text)
@@ -166,7 +175,7 @@ class PathFusionScene(BaseScene):
             (self.filter_lr, self.manager.t("path_fusion.filter.lr"), RED_FILTER[:3], BLUE_FILTER[:3], self.filter_direction == FILTER_LR),
             (self.filter_rl, self.manager.t("path_fusion.filter.rl"), BLUE_FILTER[:3], RED_FILTER[:3], self.filter_direction == FILTER_RL),
         ):
-            self._draw_button(screen, rect, "", (244, 247, 255), text_color=(62, 72, 98))
+            self._draw_button(screen, rect, "", (244, 247, 255), text_color=(62, 72, 98), selected=selected)
             preview_rect = pygame.Rect(rect.x + 16, rect.y + 10, 56, rect.height - 20)
             pygame.draw.rect(screen, left, pygame.Rect(preview_rect.x, preview_rect.y, preview_rect.width // 2, preview_rect.height), border_top_left_radius=8, border_bottom_left_radius=8)
             pygame.draw.rect(screen, right, pygame.Rect(preview_rect.centerx, preview_rect.y, preview_rect.width // 2, preview_rect.height), border_top_right_radius=8, border_bottom_right_radius=8)
@@ -197,8 +206,9 @@ class PathFusionScene(BaseScene):
         remaining = max(0, int(self.session.session_seconds - self.session.session_elapsed))
         timer = self.body_font.render(self.manager.t("path_fusion.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"), True, (86, 116, 170))
         score = self.body_font.render(self.manager.t("path_fusion.score", score=self.scoring.score), True, (44, 60, 88))
+        mode = self.body_font.render(self.manager.t("path_fusion.mode.glasses" if self.mode == self.MODE_GLASSES else "path_fusion.mode.naked"), True, (44, 60, 88))
         guide = self.small_font.render(self.manager.t("path_fusion.play.guide"), True, (54, 70, 96))
-        screen.blit(self.body_font.render(self.manager.t("path_fusion.mode.glasses" if self.mode == self.MODE_GLASSES else "path_fusion.mode.naked"), True, (44, 60, 88)), (24, 18))
+        screen.blit(mode, (self.width - mode.get_width() - 126, 18))
         screen.blit(timer, (self.width // 2 - timer.get_width() // 2, 18))
         screen.blit(score, (84, 22))
         screen.blit(guide, (self.width // 2 - guide.get_width() // 2, 98))
@@ -219,6 +229,12 @@ class PathFusionScene(BaseScene):
             left_surface = apply_filter(left_layer, self.mode, self.filter_direction, "left")
             right_surface = apply_filter(right_layer, self.mode, self.filter_direction, "right")
             screen.blit(blend_filtered_patterns((self.width, self.height), left_surface, (0, 0), right_surface, (0, 0)), (0, 0))
+            for idx, point in enumerate(target_points):
+                outline_color = (38, 42, 52) if idx == self.round_data["target"] else (124, 134, 152)
+                pygame.draw.circle(screen, outline_color, point, 8 if idx == self.round_data["target"] else 6)
+                pygame.draw.circle(screen, (248, 250, 252), point, 3 if idx == self.round_data["target"] else 2)
+            pygame.draw.circle(screen, (66, 84, 114), start, 5)
+            pygame.draw.circle(screen, (66, 84, 114), mid, 5)
         else:
             pygame.draw.circle(screen, (82, 130, 232), start, 10)
             for idx, point in enumerate(target_points):
@@ -298,11 +314,11 @@ class PathFusionScene(BaseScene):
                         self._set_feedback("path_fusion.feedback.hit" if correct else "path_fusion.feedback.miss", (86, 174, 112) if correct else (214, 96, 96))
                         self._new_round()
                     elif event.key == pygame.K_ESCAPE:
-                        self.manager.set_scene("category")
+                        self.manager.set_scene("menu")
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
                     if self.btn_home.collidepoint(pos):
-                        self.manager.set_scene("category")
+                        self.manager.set_scene("menu")
                     else:
                         for idx, rect in enumerate(self.option_rects):
                             if rect.collidepoint(pos):

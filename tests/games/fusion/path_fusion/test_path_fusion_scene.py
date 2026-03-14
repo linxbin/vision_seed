@@ -91,6 +91,25 @@ class PathFusionSceneTests(unittest.TestCase):
         scene.draw(second)
         self.assertNotEqual(pygame.image.tostring(first, "RGBA"), pygame.image.tostring(second, "RGBA"))
 
+    def test_play_back_button_returns_to_menu(self):
+        manager = _ManagerStub()
+        scene = PathFusionScene(manager)
+        scene._start_game()
+        scene.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=scene.btn_home.center)])
+        self.assertEqual(manager.last_scene, "menu")
+
+    def test_glasses_mode_keeps_target_marker_visible(self):
+        scene = PathFusionScene(_ManagerStub())
+        scene._start_game()
+        scene.mode = scene.MODE_GLASSES
+        scene.round_data["target"] = 1
+        screen = pygame.Surface((scene.width, scene.height))
+        scene.draw(screen)
+        board = pygame.Rect(scene.width // 2 - 220, 160, 440, 260)
+        target_point = (board.right - 90, board.centery)
+        background_point = (target_point[0] - 24, target_point[1])
+        self.assertNotEqual(screen.get_at(target_point)[:3], screen.get_at(background_point)[:3])
+
     def test_finish_saves_result(self):
         manager = _ManagerStub()
         scene = PathFusionScene(manager)

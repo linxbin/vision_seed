@@ -6,6 +6,8 @@ class FusionTetrisBoardService:
         [(0, 0), (1, 0), (0, 1), (1, 1)],
         [(0, 0), (1, 0), (2, 0), (1, 1)],
         [(0, 0), (1, 0), (1, 1), (2, 1)],
+        [(0, 0), (0, 1), (1, 1), (2, 1)],
+        [(1, 0), (0, 1), (1, 1), (2, 1)],
     )
 
     def create_round(self, cols=8, rows=14):
@@ -16,5 +18,5 @@ class FusionTetrisBoardService:
             "piece": random.choice(self.SHAPES),
             "piece_x": cols // 2 - 1,
             "piece_y": 0,
+            "piece_side": random.choice(("left", "right")),
         }
-

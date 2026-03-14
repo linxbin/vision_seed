@@ -66,13 +66,22 @@ class FroggerScene(BaseScene):
             minutes = 5
         return max(60, minutes * 60)
 
-    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255)):
+    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), selected=False):
         hovered = rect.collidepoint(pygame.mouse.get_pos())
         fill = tuple(min(255, c + 18) for c in color) if hovered else color
+        border = (255, 255, 255) if hovered else (202, 223, 246)
+        if selected:
+            glow_rect = rect.inflate(10, 10)
+            pygame.draw.rect(screen, (255, 248, 196), glow_rect, border_radius=14)
+            fill = tuple(min(255, c + 24) for c in color)
+            border = (255, 244, 160)
         pygame.draw.rect(screen, fill, rect, border_radius=10)
-        pygame.draw.rect(screen, (255, 255, 255), rect, 2, border_radius=10)
+        pygame.draw.rect(screen, border, rect, 3 if selected else 2, border_radius=10)
         label = self.option_font.render(text, True, text_color)
         screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
+        if selected:
+            pygame.draw.circle(screen, (255, 250, 210), (rect.right - 18, rect.centery), 9)
+            pygame.draw.circle(screen, (200, 84, 54), (rect.right - 18, rect.centery), 4)
 
     def _draw_wrapped_text(self, screen, text, x, y, max_width):
         units = text.split() if " " in text else list(text)
@@ -181,7 +190,7 @@ class FroggerScene(BaseScene):
             (self.filter_lr, self.manager.t("frogger.filter.lr"), RED_FILTER[:3], BLUE_FILTER[:3], self.filter_direction == FILTER_LR),
             (self.filter_rl, self.manager.t("frogger.filter.rl"), BLUE_FILTER[:3], RED_FILTER[:3], self.filter_direction == FILTER_RL),
         ):
-            self._draw_button(screen, rect, "", (244, 247, 255), text_color=(62, 72, 98))
+            self._draw_button(screen, rect, "", (244, 247, 255), text_color=(62, 72, 98), selected=selected)
             preview_rect = pygame.Rect(rect.x + 16, rect.y + 10, 56, rect.height - 20)
             pygame.draw.rect(screen, left, pygame.Rect(preview_rect.x, preview_rect.y, preview_rect.width // 2, preview_rect.height), border_top_left_radius=8, border_bottom_left_radius=8)
             pygame.draw.rect(screen, right, pygame.Rect(preview_rect.centerx, preview_rect.y, preview_rect.width // 2, preview_rect.height), border_top_right_radius=8, border_bottom_right_radius=8)

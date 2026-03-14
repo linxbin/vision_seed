@@ -63,6 +63,24 @@ class SnakeFocusScene(BaseScene):
         label = self.option_font.render(text, True, text_color)
         screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
 
+    def _draw_wrapped_text(self, screen, text, x, y, max_width):
+        units = text.split() if " " in text else list(text)
+        line = ""
+        current_y = y
+        joiner = " " if " " in text else ""
+        for unit in units:
+            candidate = f"{line}{joiner}{unit}" if line else unit
+            if line and self.body_font.size(candidate)[0] > max_width:
+                surf = self.body_font.render(line, True, (58, 84, 118))
+                screen.blit(surf, (x, current_y))
+                current_y += surf.get_height() + 4
+                line = unit
+            else:
+                line = candidate
+        if line:
+            surf = self.body_font.render(line, True, (58, 84, 118))
+            screen.blit(surf, (x, current_y))
+
     def _draw_background(self, screen):
         top = (240, 248, 233)
         bottom = (222, 240, 218)
@@ -115,6 +133,9 @@ class SnakeFocusScene(BaseScene):
         progress = min(1.0, self.session.session_elapsed / max(1, self.session.session_seconds)) if self.session.session_seconds else 0.0
         return 0.22 if progress < 0.34 else 0.17 if progress < 0.67 else 0.13
 
+    def _inner_board_rect(self):
+        return self.play_area.inflate(-8, -8)
+
     def _step_snake(self):
         direction = self.round_data["pending_direction"]
         head_x, head_y = self.round_data["snake"][0]
@@ -148,8 +169,10 @@ class SnakeFocusScene(BaseScene):
         title = self.title_font.render(self.manager.t("snake_focus.help.title"), True, (42, 96, 58))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 76))
         for idx, key in enumerate(("snake_focus.help.step1", "snake_focus.help.step2", "snake_focus.help.step3")):
-            step = self.body_font.render(f"{idx + 1}. {self.manager.t(key)}", True, (58, 84, 118))
-            screen.blit(step, (118, 196 + idx * 90))
+            card = pygame.Rect(90, 170 + idx * 104, self.width - 180, 88)
+            pygame.draw.rect(screen, (246, 250, 255), card, border_radius=16)
+            pygame.draw.rect(screen, (196, 212, 234), card, 2, border_radius=16)
+            self._draw_wrapped_text(screen, f"{idx + 1}. {self.manager.t(key)}", card.x + 20, card.y + 16, card.width - 40)
         self._draw_button(screen, self.help_ok, self.manager.t("snake_focus.help.ok"), (242, 214, 126), text_color=(104, 84, 42))
 
     def _draw_play(self, screen):
@@ -165,25 +188,26 @@ class SnakeFocusScene(BaseScene):
         screen.blit(score, (self.width // 2 - score.get_width() // 2, 44))
         screen.blit(stage, (self.play_area.x, 98))
         screen.blit(goal, (self.play_area.right - goal.get_width(), 98))
-        screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, 122))
-        pygame.draw.rect(screen, (240, 248, 233), self.play_area, border_radius=14)
-        pygame.draw.rect(screen, (176, 204, 176), self.play_area, 2, border_radius=14)
+        screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, self.play_area.y - 26))
+        inner_board = self._inner_board_rect()
+        pygame.draw.rect(screen, (240, 248, 233), inner_board, border_radius=10)
         cell = self.board_service.CELL
         for x in range(self.round_data["cols"]):
             for y in range(self.round_data["rows"]):
-                rect = pygame.Rect(self.play_area.x + x * cell, self.play_area.y + y * cell, cell, cell)
+                rect = pygame.Rect(inner_board.x + x * cell, inner_board.y + y * cell, cell, cell)
                 if (x + y) % 2 == 0:
                     pygame.draw.rect(screen, (228, 241, 220), rect)
         food = self.round_data["food"]
-        food_rect = pygame.Rect(self.play_area.x + food[0] * cell + 4, self.play_area.y + food[1] * cell + 4, cell - 8, cell - 8)
+        food_rect = pygame.Rect(inner_board.x + food[0] * cell + 4, inner_board.y + food[1] * cell + 4, cell - 8, cell - 8)
         pygame.draw.ellipse(screen, (238, 92, 92), food_rect)
         for index, segment in enumerate(self.round_data["snake"]):
             color = (72, 138, 84) if index == 0 else (104, 178, 116)
-            rect = pygame.Rect(self.play_area.x + segment[0] * cell + 3, self.play_area.y + segment[1] * cell + 3, cell - 6, cell - 6)
+            rect = pygame.Rect(inner_board.x + segment[0] * cell + 3, inner_board.y + segment[1] * cell + 3, cell - 6, cell - 6)
             pygame.draw.rect(screen, color, rect, border_radius=8)
+        pygame.draw.rect(screen, (176, 204, 176), inner_board, 2, border_radius=10)
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.body_font.render(self.feedback_text, True, self.feedback_color)
-            screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 20))
+            screen.blit(fb, (self.width // 2 - fb.get_width() // 2, inner_board.bottom + 20))
         self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (88, 116, 168))
 
     def _draw_result(self, screen):

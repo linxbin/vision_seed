@@ -76,13 +76,49 @@ class FusionTetrisSceneTests(unittest.TestCase):
         scene._start_game()
         rows = scene.round_data["rows"]
         cols = scene.round_data["cols"]
-        scene.round_data["stack"] = [(x, rows - 1) for x in range(cols) if x not in (0, 1)]
+        scene.round_data["stack"] = [{"x": x, "y": rows - 1, "side": "left"} for x in range(cols) if x not in (0, 1)]
         scene.round_data["piece"] = [(0, 0), (1, 0)]
         scene.round_data["piece_x"] = 0
         scene.round_data["piece_y"] = rows - 1
+        scene.round_data["piece_side"] = "right"
         scene._lock_piece()
         self.assertGreaterEqual(scene.scoring.moves, 1)
         self.assertEqual(manager.sound_manager.correct_calls, 1)
+
+    def test_up_key_rotates_piece(self):
+        scene = FusionTetrisScene(_ManagerStub())
+        scene._start_game()
+        scene.round_data["piece"] = [(0, 0), (0, 1), (1, 1), (2, 1)]
+        original = list(scene.round_data["piece"])
+        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_UP)])
+        self.assertNotEqual(scene.round_data["piece"], original)
+
+    def test_glasses_piece_color_uses_single_side_color(self):
+        scene = FusionTetrisScene(_ManagerStub())
+        scene._start_game()
+        scene.mode = scene.MODE_GLASSES
+        scene.filter_direction = "left_red_right_blue"
+        scene.round_data["stack"] = []
+        scene.round_data["piece"] = [(0, 0)]
+        scene.round_data["piece_x"] = 0
+        scene.round_data["piece_y"] = 0
+        scene.round_data["piece_side"] = "left"
+        screen = pygame.Surface((scene.width, scene.height))
+        scene.draw(screen)
+        origin_x, origin_y, cell = scene._grid_origin()
+        color = screen.get_at((origin_x + cell // 2, origin_y + cell // 2))[:3]
+        self.assertEqual(color, scene._piece_color("left"))
+
+    def test_piece_locks_when_reaching_bottom(self):
+        scene = FusionTetrisScene(_ManagerStub())
+        scene._start_game()
+        scene.round_data["stack"] = []
+        scene.round_data["piece"] = [(0, 0)]
+        scene.round_data["piece_x"] = 0
+        scene.round_data["piece_y"] = scene.round_data["rows"] - 1
+        scene.round_data["piece_side"] = "left"
+        scene._lock_piece()
+        self.assertTrue(any(cell["y"] == scene.round_data["rows"] - 1 for cell in scene.round_data["stack"]))
 
     def test_glasses_filter_direction_changes_render(self):
         scene = FusionTetrisScene(_ManagerStub())
