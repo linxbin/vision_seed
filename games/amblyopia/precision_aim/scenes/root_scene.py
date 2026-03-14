@@ -27,6 +27,7 @@ class PrecisionAimScene(BaseScene):
         self.background_mode = "checker"
         self.background_switched_at = time.time()
         self.background_phase = 0.0
+        self.previous_anchor_center = None
         self.board_service = PrecisionAimBoardService()
         self.scoring = PrecisionAimScoringService()
         self.session = PrecisionAimSessionService(self._session_seconds())
@@ -67,6 +68,7 @@ class PrecisionAimScene(BaseScene):
         self.background_mode = "checker"
         self.background_switched_at = time.time()
         self.background_phase = 0.0
+        self.previous_anchor_center = None
         self.scoring.reset()
         self.session.session_seconds = self._session_seconds()
         self.session.reset()
@@ -118,7 +120,13 @@ class PrecisionAimScene(BaseScene):
             method()
 
     def _new_round(self):
-        self.round_data = self.board_service.create_round(self.play_area, self._stage_index(), 4)
+        self.round_data = self.board_service.create_round(
+            self.play_area,
+            self._stage_index(),
+            4,
+            previous_anchor=self.previous_anchor_center,
+        )
+        self.previous_anchor_center = self.round_data["anchor_center"]
         self.session.restart_round(time.time())
 
     def _start_game(self):
@@ -139,6 +147,7 @@ class PrecisionAimScene(BaseScene):
             "score": self.scoring.score,
             "avg_deviation": self.scoring.average_deviation(),
             "avg_aim_time": self.scoring.average_aim_time(),
+            "center_hit_rate": self.scoring.center_hit_rate(),
             "smallest_target_hit": self.scoring.smallest_target_hit,
             "best_center_streak": self.scoring.best_center_streak,
         }
@@ -163,6 +172,7 @@ class PrecisionAimScene(BaseScene):
                 "training_metrics": {
                     "hit_accuracy": self.final_stats.get("accuracy", 0.0),
                     "avg_aim_time": self.final_stats.get("avg_aim_time", 0.0),
+                    "center_hit_rate": self.final_stats.get("center_hit_rate", 0.0),
                     "average_click_deviation_px": self.final_stats.get("avg_deviation", 0.0),
                     "smallest_target_hit": self.final_stats.get("smallest_target_hit", 0),
                     "best_center_streak": self.final_stats.get("best_center_streak", 0),
@@ -192,29 +202,31 @@ class PrecisionAimScene(BaseScene):
         area = self.play_area.inflate(40, 30)
         clip_rect = area.clip(pygame.Rect(0, 0, self.width, self.height))
         panel = pygame.Surface(clip_rect.size, pygame.SRCALPHA)
-        panel.fill((255, 255, 255, 90))
-        screen.blit(panel, clip_rect.topleft)
+        panel.fill((255, 255, 255, 48))
+        pattern_surface = pygame.Surface(clip_rect.size, pygame.SRCALPHA)
         offset = int(math.sin(self.background_phase) * 6)
         if self.background_mode == "checker":
             cell = 26
-            for row, y in enumerate(range(clip_rect.top, clip_rect.bottom, cell)):
-                for col, x in enumerate(range(clip_rect.left, clip_rect.right, cell)):
+            for row, y in enumerate(range(0, clip_rect.height, cell)):
+                for col, x in enumerate(range(0, clip_rect.width, cell)):
                     shade = 236 if (row + col) % 2 == 0 else 24
                     wobble = ((row % 2) * 2 - 1) * offset
                     rect = pygame.Rect(x + wobble, y, cell, cell)
-                    pygame.draw.rect(screen, (shade, shade, shade), rect)
+                    pygame.draw.rect(pattern_surface, (shade, shade, shade), rect)
         else:
             stripe = 18
-            for idx, x in enumerate(range(clip_rect.left - 24, clip_rect.right + 24, stripe)):
+            slide = int(math.sin(self.background_phase) * 10)
+            for idx, x in enumerate(range(-24, clip_rect.width + 24, stripe)):
                 shade = 242 if idx % 2 == 0 else 28
-                drift = int(math.sin(self.background_phase + idx * 0.22) * 8)
                 points = [
-                    (x + drift, clip_rect.top),
-                    (x + stripe + drift, clip_rect.top),
-                    (x + stripe - drift, clip_rect.bottom),
-                    (x - drift, clip_rect.bottom),
+                    (x + slide, 0),
+                    (x + stripe + slide, 0),
+                    (x + stripe + slide, clip_rect.height),
+                    (x + slide, clip_rect.height),
                 ]
-                pygame.draw.polygon(screen, (shade, shade, shade), points)
+                pygame.draw.polygon(pattern_surface, (shade, shade, shade), points)
+        pattern_surface.blit(panel, (0, 0))
+        screen.blit(pattern_surface, clip_rect.topleft)
         pygame.draw.rect(screen, (220, 228, 238), clip_rect, 2, border_radius=18)
 
     def _handle_shot(self, x, y):
@@ -249,7 +261,9 @@ class PrecisionAimScene(BaseScene):
             drift_x = int(math.sin(now * 2.4 + self.round_data["challenge_shift"]) * 18)
             drift_y = int(math.cos(now * 1.9 + self.round_data["challenge_shift"]) * 12)
             anchor_x, anchor_y = self.round_data["anchor_center"]
-            self.round_data["target_center"] = (anchor_x + drift_x, anchor_y + drift_y)
+            cx = max(self.play_area.left + 54, min(self.play_area.right - 54, anchor_x + drift_x))
+            cy = max(self.play_area.top + 54, min(self.play_area.bottom - 54, anchor_y + drift_y))
+            self.round_data["target_center"] = (cx, cy)
         else:
             self.round_data["target_center"] = self.round_data["anchor_center"]
 
@@ -286,6 +300,7 @@ class PrecisionAimScene(BaseScene):
         pygame.draw.line(screen, (72, 86, 122), (aim_x, aim_y - 12), (aim_x, aim_y + 12), 2)
 
     def _draw_play(self, screen):
+        self._draw_stimulus_background(screen)
         hud_primary = (55, 82, 122)
         hud_secondary = (86, 104, 130)
         hud_alert = (222, 74, 74)
@@ -302,16 +317,16 @@ class PrecisionAimScene(BaseScene):
         countdown = self.small_font.render(self.manager.t("precision_aim.round_time", sec=round_left), True, hud_alert if round_left <= 3 else hud_secondary)
         screen.blit(stage, (self.play_area.x, 98))
         screen.blit(goal, (self.play_area.right - goal.get_width(), 98))
-        screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, 122))
-        screen.blit(countdown, (self.play_area.centerx - countdown.get_width() // 2, self.play_area.bottom + 8))
-        self._draw_stimulus_background(screen)
+        guide_y = max(86, self.play_area.y - 48)
+        screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, guide_y))
+        screen.blit(countdown, (self.play_area.centerx - countdown.get_width() // 2, self.play_area.bottom + 20))
         self._draw_target(screen)
         if self.scoring.center_streak >= 2:
             streak = self.small_font.render(f"STREAK x{self.scoring.center_streak}", True, (72, 132, 208))
             screen.blit(streak, (self.play_area.right - streak.get_width() - 12, self.play_area.y + 12))
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.body_font.render(self.feedback_text, True, self.feedback_color)
-            screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 34))
+            screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 54))
         self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow")
 
     def _draw_result(self, screen):
@@ -325,6 +340,7 @@ class PrecisionAimScene(BaseScene):
             self.manager.t("precision_aim.result.score", n=self.final_stats.get("score", 0)),
             self.manager.t("precision_aim.result.deviation", value=self.final_stats.get("avg_deviation", 0.0)),
             self.manager.t("precision_aim.result.aim_time", sec=self.final_stats.get("avg_aim_time", 0.0)),
+            self.manager.t("precision_aim.result.center_rate", value=self.final_stats.get("center_hit_rate", 0.0)),
             self.manager.t("precision_aim.result.smallest", n=self.final_stats.get("smallest_target_hit", 0)),
             self.manager.t("precision_aim.result.streak", n=self.final_stats.get("best_center_streak", 0)),
         ]

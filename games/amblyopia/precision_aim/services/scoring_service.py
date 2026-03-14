@@ -6,6 +6,7 @@ class PrecisionAimScoringService:
         self.score = 0
         self.success_count = 0
         self.failure_count = 0
+        self.center_hit_count = 0
         self.best_center_streak = 0
         self.center_streak = 0
         self.deviations = []
@@ -20,6 +21,7 @@ class PrecisionAimScoringService:
         if distance <= radius * 0.35:
             self.last_quality = "center"
             self.success_count += 1
+            self.center_hit_count += 1
             self.center_streak += 1
             self.best_center_streak = max(self.best_center_streak, self.center_streak)
             self.total_aim_time += reaction_time
@@ -58,3 +60,7 @@ class PrecisionAimScoringService:
     def average_aim_time(self):
         return round(self.total_aim_time / self.success_count, 2) if self.success_count else 0.0
 
+    def center_hit_rate(self):
+        if self.success_count == 0:
+            return 0.0
+        return round((self.center_hit_count / self.success_count) * 100, 1)

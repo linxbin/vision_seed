@@ -7,6 +7,7 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame
 
 from games.amblyopia.precision_aim.scenes.root_scene import PrecisionAimScene
+from games.amblyopia.precision_aim.services.board_service import PrecisionAimBoardService
 
 
 class _DataManagerStub:
@@ -110,11 +111,13 @@ class PrecisionAimSceneTests(unittest.TestCase):
         scene._start_game()
         scene.scoring.success_count = 3
         scene.scoring.failure_count = 1
+        scene.scoring.center_hit_count = 2
         scene.scoring.score = 52
         scene.session.session_started_at = time.time() - scene._session_seconds()
         scene.update()
         self.assertEqual(scene.state, scene.STATE_RESULT)
         self.assertEqual(manager.data_manager.saved[-1]["game_id"], "amblyopia.precision_aim")
+        self.assertEqual(manager.data_manager.saved[-1]["training_metrics"]["center_hit_rate"], 66.7)
         self.assertEqual(manager.sound_manager.completed_calls, 1)
 
     def test_background_switches_between_checker_and_stripe(self):
@@ -124,3 +127,23 @@ class PrecisionAimSceneTests(unittest.TestCase):
         current_mode = scene.background_mode
         scene.update()
         self.assertNotEqual(scene.background_mode, current_mode)
+
+    def test_board_service_avoids_repeating_anchor_location(self):
+        service = PrecisionAimBoardService()
+        play_area = pygame.Rect(70, 136, 760, 462)
+        previous_anchor = (play_area.centerx, play_area.centery)
+        for _ in range(12):
+            round_data = service.create_round(play_area, 1, 4, previous_anchor=previous_anchor)
+            distance = ((round_data["anchor_center"][0] - previous_anchor[0]) ** 2 + (round_data["anchor_center"][1] - previous_anchor[1]) ** 2) ** 0.5
+            self.assertGreaterEqual(distance, 130)
+
+    def test_finish_result_contains_center_hit_rate(self):
+        manager = _ManagerStub()
+        scene = PrecisionAimScene(manager)
+        scene._start_game()
+        scene.scoring.success_count = 5
+        scene.scoring.failure_count = 1
+        scene.scoring.center_hit_count = 3
+        scene.session.session_started_at = time.time() - scene._session_seconds()
+        scene.update()
+        self.assertEqual(scene.final_stats["center_hit_rate"], 60.0)
