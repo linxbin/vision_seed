@@ -1,4 +1,5 @@
 import os
+import time
 import unittest
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
@@ -60,7 +61,7 @@ class _ManagerStub:
         self.last_scene = name
 
 
-class ArcadeTrainingGamesTests(unittest.TestCase):
+class ProductizedGamesTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         pygame.init()
@@ -69,7 +70,7 @@ class ArcadeTrainingGamesTests(unittest.TestCase):
     def tearDownClass(cls):
         pygame.quit()
 
-    def test_all_benchmark_games_support_help_start_and_result_save(self):
+    def test_sample_games_support_help_start_and_result_save(self):
         descriptors = [
             build_catch_fruit_descriptor(),
             build_weak_eye_key_descriptor(),
@@ -82,64 +83,58 @@ class ArcadeTrainingGamesTests(unittest.TestCase):
             scene = descriptor.factory(manager)
             scene.on_resize(900, 700)
             scene.draw(surface)
-            scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_2)])
+            help_pos = scene.btn_help.center if hasattr(scene, "btn_help") else (0, 0)
+            scene.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=help_pos)])
             self.assertEqual(scene.state, scene.STATE_HELP)
             scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)])
             self.assertEqual(scene.state, scene.STATE_HOME)
-            scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_1)])
+            start_pos = scene.btn_start.center if hasattr(scene, "btn_start") else scene.btn_naked.center
+            scene.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=start_pos)])
             self.assertEqual(scene.state, scene.STATE_PLAY)
-            scene.mechanic.outcome = True
-            scene.update()
-            self.assertEqual(scene.state, scene.STATE_PLAY)
-            scene.session_started_at = __import__("time").time() - scene._session_seconds()
+            scene.session.session_started_at = time.time() - scene._session_seconds()
             scene.update()
             self.assertEqual(scene.state, scene.STATE_RESULT)
             self.assertEqual(manager.data_manager.saved[-1]["game_id"], descriptor.game_id)
             self.assertIn("training_metrics", manager.data_manager.saved[-1])
-            self.assertEqual(manager.sound_manager.correct_calls, 1)
             self.assertEqual(manager.sound_manager.completed_calls, 1)
 
     def test_catch_fruit_supports_keyboard_hold_move_and_auto_catch(self):
         descriptor = build_catch_fruit_descriptor()
         manager = _ManagerStub(descriptor.game_id, descriptor.category)
         scene = descriptor.factory(manager)
-        scene._start_session()
-        mechanic = scene.mechanic
-        initial_x = mechanic.basket_x
+        scene._start_game()
+        initial_x = scene.round_data["basket_x"]
         scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_LEFT)])
-        mechanic.update(0.0)
-        self.assertLess(mechanic.basket_x, initial_x)
+        scene.update()
+        self.assertLess(scene.round_data["basket_x"], initial_x)
         scene.handle_events([pygame.event.Event(pygame.KEYUP, key=pygame.K_LEFT)])
-        mechanic.fruit_x = mechanic.basket_x
-        mechanic.fruit_y = scene.play_area.bottom - 45
-        mechanic.update(0.0)
-        self.assertTrue(mechanic.outcome)
+        scene.round_data["fruit_x"] = scene.round_data["basket_x"]
+        scene.round_data["fruit_y"] = scene.play_area.bottom - 45
+        scene.update()
+        self.assertEqual(scene.scoring.success_count, 1)
 
     def test_precision_aim_supports_keyboard_aim_and_space_fire(self):
         descriptor = build_precision_aim_descriptor()
         manager = _ManagerStub(descriptor.game_id, descriptor.category)
         scene = descriptor.factory(manager)
-        scene._start_session()
-        mechanic = scene.mechanic
-        target_x, target_y = mechanic.target_center
-        mechanic.aim_center = [target_x - 22, target_y]
+        scene._start_game()
+        target_x, target_y = scene.round_data["target_center"]
+        scene.round_data["aim_center"] = [target_x - 22, target_y]
         scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RIGHT)])
-        self.assertEqual(tuple(mechanic.aim_center), (target_x, target_y))
+        self.assertEqual(tuple(scene.round_data["aim_center"]), (target_x, target_y))
         scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE)])
-        self.assertTrue(mechanic.outcome)
+        self.assertEqual(scene.scoring.success_count, 1)
 
-    def test_result_page_contains_reward_fields_for_sample_games(self):
-        for descriptor in (build_catch_fruit_descriptor(), build_precision_aim_descriptor()):
+    def test_result_page_contains_summary_fields_for_sample_games(self):
+        for descriptor in (build_catch_fruit_descriptor(), build_precision_aim_descriptor(), build_depth_grab_descriptor()):
             manager = _ManagerStub(descriptor.game_id, descriptor.category)
             scene = descriptor.factory(manager)
-            scene._start_session()
-            scene.mechanic.outcome = True
+            scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_1)])
+            scene.session.session_started_at = time.time() - scene._session_seconds()
             scene.update()
-            scene.session_started_at = __import__("time").time() - scene._session_seconds()
-            scene.update()
-            self.assertIn("reward_summary", scene.final_stats)
-            self.assertIn("next_goal", scene.final_stats)
-            self.assertIn("stars", scene.final_stats)
+            self.assertTrue(scene.final_stats)
+            self.assertIn("duration", scene.final_stats)
+            self.assertIn("score", scene.final_stats)
 
 
 if __name__ == "__main__":
