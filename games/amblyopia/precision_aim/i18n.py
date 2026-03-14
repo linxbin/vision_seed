@@ -36,7 +36,7 @@ TRANSLATIONS = {
         "precision_aim.result.smallest": "Smallest Target Hit: {n}px",
         "precision_aim.result.streak": "Best Center Streak: {n}",
         "precision_aim.result.continue": "Continue",
-        "precision_aim.result.exit": "Exit to VisionSeed Menu",
+        "precision_aim.result.exit": "Back to Menu",
         "precision_aim.metric.label": "Average click deviation",
     },
     "zh-CN": {
@@ -76,8 +76,7 @@ TRANSLATIONS = {
         "precision_aim.result.smallest": "命中最小目标：{n}px",
         "precision_aim.result.streak": "最佳中心连击：{n}",
         "precision_aim.result.continue": "继续游戏",
-        "precision_aim.result.exit": "退出到 VisionSeed 主菜单",
+        "precision_aim.result.exit": "返回菜单",
         "precision_aim.metric.label": "平均点击偏差",
     },
 }
-

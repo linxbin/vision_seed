@@ -1,6 +1,6 @@
 import pygame
 
-from config import SCREEN_HEIGHT, SCREEN_WIDTH
+from config import MAX_SESSION_MINUTES, MIN_SESSION_MINUTES, SCREEN_HEIGHT, SCREEN_WIDTH
 from core.base_scene import BaseScene
 from core.asset_loader import load_image_if_exists, project_path
 from core.ui_theme import PlatformTheme, draw_card, draw_chip_label, draw_platform_background
@@ -54,13 +54,11 @@ class SystemSettingsScene(BaseScene):
         self.manager.set_scene("menu")
 
     def _cycle_session_duration(self):
-        options = (3, 5, 10)
         current = int(self.manager.settings.get("session_duration_minutes", 5))
-        try:
-            idx = options.index(current)
-        except ValueError:
-            idx = 1
-        self.manager.settings["session_duration_minutes"] = options[(idx + 1) % len(options)]
+        next_value = current + 1
+        if next_value > MAX_SESSION_MINUTES:
+            next_value = MIN_SESSION_MINUTES
+        self.manager.settings["session_duration_minutes"] = next_value
         self.manager.save_user_preferences()
 
     def handle_events(self, events):

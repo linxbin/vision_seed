@@ -33,7 +33,7 @@ TRANSLATIONS = {
         "catch_fruit.result.streak": "Best Streak: {n}",
         "catch_fruit.result.bonus": "Bonus Fruits: {n}",
         "catch_fruit.result.continue": "Continue",
-        "catch_fruit.result.exit": "Exit to VisionSeed Menu",
+        "catch_fruit.result.exit": "Back to Menu",
         "catch_fruit.metric.label": "Clear-window catches",
     },
     "zh-CN": {
@@ -70,8 +70,7 @@ TRANSLATIONS = {
         "catch_fruit.result.streak": "最佳连击：{n}",
         "catch_fruit.result.bonus": "奖励水果：{n}",
         "catch_fruit.result.continue": "继续游戏",
-        "catch_fruit.result.exit": "退出到 VisionSeed 主菜单",
+        "catch_fruit.result.exit": "返回菜单",
         "catch_fruit.metric.label": "清晰窗口命中",
     },
 }
-

@@ -34,7 +34,7 @@ TRANSLATIONS = {
         "eye_find.result.reset_tip": "Score is cleared after this session.",
         "eye_find.result.eye_tip": "Rest your eyes every 20 minutes.",
         "eye_find.result.continue": "Continue",
-        "eye_find.result.exit": "Exit to VisionSeed Menu",
+        "eye_find.result.exit": "Back to Menu",
     },
     "zh-CN": {
         "game.simultaneous.eye_find_patterns": "双眼找图案",
@@ -71,6 +71,6 @@ TRANSLATIONS = {
         "eye_find.result.reset_tip": "本次训练结束后会清空积分。",
         "eye_find.result.eye_tip": "记得每 20 分钟让眼睛休息一下。",
         "eye_find.result.continue": "继续游戏",
-        "eye_find.result.exit": "退出到 VisionSeed 主菜单",
+        "eye_find.result.exit": "返回菜单",
     },
 }

@@ -50,7 +50,7 @@ class DepthGrabBoardService:
                         random.randint(min_y, max_y),
                     )
                     if all(
-                        math.hypot(candidate[0] - px, candidate[1] - py) >= (radius + pr + 60)
+                        math.hypot(candidate[0] - px, candidate[1] - py) >= (radius + pr + 82)
                         for (px, py), pr in placed
                     ):
                         found = candidate

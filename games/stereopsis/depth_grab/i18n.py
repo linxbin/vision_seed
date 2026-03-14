@@ -41,7 +41,7 @@ TRANSLATIONS = {
         "depth_grab.result.mode": "Mode: {mode}",
         "depth_grab.result.filter": "Filter: {direction}",
         "depth_grab.result.continue": "Continue",
-        "depth_grab.result.exit": "Exit to VisionSeed Menu",
+        "depth_grab.result.exit": "Back to Menu",
         "depth_grab.metric.label": "Depth judgment accuracy",
     },
     "zh-CN": {
@@ -86,7 +86,7 @@ TRANSLATIONS = {
         "depth_grab.result.mode": "训练模式：{mode}",
         "depth_grab.result.filter": "滤镜方向：{direction}",
         "depth_grab.result.continue": "继续游戏",
-        "depth_grab.result.exit": "退出到 VisionSeed 主菜单",
+        "depth_grab.result.exit": "返回菜单",
         "depth_grab.metric.label": "深度判断准确率",
     },
 }

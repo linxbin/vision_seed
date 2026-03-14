@@ -22,7 +22,7 @@ TRANSLATIONS = {
         "arcade.result.difficulty": "Difficulty: L{level}",
         "arcade.result.metric": "{label}: {value}",
         "arcade.result.continue": "Continue",
-        "arcade.result.exit": "Exit to VisionSeed Menu",
+        "arcade.result.exit": "Back to Menu",
     },
     "zh-CN": {
         "arcade.home.start": "开始训练",
@@ -47,6 +47,6 @@ TRANSLATIONS = {
         "arcade.result.difficulty": "难度等级：L{level}",
         "arcade.result.metric": "{label}：{value}",
         "arcade.result.continue": "继续游戏",
-        "arcade.result.exit": "退出到 VisionSeed 主菜单",
+        "arcade.result.exit": "返回菜单",
     },
 }
