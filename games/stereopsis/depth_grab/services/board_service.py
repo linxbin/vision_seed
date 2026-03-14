@@ -71,7 +71,7 @@ class DepthGrabBoardService:
         depth_ranks = []
         for idx in range(target_count):
             depth_ranks.append(0 if idx == correct_index else remaining_ranks.pop())
-        radii = [int(30 * (1.58 - depth_rank * 0.14)) for depth_rank in depth_ranks]
+        radii = [32 for _ in range(target_count)]
         layer_offsets = [(-42, -24, -8, 10, 28, 44)[depth_rank] for depth_rank in depth_ranks]
         anchors = self._random_centers(play_area, radii, layer_offsets)
         variants = random.sample(self.STAR_VARIANTS, k=target_count)
@@ -92,6 +92,7 @@ class DepthGrabBoardService:
                     "naked_color": colors[idx],
                 }
             )
+        correct_index = next(idx for idx, target in enumerate(targets) if target["depth_rank"] == 0)
         return {"targets": targets, "correct_index": correct_index, "stage_index": stage_index}
 
     def stage_label_key(self, stage_index):

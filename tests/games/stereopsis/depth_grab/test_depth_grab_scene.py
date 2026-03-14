@@ -9,6 +9,7 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame
 
 from games.stereopsis.depth_grab.scenes.root_scene import DepthGrabScene
+from games.stereopsis.depth_grab.services.board_service import DepthGrabBoardService
 
 
 class _DataManagerStub:
@@ -221,6 +222,23 @@ class DepthGrabSceneTests(unittest.TestCase):
         self.assertTrue(all(variant["tips"] == 5 for variant in variants))
         colors = {target["naked_color"] for target in scene.round_data["targets"]}
         self.assertGreaterEqual(len(colors), 3)
+        radii = {target["radius"] for target in scene.round_data["targets"]}
+        self.assertEqual(radii, {32})
+
+    def test_nearest_star_is_not_always_the_largest(self):
+        service = DepthGrabBoardService()
+        play_area = pygame.Rect(60, 128, 780, 450)
+        round_data = service.create_round(play_area, 1)
+        radii = {target["radius"] for target in round_data["targets"]}
+        self.assertEqual(radii, {32})
+
+    def test_correct_index_always_points_to_nearest_star(self):
+        service = DepthGrabBoardService()
+        play_area = pygame.Rect(60, 128, 780, 450)
+        for _ in range(12):
+            round_data = service.create_round(play_area, 1)
+            correct = round_data["targets"][round_data["correct_index"]]
+            self.assertEqual(correct["depth_rank"], 0)
 
     def test_round_targets_stay_inside_play_area_and_do_not_overlap(self):
         scene = DepthGrabScene(_ManagerStub())
