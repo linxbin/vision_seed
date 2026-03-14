@@ -20,6 +20,13 @@ METRIC_LABEL_KEYS = {
     "hit_accuracy": "precision_aim.metric.accuracy",
     "center_hit_rate": "precision_aim.metric.center_rate",
     "average_click_deviation_px": "precision_aim.metric.label",
+    "foods_eaten": "snake_focus.metric.label",
+    "color_match_accuracy": "red_blue_catch.combo",
+    "brick_clear_count": "brick_breaker.result.success",
+    "safe_crosses": "frogger.result.success",
+    "lines_cleared": "fusion_tetris.result.success",
+    "fusion_path_accuracy": "path_fusion.result.accuracy",
+    "slice_accuracy": "fruit_slice.result.accuracy",
 }
 
 

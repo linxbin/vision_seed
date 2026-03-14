@@ -1,1 +1,3 @@
 from .precision_aim import build_descriptor as build_precision_aim_descriptor
+from .whack_a_mole import build_descriptor as build_whack_a_mole_descriptor
+from .fruit_slice import build_descriptor as build_fruit_slice_descriptor

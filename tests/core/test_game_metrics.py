@@ -17,6 +17,20 @@ class _ManagerStub:
             return "Average click deviation"
         if key == "depth_grab.metric.confusion":
             return "Front/back confusions"
+        if key == "snake_focus.metric.label":
+            return "Best length"
+        if key == "red_blue_catch.combo":
+            return "Best Combo"
+        if key == "brick_breaker.result.success":
+            return "Bricks Cleared"
+        if key == "frogger.result.success":
+            return "Safe Crosses"
+        if key == "fusion_tetris.result.success":
+            return "Lines Cleared"
+        if key == "path_fusion.result.accuracy":
+            return "Fusion Accuracy"
+        if key == "fruit_slice.result.accuracy":
+            return "Accuracy"
         if key == "category.latest_summary":
             return f"Latest: {kwargs['accuracy']}% / {kwargs['duration']}s"
         if key == "category.latest_metric":
@@ -67,6 +81,15 @@ class GameMetricsTests(unittest.TestCase):
             "training_metrics": {"hit_accuracy": 82.0},
         })
         self.assertEqual(line2, "Hit accuracy: 82.0")
+
+    def test_summarize_session_uses_new_batch_metric_label(self):
+        manager = _ManagerStub()
+        _line1, line2 = summarize_session(manager, {
+            "accuracy_rate": 88.0,
+            "duration_seconds": 31.0,
+            "training_metrics": {"lines_cleared": 4},
+        })
+        self.assertEqual(line2, "Lines Cleared: 4")
 
 
 if __name__ == "__main__":

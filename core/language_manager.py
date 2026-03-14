@@ -1,12 +1,21 @@
 from games.accommodation.catch_fruit.i18n import TRANSLATIONS as CATCH_FRUIT_TRANSLATIONS
 from games.accommodation.e_orientation.i18n import TRANSLATIONS as E_ORIENTATION_TRANSLATIONS
+from games.accommodation.snake.i18n import TRANSLATIONS as SNAKE_TRANSLATIONS
 from games.amblyopia.precision_aim.i18n import TRANSLATIONS as PRECISION_AIM_TRANSLATIONS
+from games.amblyopia.fruit_slice.i18n import TRANSLATIONS as FRUIT_SLICE_TRANSLATIONS
+from games.amblyopia.whack_a_mole.i18n import TRANSLATIONS as WHACK_A_MOLE_TRANSLATIONS
 from games.common.training_runtime.i18n import TRANSLATIONS as ARCADE_TRANSLATIONS
 from games.fusion.push_box.i18n import TRANSLATIONS as FUSION_PUSH_BOX_TRANSLATIONS
+from games.fusion.path_fusion.i18n import TRANSLATIONS as PATH_FUSION_TRANSLATIONS
+from games.fusion.tetris.i18n import TRANSLATIONS as TETRIS_TRANSLATIONS
 from games.simultaneous.eye_find_patterns.i18n import TRANSLATIONS as EYE_FIND_TRANSLATIONS
 from games.simultaneous.pong.i18n import TRANSLATIONS as PONG_TRANSLATIONS
 from games.simultaneous.spot_difference.i18n import TRANSLATIONS as SPOT_DIFFERENCE_TRANSLATIONS
 from games.stereopsis.depth_grab.i18n import TRANSLATIONS as DEPTH_GRAB_TRANSLATIONS
+from games.stereopsis.brick_breaker.i18n import TRANSLATIONS as BRICK_BREAKER_TRANSLATIONS
+from games.stereopsis.frogger.i18n import TRANSLATIONS as FROGGER_TRANSLATIONS
+from games.suppression.find_same.i18n import TRANSLATIONS as FIND_SAME_TRANSLATIONS
+from games.suppression.red_blue_catch.i18n import TRANSLATIONS as RED_BLUE_CATCH_TRANSLATIONS
 from games.suppression.weak_eye_key.i18n import TRANSLATIONS as WEAK_EYE_KEY_TRANSLATIONS
 
 
@@ -200,13 +209,22 @@ class LanguageManager:
         ARCADE_TRANSLATIONS,
         E_ORIENTATION_TRANSLATIONS,
         CATCH_FRUIT_TRANSLATIONS,
+        SNAKE_TRANSLATIONS,
+        TETRIS_TRANSLATIONS,
+        PATH_FUSION_TRANSLATIONS,
         FUSION_PUSH_BOX_TRANSLATIONS,
         EYE_FIND_TRANSLATIONS,
         PONG_TRANSLATIONS,
         SPOT_DIFFERENCE_TRANSLATIONS,
+        FIND_SAME_TRANSLATIONS,
+        RED_BLUE_CATCH_TRANSLATIONS,
         WEAK_EYE_KEY_TRANSLATIONS,
         DEPTH_GRAB_TRANSLATIONS,
+        BRICK_BREAKER_TRANSLATIONS,
+        FROGGER_TRANSLATIONS,
         PRECISION_AIM_TRANSLATIONS,
+        FRUIT_SLICE_TRANSLATIONS,
+        WHACK_A_MOLE_TRANSLATIONS,
     )
 
     def __init__(self, language=DEFAULT_LANGUAGE):

@@ -16,13 +16,22 @@ class GameRegistryTests(unittest.TestCase):
         expected = {
             "accommodation.e_orientation": "accommodation",
             "accommodation.catch_fruit": "accommodation",
+            "accommodation.snake": "accommodation",
             "simultaneous.eye_find_patterns": "simultaneous",
             "simultaneous.spot_difference": "simultaneous",
             "simultaneous.pong": "simultaneous",
             "fusion.push_box": "fusion",
+            "fusion.tetris": "fusion",
+            "fusion.path_fusion": "fusion",
             "suppression.weak_eye_key": "suppression",
+            "suppression.find_same": "suppression",
+            "suppression.red_blue_catch": "suppression",
             "stereopsis.depth_grab": "stereopsis",
+            "stereopsis.brick_breaker": "stereopsis",
+            "stereopsis.frogger": "stereopsis",
             "amblyopia.precision_aim": "amblyopia",
+            "amblyopia.whack_a_mole": "amblyopia",
+            "amblyopia.fruit_slice": "amblyopia",
         }
         for game_id, category in expected.items():
             game = registry.get_game(game_id)
