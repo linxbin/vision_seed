@@ -91,6 +91,14 @@ class FroggerSceneTests(unittest.TestCase):
         scene.draw(second)
         self.assertNotEqual(pygame.image.tostring(first, "RGBA"), pygame.image.tostring(second, "RGBA"))
 
+    def test_glasses_mode_draws_without_crashing(self):
+        scene = FroggerScene(_ManagerStub())
+        scene._start_game()
+        scene.mode = scene.MODE_GLASSES
+        surface = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
+        scene.draw(surface)
+        self.assertEqual(scene.state, scene.STATE_PLAY)
+
     def test_finish_saves_result(self):
         manager = _ManagerStub()
         scene = FroggerScene(manager)

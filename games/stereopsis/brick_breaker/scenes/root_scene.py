@@ -15,6 +15,17 @@ class BrickBreakerScene(BaseScene):
     STATE_RESULT = "result"
     MODE_NAKED = "naked"
     MODE_GLASSES = MODE_GLASSES
+    GLASSES_BALL_OFFSET = 14
+    TARGET_DEPTH_COLORS = {
+        0: (250, 146, 96),
+        1: (108, 170, 246),
+        2: (132, 208, 142),
+    }
+    DEPTH_SHIFT = {
+        0: 26,
+        1: 16,
+        2: 8,
+    }
 
     def __init__(self, manager):
         super().__init__(manager)
@@ -66,6 +77,19 @@ class BrickBreakerScene(BaseScene):
         if self.state == self.STATE_PLAY:
             self._new_round()
 
+    def reset(self):
+        self.state = self.STATE_HOME
+        self.mode = self.MODE_NAKED
+        self.filter_direction = FILTER_LR
+        self.show_filter_picker = False
+        self.feedback_text = ""
+        self.feedback_until = 0.0
+        self.final_stats = {}
+        self.scoring.reset()
+        self.session.session_seconds = self._session_seconds()
+        self.session.reset()
+        self.round_data = {}
+
     def _session_seconds(self):
         try:
             minutes = int(self.manager.settings.get("session_duration_minutes", 5))
@@ -91,19 +115,22 @@ class BrickBreakerScene(BaseScene):
             pygame.draw.circle(screen, (200, 84, 54), (rect.right - 18, rect.centery), 4)
 
     def _draw_background(self, screen):
+        if self.state == self.STATE_PLAY and self.mode == self.MODE_GLASSES:
+            screen.fill(GLASSES_BACKGROUND[:3])
+            return
         top = (236, 244, 255)
         bottom = (221, 235, 250)
         for y in range(self.height):
             t = y / max(1, self.height - 1)
             color = (int(top[0] * (1 - t) + bottom[0] * t), int(top[1] * (1 - t) + bottom[1] * t), int(top[2] * (1 - t) + bottom[2] * t))
             pygame.draw.line(screen, color, (0, y), (self.width, y))
-        if self.state == self.STATE_PLAY and self.mode == self.MODE_GLASSES:
-            overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            overlay.fill(GLASSES_BACKGROUND)
-            screen.blit(overlay, (0, 0))
 
     def _new_round(self):
         self.round_data = self.board_service.create_round(self.play_area)
+
+    def _refresh_row(self):
+        self.round_data = self.board_service.refresh_bricks(self.play_area)
+        self.scoring.on_refresh()
 
     def _start_game(self):
         self.state = self.STATE_PLAY
@@ -118,8 +145,8 @@ class BrickBreakerScene(BaseScene):
                 "timestamp": datetime.now().isoformat(),
                 "game_id": "stereopsis.brick_breaker",
                 "difficulty_level": 3,
-                "total_questions": self.scoring.paddle_hits + self.scoring.miss_count,
-                "correct_count": self.scoring.paddle_hits,
+                "total_questions": self.scoring.shot_count,
+                "correct_count": self.scoring.target_hits,
                 "wrong_count": self.scoring.miss_count,
                 "duration_seconds": float(self.final_stats.get("duration", 0)),
                 "accuracy_rate": self.final_stats.get("accuracy", 0.0),
@@ -148,27 +175,42 @@ class BrickBreakerScene(BaseScene):
         self.feedback_color = color
         self.feedback_until = time.time() + 0.8
 
+    def _target_depth_label(self):
+        return self.manager.t("brick_breaker.target")
+
+    def _glasses_colors(self):
+        if self.filter_direction == FILTER_LR:
+            return RED_FILTER[:3], BLUE_FILTER[:3]
+        return BLUE_FILTER[:3], RED_FILTER[:3]
+
     def _draw_glasses_play_content(self, screen):
-        left_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        right_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        paddle = pygame.Rect(0, 0, self.round_data["paddle_width"], 18)
-        paddle.center = (int(self.round_data["paddle_x"]), self.play_area.bottom - 22)
-        pygame.draw.rect(screen, (92, 108, 134), paddle, border_radius=8)
-        ball = self.round_data["ball"]
-        ball_shift = 14
-        pygame.draw.circle(left_layer, (255, 255, 255, 255), (int(ball[0] - ball_shift // 2), int(ball[1])), 12)
-        pygame.draw.circle(right_layer, (255, 255, 255, 255), (int(ball[0] + ball_shift // 2), int(ball[1])), 12)
-        depth_shift = {0: 18, 1: 12, 2: 6}
+        play_bg = pygame.Rect(self.play_area.left, self.play_area.top + 8, self.play_area.width, self.play_area.height - 8)
+        launcher = pygame.Rect(0, 0, 104, 16)
+        launcher.center = (int(self.round_data["launcher_x"]), self.play_area.bottom - 24)
+        pygame.draw.rect(screen, (18, 18, 18), launcher)
+        local_left = pygame.Surface(play_bg.size, pygame.SRCALPHA)
+        local_right = pygame.Surface(play_bg.size, pygame.SRCALPHA)
+
+        def to_local(rect):
+            return rect.move(-play_bg.x, -play_bg.y)
+
+        attack_ball = self.round_data.get("attack_ball")
+        attack_center = (self.round_data["launcher_x"], self.play_area.bottom - 46)
+        if attack_ball:
+            attack_center = (attack_ball["x"], attack_ball["y"])
+        local_center = (int(attack_center[0] - play_bg.x), int(attack_center[1] - play_bg.y))
+        pygame.draw.circle(local_left, (255, 255, 255, 255), (local_center[0] - self.GLASSES_BALL_OFFSET, local_center[1]), 13)
+        pygame.draw.circle(local_right, (255, 255, 255, 255), (local_center[0] + self.GLASSES_BALL_OFFSET, local_center[1]), 13)
         for brick in self.round_data["bricks"]:
             rect = pygame.Rect(brick["rect"])
-            shift = depth_shift.get(brick["depth"], 8)
-            left_rect = rect.move(-shift // 2, 0)
-            right_rect = rect.move(shift // 2, 0)
-            pygame.draw.rect(left_layer, (255, 255, 255, 255), left_rect, border_radius=8)
-            pygame.draw.rect(right_layer, (255, 255, 255, 255), right_rect, border_radius=8)
-        left_surface = apply_filter(left_layer, self.mode, self.filter_direction, "left")
-        right_surface = apply_filter(right_layer, self.mode, self.filter_direction, "right")
-        screen.blit(blend_filtered_patterns((self.width, self.height), left_surface, (0, 0), right_surface, (0, 0)), (0, 0))
+            shift = self.DEPTH_SHIFT.get(brick["depth"], 8)
+            local_rect = to_local(rect)
+            pygame.draw.rect(local_left, (255, 255, 255, 255), local_rect.move(-shift // 2, 0))
+            pygame.draw.rect(local_right, (255, 255, 255, 255), local_rect.move(shift // 2, 0))
+        left_filtered = apply_filter(local_left, self.mode, self.filter_direction, "left")
+        right_filtered = apply_filter(local_right, self.mode, self.filter_direction, "right")
+        blended = blend_filtered_patterns(play_bg.size, left_filtered, (0, 0), right_filtered, (0, 0))
+        screen.blit(blended, play_bg.topleft)
 
     def _draw_filter_picker(self, screen):
         overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
@@ -210,22 +252,35 @@ class BrickBreakerScene(BaseScene):
         remaining = max(0, int(self.session.session_seconds - self.session.session_elapsed))
         timer = self.body_font.render(self.manager.t("brick_breaker.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"), True, (86, 116, 170))
         score = self.body_font.render(self.manager.t("brick_breaker.score", score=self.scoring.score), True, (44, 60, 88))
+        target = self.body_font.render(self._target_depth_label(), True, (44, 60, 88))
+        mode = self.body_font.render(self.manager.t("brick_breaker.mode.glasses" if self.mode == self.MODE_GLASSES else "brick_breaker.mode.naked"), True, (44, 60, 88))
         guide = self.small_font.render(self.manager.t("brick_breaker.play.guide"), True, (54, 70, 96))
-        screen.blit(self.body_font.render(self.manager.t("brick_breaker.mode.glasses" if self.mode == self.MODE_GLASSES else "brick_breaker.mode.naked"), True, (44, 60, 88)), (24, 18))
+        screen.blit(mode, (24, 18))
         screen.blit(timer, (self.width // 2 - timer.get_width() // 2, 18))
-        screen.blit(score, (84, 22))
+        screen.blit(score, (24, 56))
+        screen.blit(target, (self.width - target.get_width() - 140, 18))
+        depth_color = self.TARGET_DEPTH_COLORS.get(self.round_data["attack_depth"], (82, 130, 232))
+        pygame.draw.circle(screen, depth_color, (self.width - 64, 31), 11)
         screen.blit(guide, (self.width // 2 - guide.get_width() // 2, 98))
         if self.mode == self.MODE_GLASSES:
             self._draw_glasses_play_content(screen)
         else:
-            paddle = pygame.Rect(0, 0, self.round_data["paddle_width"], 18)
-            paddle.center = (int(self.round_data["paddle_x"]), self.play_area.bottom - 22)
-            pygame.draw.rect(screen, (88, 116, 170), paddle, border_radius=8)
-            ball = self.round_data["ball"]
-            pygame.draw.circle(screen, (82, 130, 232), (int(ball[0]), int(ball[1])), 12)
+            launcher = pygame.Rect(0, 0, 104, 16)
+            launcher.center = (int(self.round_data["launcher_x"]), self.play_area.bottom - 24)
+            pygame.draw.rect(screen, (88, 116, 170), launcher, border_radius=8)
+            attack_ball = self.round_data.get("attack_ball")
+            attack_center = (int(attack_ball["x"]), int(attack_ball["y"])) if attack_ball else (int(self.round_data["launcher_x"]), self.play_area.bottom - 46)
+            radius = 13
+            depth_shift = self.DEPTH_SHIFT.get(self.round_data["attack_depth"], 8) // 2
+            ball_color = self.TARGET_DEPTH_COLORS.get(self.round_data["attack_depth"], (82, 130, 232))
+            shadow_center = (attack_center[0] + depth_shift, attack_center[1] + self.round_data["attack_depth"] * 4)
+            pygame.draw.circle(screen, (54, 64, 82), shadow_center, radius)
+            pygame.draw.circle(screen, ball_color, attack_center, radius)
             for brick in self.round_data["bricks"]:
                 rect = pygame.Rect(brick["rect"])
-                color = (244, 132, 132) if brick["depth"] == 0 else (132, 188, 244) if brick["depth"] == 1 else (162, 225, 162)
+                color = self.TARGET_DEPTH_COLORS.get(brick["depth"], (132, 188, 244))
+                shadow_rect = rect.move(self.DEPTH_SHIFT.get(brick["depth"], 8) // 2, brick["depth"] * 4)
+                pygame.draw.rect(screen, (54, 64, 82), shadow_rect, border_radius=8)
                 pygame.draw.rect(screen, color, rect, border_radius=8)
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.option_font.render(self.feedback_text, True, self.feedback_color)
@@ -289,14 +344,32 @@ class BrickBreakerScene(BaseScene):
                     if event.key == pygame.K_ESCAPE:
                         self.manager.set_scene("category")
                     elif event.key == pygame.K_LEFT:
-                        self.round_data["paddle_x"] -= 28
+                        self.round_data["launcher_x"] -= 28
                     elif event.key == pygame.K_RIGHT:
-                        self.round_data["paddle_x"] += 28
+                        self.round_data["launcher_x"] += 28
+                    elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                        if self.round_data.get("attack_ball") is None:
+                            self.round_data["attack_ball"] = self.board_service.create_attack_ball(
+                                self.play_area,
+                                self.round_data["launcher_x"],
+                                self.round_data["attack_depth"],
+                            )
+                            self.scoring.on_launch()
                 elif event.type == pygame.MOUSEMOTION:
-                    self.round_data["paddle_x"] = event.pos[0]
-                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.btn_home.collidepoint(getattr(event, "pos", pygame.mouse.get_pos())):
-                    self.manager.set_scene("category")
-                self.round_data["paddle_x"] = max(self.play_area.left + 70, min(self.play_area.right - 70, self.round_data["paddle_x"]))
+                    self.round_data["launcher_x"] = event.pos[0]
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    pos = getattr(event, "pos", pygame.mouse.get_pos())
+                    if self.btn_home.collidepoint(pos):
+                        self.manager.set_scene("category")
+                    elif self.round_data.get("attack_ball") is None:
+                        self.round_data["launcher_x"] = pos[0]
+                        self.round_data["attack_ball"] = self.board_service.create_attack_ball(
+                            self.play_area,
+                            self.round_data["launcher_x"],
+                            self.round_data["attack_depth"],
+                        )
+                        self.scoring.on_launch()
+                self.round_data["launcher_x"] = max(self.play_area.left + 70, min(self.play_area.right - 70, self.round_data["launcher_x"]))
             else:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
@@ -312,33 +385,32 @@ class BrickBreakerScene(BaseScene):
             if self.session.is_complete():
                 self._finish_game()
                 return
-            ball = self.round_data["ball"]
-            velocity = self.round_data["velocity"]
-            ball[0] += velocity[0]
-            ball[1] += velocity[1]
-            if ball[0] <= self.play_area.left + 12 or ball[0] >= self.play_area.right - 12:
-                velocity[0] *= -1
-            if ball[1] <= self.play_area.top + 12:
-                velocity[1] *= -1
-            paddle = pygame.Rect(0, 0, self.round_data["paddle_width"], 18)
-            paddle.center = (int(self.round_data["paddle_x"]), self.play_area.bottom - 22)
-            if paddle.collidepoint(ball[0], ball[1] + 12):
-                velocity[1] = -abs(velocity[1])
-                self.scoring.on_paddle()
-            for brick in list(self.round_data["bricks"]):
-                rect = pygame.Rect(brick["rect"])
-                if rect.collidepoint(ball[0], ball[1]):
-                    self.round_data["bricks"].remove(brick)
-                    velocity[1] *= -1
-                    self.scoring.on_brick(brick["depth"])
-                    self.play_correct_sound()
-                    self._set_feedback("brick_breaker.feedback.hit", (86, 174, 112))
-                    break
-            if ball[1] >= self.play_area.bottom:
+            attack_ball = self.round_data.get("attack_ball")
+            if attack_ball:
+                attack_ball["y"] -= attack_ball["speed"]
+                for brick in list(self.round_data["bricks"]):
+                    rect = pygame.Rect(brick["rect"])
+                    if rect.collidepoint(attack_ball["x"], attack_ball["y"]):
+                        matched = self.scoring.on_hit(brick["depth"] == self.round_data["attack_depth"])
+                        if matched:
+                            self.round_data["bricks"].remove(brick)
+                            self.play_correct_sound()
+                            self._set_feedback("brick_breaker.feedback.hit", (86, 174, 112))
+                            if not any(item["depth"] == self.round_data["attack_depth"] for item in self.round_data["bricks"]):
+                                self._refresh_row()
+                            else:
+                                self.round_data["attack_ball"] = None
+                        else:
+                            self.play_wrong_sound()
+                            self._set_feedback("brick_breaker.feedback.depth_miss", (214, 138, 82))
+                            self.round_data["attack_ball"] = None
+                        break
+            attack_ball = self.round_data.get("attack_ball")
+            if attack_ball and attack_ball["y"] <= self.play_area.top:
                 self.scoring.on_miss()
                 self.play_wrong_sound()
                 self._set_feedback("brick_breaker.feedback.miss", (214, 96, 96))
-                self._new_round()
+                self.round_data["attack_ball"] = None
         if self.feedback_text and now > self.feedback_until:
             self.feedback_text = ""
 

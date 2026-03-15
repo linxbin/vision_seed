@@ -4,7 +4,7 @@ from datetime import datetime
 import pygame
 
 from core.base_scene import BaseScene
-from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER, apply_filter, blend_filtered_patterns
+from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER
 from ..services import PathFusionBoardService, PathFusionScoringService, PathFusionSessionService
 
 
@@ -15,6 +15,7 @@ class PathFusionScene(BaseScene):
     STATE_RESULT = "result"
     MODE_NAKED = "naked"
     MODE_GLASSES = MODE_GLASSES
+    GLASSES_PATH_OFFSET = 8
 
     def __init__(self, manager):
         super().__init__(manager)
@@ -170,6 +171,11 @@ class PathFusionScene(BaseScene):
         self.feedback_color = color
         self.feedback_until = time.time() + 0.8
 
+    def _glasses_colors(self):
+        if self.filter_direction == FILTER_LR:
+            return RED_FILTER[:3], BLUE_FILTER[:3]
+        return BLUE_FILTER[:3], RED_FILTER[:3]
+
     def _draw_filter_picker(self, screen):
         overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         overlay.fill((24, 32, 46, 136))
@@ -225,16 +231,16 @@ class PathFusionScene(BaseScene):
         mid = (board.centerx, board.centery)
         target_points = [(board.right - 90, board.y + 70), (board.right - 90, board.centery), (board.right - 90, board.bottom - 70)]
         if self.mode == self.MODE_GLASSES:
-            left_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            right_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            pygame.draw.circle(left_layer, (255, 255, 255, 255), start, 10)
-            pygame.draw.line(left_layer, (255, 255, 255, 255), start, mid, 5)
+            left_color, right_color = self._glasses_colors()
+            left_start = (start[0] - self.GLASSES_PATH_OFFSET, start[1])
+            left_mid = (mid[0] - self.GLASSES_PATH_OFFSET, mid[1])
+            right_mid = (mid[0] + self.GLASSES_PATH_OFFSET, mid[1])
+            pygame.draw.circle(screen, left_color, left_start, 10)
+            pygame.draw.line(screen, left_color, left_start, left_mid, 5)
             for idx, point in enumerate(target_points):
-                pygame.draw.circle(right_layer, (255, 255, 255, 255), point, 12, 3)
-                pygame.draw.line(right_layer, (255, 255, 255, 255), mid, point, 5 if idx == self.selected_path else 3)
-            left_surface = apply_filter(left_layer, self.mode, self.filter_direction, "left")
-            right_surface = apply_filter(right_layer, self.mode, self.filter_direction, "right")
-            screen.blit(blend_filtered_patterns((self.width, self.height), left_surface, (0, 0), right_surface, (0, 0)), (0, 0))
+                right_point = (point[0] + self.GLASSES_PATH_OFFSET, point[1])
+                pygame.draw.circle(screen, right_color, right_point, 12, 3)
+                pygame.draw.line(screen, right_color, right_mid, right_point, 5 if idx == self.selected_path else 3)
             for idx, point in enumerate(target_points):
                 outline_color = (38, 42, 52) if idx == self.round_data["target"] else (124, 134, 152)
                 pygame.draw.circle(screen, outline_color, point, 8 if idx == self.round_data["target"] else 6)

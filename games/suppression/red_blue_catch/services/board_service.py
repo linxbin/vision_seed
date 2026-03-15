@@ -4,14 +4,16 @@ import random
 class RedBlueCatchBoardService:
     COLORS = ("red", "blue")
 
-    def _ball_speed(self, stage_index):
+    def _ball_speed(self, stage_index, mode):
         if stage_index == 0:
-            return random.uniform(7.6, 9.2)
-        if stage_index == 1:
-            return random.uniform(8.8, 10.4)
-        return random.uniform(10.2, 11.8)
+            base = random.uniform(7.6, 9.2)
+        elif stage_index == 1:
+            base = random.uniform(8.8, 10.4)
+        else:
+            base = random.uniform(10.2, 11.8)
+        return max(4.2, base - 3.0)
 
-    def create_ball(self, play_area, stage_index, occupied_x=None):
+    def create_ball(self, play_area, stage_index, mode, occupied_x=None):
         occupied_x = occupied_x or []
         attempts = 0
         ball_x = play_area.centerx
@@ -25,7 +27,7 @@ class RedBlueCatchBoardService:
         return {
             "x": ball_x,
             "y": play_area.top + 24 - lane * 52,
-            "speed": self._ball_speed(stage_index),
+            "speed": self._ball_speed(stage_index, mode),
             "color": random.choice(self.COLORS),
         }
 
@@ -33,7 +35,7 @@ class RedBlueCatchBoardService:
         ball_count = random.randint(2, 3) if stage_index < 2 else random.randint(3, 4)
         balls = []
         for _ in range(ball_count):
-            balls.append(self.create_ball(play_area, stage_index, [ball["x"] for ball in balls]))
+            balls.append(self.create_ball(play_area, stage_index, mode, [ball["x"] for ball in balls]))
         return {
             "balls": balls,
             "basket_x": play_area.centerx,

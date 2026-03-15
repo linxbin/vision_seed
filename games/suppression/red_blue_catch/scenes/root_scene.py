@@ -4,7 +4,7 @@ from datetime import datetime
 import pygame
 
 from core.base_scene import BaseScene
-from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER, apply_filter, blend_filtered_patterns
+from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER
 from ..services import RedBlueCatchBoardService, RedBlueCatchScoringService, RedBlueCatchSessionService
 
 
@@ -15,6 +15,7 @@ class RedBlueCatchScene(BaseScene):
     STATE_RESULT = "result"
     MODE_NAKED = "naked"
     MODE_GLASSES = MODE_GLASSES
+    GLASSES_X_OFFSET = 8
 
     def __init__(self, manager):
         super().__init__(manager)
@@ -65,6 +66,19 @@ class RedBlueCatchScene(BaseScene):
         self._build_ui()
         if self.state == self.STATE_PLAY:
             self._new_round()
+
+    def reset(self):
+        self.state = self.STATE_HOME
+        self.mode = self.MODE_NAKED
+        self.filter_direction = FILTER_LR
+        self.show_filter_picker = False
+        self.feedback_text = ""
+        self.feedback_until = 0.0
+        self.final_stats = {}
+        self.scoring.reset()
+        self.session.session_seconds = self._session_seconds()
+        self.session.reset()
+        self.round_data = {}
 
     def _session_seconds(self):
         try:
@@ -178,7 +192,7 @@ class RedBlueCatchScene(BaseScene):
 
     def _respawn_ball(self, ball):
         occupied_x = [item["x"] for item in self.round_data["balls"] if item is not ball]
-        ball.update(self.board_service.create_ball(self.play_area, self.round_data["stage_index"], occupied_x))
+        ball.update(self.board_service.create_ball(self.play_area, self.round_data["stage_index"], self.mode, occupied_x))
 
     def _handle_catch(self, ball):
         correct = self.scoring.on_hit(True)
@@ -195,24 +209,13 @@ class RedBlueCatchScene(BaseScene):
         return "right" if color_name == "red" else "left"
 
     def _draw_glasses_play_content(self, screen):
-        left_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        right_layer = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         basket = pygame.Rect(0, 0, self.round_data["basket_width"], 24)
         basket.center = (int(self.round_data["basket_x"]), self.play_area.bottom - 24)
         pygame.draw.rect(screen, (92, 108, 134), basket, border_radius=10)
         for ball in self.round_data["balls"]:
-            layer = left_layer if self._layer_for_color(ball["color"]) == "left" else right_layer
-            pygame.draw.circle(layer, (255, 255, 255, 255), (int(ball["x"]), int(ball["y"])), 18)
-
-        left_surface = apply_filter(left_layer, self.mode, self.filter_direction, "left")
-        right_surface = apply_filter(right_layer, self.mode, self.filter_direction, "right")
-        screen.blit(blend_filtered_patterns((self.width, self.height), left_surface, (0, 0), right_surface, (0, 0)), (0, 0))
-        preview = pygame.Rect(self.play_area.x, 60, 56, 28)
-        left_preview = RED_FILTER[:3] if self.filter_direction == FILTER_LR else BLUE_FILTER[:3]
-        right_preview = BLUE_FILTER[:3] if self.filter_direction == FILTER_LR else RED_FILTER[:3]
-        pygame.draw.rect(screen, left_preview, pygame.Rect(preview.x, preview.y, preview.width // 2, preview.height), border_top_left_radius=8, border_bottom_left_radius=8)
-        pygame.draw.rect(screen, right_preview, pygame.Rect(preview.centerx, preview.y, preview.width // 2, preview.height), border_top_right_radius=8, border_bottom_right_radius=8)
-        pygame.draw.rect(screen, (194, 208, 230), preview, 2, border_radius=8)
+            direction = -1 if self._layer_for_color(ball["color"]) == "left" else 1
+            draw_x = int(ball["x"] + direction * self.GLASSES_X_OFFSET)
+            pygame.draw.circle(screen, self._ball_rgb(ball["color"]), (draw_x, int(ball["y"])), 18)
 
     def _draw_filter_picker(self, screen):
         overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
@@ -338,7 +341,7 @@ class RedBlueCatchScene(BaseScene):
             elif self.state == self.STATE_PLAY:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        self.manager.set_scene("category")
+                        self.manager.set_scene("menu")
                     elif event.key == pygame.K_LEFT:
                         self.round_data["basket_x"] -= 28
                     elif event.key == pygame.K_RIGHT:
@@ -346,7 +349,7 @@ class RedBlueCatchScene(BaseScene):
                 elif event.type == pygame.MOUSEMOTION:
                     self.round_data["basket_x"] = event.pos[0]
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.btn_home.collidepoint(getattr(event, "pos", pygame.mouse.get_pos())):
-                    self.manager.set_scene("category")
+                    self.manager.set_scene("menu")
                 self.round_data["basket_x"] = max(self.play_area.left + 64, min(self.play_area.right - 64, self.round_data["basket_x"]))
             else:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
