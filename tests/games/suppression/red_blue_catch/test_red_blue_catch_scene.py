@@ -74,12 +74,28 @@ class RedBlueCatchSceneTests(unittest.TestCase):
         manager = _ManagerStub()
         scene = RedBlueCatchScene(manager)
         scene._start_game()
-        scene.round_data["ball_color"] = scene.round_data["target_color"]
-        scene.round_data["ball_x"] = scene.round_data["basket_x"]
-        scene.round_data["ball_y"] = scene.play_area.bottom - 28
+        ball = scene.round_data["balls"][0]
+        ball["x"] = scene.round_data["basket_x"]
+        ball["y"] = scene.play_area.bottom - 28
         scene.update()
         self.assertEqual(scene.scoring.success_count, 1)
         self.assertEqual(manager.sound_manager.correct_calls, 1)
+
+    def test_round_spawns_multiple_balls(self):
+        scene = RedBlueCatchScene(_ManagerStub())
+        scene._start_game()
+        self.assertGreaterEqual(len(scene.round_data["balls"]), 2)
+
+    def test_missed_ball_counts_failure(self):
+        manager = _ManagerStub()
+        scene = RedBlueCatchScene(manager)
+        scene._start_game()
+        ball = scene.round_data["balls"][0]
+        ball["x"] = scene.play_area.left
+        ball["y"] = scene.play_area.bottom - 28
+        scene.update()
+        self.assertEqual(scene.scoring.failure_count, 1)
+        self.assertEqual(manager.sound_manager.wrong_calls, 1)
 
     def test_glasses_filter_direction_changes_render(self):
         scene = RedBlueCatchScene(_ManagerStub())

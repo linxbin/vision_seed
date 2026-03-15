@@ -51,6 +51,13 @@ class FruitSliceScene(BaseScene):
         self.help_ok = pygame.Rect(self.width // 2 - 90, self.height - 90, 180, 54)
         self.play_area = pygame.Rect(70, 136, self.width - 140, self.height - 238)
 
+    def on_resize(self, width, height):
+        self.width = width
+        self.height = height
+        self._build_ui()
+        if self.state == self.STATE_PLAY:
+            self._new_round()
+
     def _session_seconds(self):
         try:
             minutes = int(self.manager.settings.get("session_duration_minutes", 5))

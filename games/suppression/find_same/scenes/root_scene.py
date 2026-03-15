@@ -78,7 +78,9 @@ class FindSameScene(BaseScene):
         self._new_round()
 
     def reset(self):
+        size = self.manager.screen_size or (self.width, self.height)
         self.__init__(self.manager)
+        self.on_resize(*size)
 
     def _session_seconds(self):
         try:
@@ -261,6 +263,9 @@ class FindSameScene(BaseScene):
         screen.blit(tip, (self.width // 2 - tip.get_width() // 2, 98))
         self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170))
         self._draw_boards(screen)
+        divider_x = self.left_panel.right + (self.right_panel.left - self.left_panel.right) // 2
+        for y in range(self.left_panel.y + 8, self.left_panel.bottom - 8, 18):
+            pygame.draw.line(screen, (196, 210, 230), (divider_x, y), (divider_x, min(y + 10, self.left_panel.bottom - 8)), 3)
         if self.feedback_text:
             fb = self.option_font.render(self.feedback_text, True, self.feedback_color)
             screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.height - 122))

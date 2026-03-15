@@ -58,11 +58,17 @@ class PathFusionScene(BaseScene):
         self.filter_lr = pygame.Rect(self.filter_modal.x + 24, self.filter_modal.y + 68, 210, 46)
         self.filter_rl = pygame.Rect(self.filter_modal.x + 266, self.filter_modal.y + 68, 210, 46)
         self.filter_start = pygame.Rect(self.filter_modal.centerx - 90, self.filter_modal.y + 150, 180, 44)
+        option_y = self.height - 150
         self.option_rects = [
-            pygame.Rect(self.width // 2 - 210, 460, 120, 44),
-            pygame.Rect(self.width // 2 - 60, 460, 120, 44),
-            pygame.Rect(self.width // 2 + 90, 460, 120, 44),
+            pygame.Rect(self.width // 2 - 210, option_y, 120, 44),
+            pygame.Rect(self.width // 2 - 60, option_y, 120, 44),
+            pygame.Rect(self.width // 2 + 90, option_y, 120, 44),
         ]
+
+    def on_resize(self, width, height):
+        self.width = width
+        self.height = height
+        self._build_ui()
 
     def _session_seconds(self):
         try:

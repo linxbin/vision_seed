@@ -121,6 +121,15 @@ class FindSameSceneTests(unittest.TestCase):
         surface = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
         scene.draw(surface)
 
+    def test_play_draws_vertical_dashed_divider_between_panels(self):
+        scene = FindSameScene(_ManagerStub())
+        scene._start_game()
+        surface = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
+        scene.draw(surface)
+        divider_x = scene.left_panel.right + (scene.right_panel.left - scene.left_panel.right) // 2
+        dash_y = scene.left_panel.y + 12
+        self.assertEqual(surface.get_at((divider_x, dash_y))[:3], (196, 210, 230))
+
     def test_mouse_click_shape_toggles_pending_selection(self):
         manager = _ManagerStub()
         scene = FindSameScene(manager)

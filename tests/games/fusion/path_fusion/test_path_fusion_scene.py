@@ -110,6 +110,10 @@ class PathFusionSceneTests(unittest.TestCase):
         background_point = (target_point[0] - 24, target_point[1])
         self.assertNotEqual(screen.get_at(target_point)[:3], screen.get_at(background_point)[:3])
 
+    def test_back_button_does_not_overlap_answer_buttons(self):
+        scene = PathFusionScene(_ManagerStub())
+        self.assertTrue(all(not scene.btn_home.colliderect(rect) for rect in scene.option_rects))
+
     def test_finish_saves_result(self):
         manager = _ManagerStub()
         scene = PathFusionScene(manager)

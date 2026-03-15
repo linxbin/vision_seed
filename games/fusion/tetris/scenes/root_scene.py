@@ -60,6 +60,11 @@ class FusionTetrisScene(BaseScene):
         self.filter_start = pygame.Rect(self.filter_modal.centerx - 90, self.filter_modal.y + 150, 180, 44)
         self.board_rect = pygame.Rect(self.width // 2 - 112, 156, 224, 392)
 
+    def on_resize(self, width, height):
+        self.width = width
+        self.height = height
+        self._build_ui()
+
     def _session_seconds(self):
         try:
             minutes = int(self.manager.settings.get("session_duration_minutes", 5))
