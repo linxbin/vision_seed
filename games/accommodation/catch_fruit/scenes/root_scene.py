@@ -110,7 +110,8 @@ class CatchFruitScene(BaseScene):
             method()
 
     def _new_round(self):
-        self.round_data = self.board_service.create_round(self.play_area, self._stage_index(), 3)
+        current_basket_x = self.round_data.get("basket_x") if self.round_data else None
+        self.round_data = self.board_service.create_round(self.play_area, self._stage_index(), 3, basket_x=current_basket_x)
         self.session.restart_round(time.time())
 
     def _start_game(self):
@@ -121,16 +122,16 @@ class CatchFruitScene(BaseScene):
         self.feedback_text = ""
         self._new_round()
 
-    def _clarity(self):
+    def _clarity(self, fruit):
         span = max(1, self.play_area.height - 80)
-        return min(1.0, max(0.0, (self.round_data["fruit_y"] - self.play_area.top) / span))
+        return min(1.0, max(0.0, (fruit["y"] - self.play_area.top) / span))
 
-    def _current_size(self):
-        return int(self.round_data["start_size"] - (self.round_data["start_size"] - self.round_data["end_size"]) * self._clarity())
+    def _current_size(self, fruit):
+        return int(fruit["start_size"] - (fruit["start_size"] - fruit["end_size"]) * self._clarity(fruit))
 
-    def _resolve_catch(self, success):
+    def _resolve_catch(self, success, fruit):
         if success:
-            gained = self.scoring.on_catch(self._current_size(), self._clarity(), self.round_data["fruit_name"], self.round_data["stage_index"], self.board_service.fruit_points)
+            gained = self.scoring.on_catch(self._current_size(fruit), self._clarity(fruit), fruit["fruit_name"], self.round_data["stage_index"], self.board_service.fruit_points)
             if self.scoring.last_success_bonus:
                 self._set_feedback("catch_fruit.feedback.bonus", (88, 162, 108))
             elif self.scoring.current_streak >= 3:
@@ -143,7 +144,9 @@ class CatchFruitScene(BaseScene):
             self.scoring.on_miss()
             self._set_feedback("catch_fruit.feedback.miss", (214, 96, 96))
             self._play_sound("play_wrong")
-        self._new_round()
+        occupied_x = [item["x"] for item in self.round_data["fruits"] if item is not fruit]
+        replacement = self.board_service.create_fruit(self.play_area, self.round_data["stage_index"], 3, occupied_x)
+        fruit.update(replacement)
 
     def _finish_game(self):
         self.state = self.STATE_RESULT
@@ -246,17 +249,18 @@ class CatchFruitScene(BaseScene):
             screen.blit(basket_surface, basket_surface.get_rect(center=basket.center))
         else:
             pygame.draw.rect(screen, (176, 118, 62), basket, border_radius=14)
-        clarity = self._clarity()
-        size = self._current_size()
-        halo = pygame.Surface((size * 3, size * 3), pygame.SRCALPHA)
-        pygame.draw.circle(halo, (255, 223, 142, int(150 * (1.0 - clarity))), (halo.get_width() // 2, halo.get_height() // 2), size)
-        fruit_center = (int(self.round_data["fruit_x"]), int(self.round_data["fruit_y"]))
-        screen.blit(halo, halo.get_rect(center=fruit_center))
-        fruit_surface = load_image_if_exists(self.board_service.fruit_assets[self.round_data["fruit_name"]], (size, size))
-        if fruit_surface is not None:
-            screen.blit(fruit_surface, fruit_surface.get_rect(center=fruit_center))
-        else:
-            pygame.draw.circle(screen, (255, 98, 86), fruit_center, size // 2)
+        for fruit in sorted(self.round_data["fruits"], key=lambda item: item["y"]):
+            clarity = self._clarity(fruit)
+            size = self._current_size(fruit)
+            halo = pygame.Surface((size * 3, size * 3), pygame.SRCALPHA)
+            pygame.draw.circle(halo, (255, 223, 142, int(150 * (1.0 - clarity))), (halo.get_width() // 2, halo.get_height() // 2), size)
+            fruit_center = (int(fruit["x"]), int(fruit["y"]))
+            screen.blit(halo, halo.get_rect(center=fruit_center))
+            fruit_surface = load_image_if_exists(self.board_service.fruit_assets[fruit["fruit_name"]], (size, size))
+            if fruit_surface is not None:
+                screen.blit(fruit_surface, fruit_surface.get_rect(center=fruit_center))
+            else:
+                pygame.draw.circle(screen, (255, 98, 86), fruit_center, size // 2)
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.body_font.render(self.feedback_text, True, self.feedback_color)
             screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 20))
@@ -344,10 +348,11 @@ class CatchFruitScene(BaseScene):
             if self.round_data["move_dir"] != 0:
                 self.round_data["basket_x"] += self.round_data["move_dir"] * 8
                 self.round_data["basket_x"] = max(self.play_area.left + 60, min(self.play_area.right - 60, self.round_data["basket_x"]))
-            self.round_data["fruit_y"] += self.round_data["fruit_speed"]
-            if self.round_data["fruit_y"] >= self.play_area.bottom - 46:
-                success = abs(self.round_data["fruit_x"] - self.round_data["basket_x"]) <= 70 and self._clarity() >= 0.55
-                self._resolve_catch(success)
+            for fruit in self.round_data["fruits"]:
+                fruit["y"] += fruit["speed"]
+                if fruit["y"] >= self.play_area.bottom - 46:
+                    success = abs(fruit["x"] - self.round_data["basket_x"]) <= 70 and self._clarity(fruit) >= 0.55
+                    self._resolve_catch(success, fruit)
             if self.session.is_complete():
                 self._finish_game()
                 return

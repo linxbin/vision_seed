@@ -71,19 +71,35 @@ class CatchFruitSceneTests(unittest.TestCase):
         manager = _ManagerStub()
         scene = CatchFruitScene(manager)
         scene._start_game()
-        scene.round_data.update({"fruit_x": 200, "basket_x": 200, "fruit_y": scene.play_area.bottom - 46, "fruit_name": "apple"})
-        scene._resolve_catch(True)
+        fruit = scene.round_data["fruits"][0]
+        fruit.update({"x": 200, "y": scene.play_area.bottom - 46, "fruit_name": "apple"})
+        scene.round_data["basket_x"] = 200
+        scene._resolve_catch(True, fruit)
         self.assertEqual(scene.scoring.success_count, 1)
         self.assertGreater(scene.scoring.score, 0)
         self.assertEqual(manager.sound_manager.correct_calls, 1)
+
+    def test_successful_catch_keeps_basket_position(self):
+        scene = CatchFruitScene(_ManagerStub())
+        scene._start_game()
+        fruit = scene.round_data["fruits"][0]
+        fruit.update({"x": 260, "y": scene.play_area.bottom - 46, "fruit_name": "apple"})
+        scene.round_data["basket_x"] = 260
+        scene._resolve_catch(True, fruit)
+        self.assertEqual(scene.round_data["basket_x"], 260)
 
     def test_miss_counts_failure(self):
         manager = _ManagerStub()
         scene = CatchFruitScene(manager)
         scene._start_game()
-        scene._resolve_catch(False)
+        scene._resolve_catch(False, scene.round_data["fruits"][0])
         self.assertEqual(scene.scoring.failure_count, 1)
         self.assertEqual(manager.sound_manager.wrong_calls, 1)
+
+    def test_round_spawns_multiple_fruits(self):
+        scene = CatchFruitScene(_ManagerStub())
+        scene._start_game()
+        self.assertGreaterEqual(len(scene.round_data["fruits"]), 2)
 
     def test_finish_saves_result(self):
         manager = _ManagerStub()
