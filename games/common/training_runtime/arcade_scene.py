@@ -561,7 +561,11 @@ class PrecisionAimMechanic(BaseArcadeMechanic):
         pygame.draw.line(screen, cross_color, (cx - 12, cy), (cx + 12, cy), 2)
         pygame.draw.line(screen, cross_color, (cx, cy - 12), (cx, cy + 12), 2)
         if self.center_streak >= 2:
-            streak = self.scene.small_font.render(f"STREAK x{self.center_streak}", True, (72, 132, 208))
+            streak = self.scene.small_font.render(
+                self.scene.manager.t("arcade.streak", count=self.center_streak),
+                True,
+                (72, 132, 208),
+            )
             screen.blit(streak, (self.scene.play_area.right - streak.get_width() - 12, self.scene.play_area.y + 12))
 
     def training_metrics(self, scene):
@@ -1032,13 +1036,13 @@ class ArcadeTrainingScene(BaseScene):
 
     def _badge_text(self):
         badges = {
-            'catch_fruit': 'FOCUS',
-            'spot_difference': 'SYNC',
-            'weak_eye_key': 'CLUE',
-            'depth_grab': 'DEPTH',
-            'precision_aim': 'AIM',
+            'catch_fruit': 'arcade.badge.focus',
+            'spot_difference': 'arcade.badge.sync',
+            'weak_eye_key': 'arcade.badge.clue',
+            'depth_grab': 'arcade.badge.depth',
+            'precision_aim': 'arcade.badge.aim',
         }
-        return badges.get(self.config.mechanic_type, 'PLAY')
+        return self.manager.t(badges.get(self.config.mechanic_type, 'arcade.badge.play'))
 
     def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), icon_name=None, selected=False):
         icon = self._load_ui_icon(icon_name, light=sum(text_color) > 500, size=(18, 18)) if icon_name else None

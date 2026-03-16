@@ -258,7 +258,7 @@ class ReportScene(BaseScene):
         game_id = self.final_result.get("game_id", "")
         if not game_id:
             game_id = "legacy_training"
-        return f"Game: {game_id}"
+        return self.manager.t("report.game_id", game_id=game_id)
 
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()

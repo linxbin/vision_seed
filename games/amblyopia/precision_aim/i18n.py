@@ -41,10 +41,12 @@ TRANSLATIONS = {
         "precision_aim.metric.label": "Average click deviation",
         "precision_aim.metric.accuracy": "Hit accuracy",
         "precision_aim.metric.center_rate": "Center hit rate",
+        "precision_aim.reward": "Best center streak {count}",
+        "precision_aim.next_goal": "Try to keep your aim closer to the center",
     },
     "zh-CN": {
-        "game.amblyopia.precision_aim": "精确瞄准",
-        "precision_aim.title": "精确瞄准",
+        "game.amblyopia.precision_aim": "精准瞄准",
+        "precision_aim.title": "精准瞄准",
         "precision_aim.home.start": "开始训练",
         "precision_aim.home.help": "帮助指南",
         "precision_aim.help.title": "怎么玩？",
@@ -84,5 +86,7 @@ TRANSLATIONS = {
         "precision_aim.metric.label": "平均点击偏差",
         "precision_aim.metric.accuracy": "命中准确率",
         "precision_aim.metric.center_rate": "靶心命中率",
+        "precision_aim.reward": "最佳靶心连击 {count}",
+        "precision_aim.next_goal": "下次尝试更靠近中心击中",
     },
 }

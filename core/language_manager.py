@@ -1,3 +1,5 @@
+import logging
+
 from games.accommodation.catch_fruit.i18n import TRANSLATIONS as CATCH_FRUIT_TRANSLATIONS
 from games.accommodation.e_orientation.i18n import TRANSLATIONS as E_ORIENTATION_TRANSLATIONS
 from games.accommodation.snake.i18n import TRANSLATIONS as SNAKE_TRANSLATIONS
@@ -17,6 +19,10 @@ from games.stereopsis.frogger.i18n import TRANSLATIONS as FROGGER_TRANSLATIONS
 from games.suppression.find_same.i18n import TRANSLATIONS as FIND_SAME_TRANSLATIONS
 from games.suppression.red_blue_catch.i18n import TRANSLATIONS as RED_BLUE_CATCH_TRANSLATIONS
 from games.suppression.weak_eye_key.i18n import TRANSLATIONS as WEAK_EYE_KEY_TRANSLATIONS
+from .metric_i18n import TRANSLATIONS as METRIC_TRANSLATIONS
+
+
+logger = logging.getLogger(__name__)
 
 
 def _merge_translations(*translation_sets):
@@ -32,6 +38,7 @@ class LanguageManager:
 
     DEFAULT_LANGUAGE = "en-US"
     SUPPORTED_LANGUAGES = ("en-US", "zh-CN")
+    _warned_missing_keys = set()
 
     CORE_TRANSLATIONS = {
         "en-US": {
@@ -219,6 +226,7 @@ class LanguageManager:
         FIND_SAME_TRANSLATIONS,
         RED_BLUE_CATCH_TRANSLATIONS,
         WEAK_EYE_KEY_TRANSLATIONS,
+        METRIC_TRANSLATIONS,
         DEPTH_GRAB_TRANSLATIONS,
         BRICK_BREAKER_TRANSLATIONS,
         FROGGER_TRANSLATIONS,
@@ -251,7 +259,13 @@ class LanguageManager:
     def t(self, key, **kwargs):
         language_map = self.TRANSLATIONS.get(self.current_language, {})
         fallback_map = self.TRANSLATIONS[self.DEFAULT_LANGUAGE]
-        template = language_map.get(key, fallback_map.get(key, key))
+        template = language_map.get(key, fallback_map.get(key))
+        if template is None:
+            warn_key = (self.current_language, key)
+            if warn_key not in self._warned_missing_keys:
+                logger.warning("Missing translation key for %s: %s", self.current_language, key)
+                self._warned_missing_keys.add(warn_key)
+            template = key
         if kwargs:
             try:
                 return template.format(**kwargs)

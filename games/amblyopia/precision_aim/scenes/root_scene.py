@@ -330,7 +330,11 @@ class PrecisionAimScene(BaseScene):
         screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, guide_y))
         self._draw_target(screen)
         if self.scoring.center_streak >= 2:
-            streak = self.small_font.render(f"STREAK x{self.scoring.center_streak}", True, (72, 132, 208))
+            streak = self.small_font.render(
+                self.manager.t("arcade.streak", count=self.scoring.center_streak),
+                True,
+                (72, 132, 208),
+            )
             screen.blit(streak, (self.play_area.right - streak.get_width() - 12, self.play_area.y + 12))
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.body_font.render(self.feedback_text, True, self.feedback_color)

@@ -23,6 +23,10 @@ class _ManagerStub:
             return "Foods eaten"
         if key == "red_blue_catch.metric.accuracy":
             return "Color match accuracy"
+        if key == "metric.catch_accuracy":
+            return "Catch accuracy"
+        if key == "metric.best_length":
+            return "Best length"
         if key == "brick_breaker.metric.cleared":
             return "Bricks Cleared"
         if key == "frogger.metric.crosses":
@@ -101,6 +105,24 @@ class GameMetricsTests(unittest.TestCase):
             "training_metrics": {"color_match_accuracy": 76.0},
         })
         self.assertEqual(line2, "Color match accuracy: 76.0")
+
+    def test_summarize_session_uses_red_blue_catch_saved_metric_label(self):
+        manager = _ManagerStub()
+        _line1, line2 = summarize_session(manager, {
+            "accuracy_rate": 76.0,
+            "duration_seconds": 29.0,
+            "training_metrics": {"catch_accuracy": 76.0},
+        })
+        self.assertEqual(line2, "Catch accuracy: 76.0")
+
+    def test_summarize_session_uses_snake_saved_metric_label(self):
+        manager = _ManagerStub()
+        _line1, line2 = summarize_session(manager, {
+            "accuracy_rate": 84.0,
+            "duration_seconds": 21.0,
+            "training_metrics": {"best_length": 9},
+        })
+        self.assertEqual(line2, "Best length: 9")
 
 
 if __name__ == "__main__":

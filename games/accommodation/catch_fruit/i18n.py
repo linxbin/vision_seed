@@ -35,6 +35,9 @@ TRANSLATIONS = {
         "catch_fruit.result.continue": "Continue",
         "catch_fruit.result.exit": "Back to Menu",
         "catch_fruit.metric.label": "Clear-window catches",
+        "catch_fruit.metric.smallest": "Smallest caught size",
+        "catch_fruit.reward": "Best streak {count}, bonus fruits {bonus}",
+        "catch_fruit.next_goal": "Keep waiting for the clearest catch window",
     },
     "zh-CN": {
         "game.accommodation.catch_fruit": "接水果专注训练",
@@ -43,7 +46,7 @@ TRANSLATIONS = {
         "catch_fruit.home.help": "帮助指南",
         "catch_fruit.help.title": "怎么玩？",
         "catch_fruit.help.step1": "观察水果从大而模糊，慢慢变成小而清晰。",
-        "catch_fruit.help.step2": "用左右方向键或鼠标移动篮子。",
+        "catch_fruit.help.step2": "用左/右方向键或鼠标移动篮子。",
         "catch_fruit.help.step3": "当水果变清晰并对准篮子后，就会自动接住。",
         "catch_fruit.help.ok": "我知道了",
         "catch_fruit.mode.naked": "模式：裸眼训练",
@@ -72,5 +75,8 @@ TRANSLATIONS = {
         "catch_fruit.result.continue": "继续游戏",
         "catch_fruit.result.exit": "返回菜单",
         "catch_fruit.metric.label": "清晰窗口命中",
+        "catch_fruit.metric.smallest": "命中最小尺寸",
+        "catch_fruit.reward": "最佳连击 {count}，奖励水果 {bonus}",
+        "catch_fruit.next_goal": "继续等到最清晰的接取时机",
     },
 }

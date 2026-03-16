@@ -101,12 +101,12 @@ class MenuScene(BaseScene):
         if categories:
             return categories
         return [
-            {"id": "accommodation", "name": "Accommodation Training", "name_key": "category.accommodation"},
-            {"id": "simultaneous", "name": "Simultaneous Vision Training", "name_key": "category.simultaneous"},
-            {"id": "fusion", "name": "Fusion Training", "name_key": "category.fusion"},
-            {"id": "suppression", "name": "Suppression Release Training", "name_key": "category.suppression"},
-            {"id": "stereopsis", "name": "Stereopsis Training", "name_key": "category.stereopsis"},
-            {"id": "amblyopia", "name": "Amblyopia Training", "name_key": "category.amblyopia"},
+            {"id": "accommodation", "name": self.manager.t("category.accommodation"), "name_key": "category.accommodation"},
+            {"id": "simultaneous", "name": self.manager.t("category.simultaneous"), "name_key": "category.simultaneous"},
+            {"id": "fusion", "name": self.manager.t("category.fusion"), "name_key": "category.fusion"},
+            {"id": "suppression", "name": self.manager.t("category.suppression"), "name_key": "category.suppression"},
+            {"id": "stereopsis", "name": self.manager.t("category.stereopsis"), "name_key": "category.stereopsis"},
+            {"id": "amblyopia", "name": self.manager.t("category.amblyopia"), "name_key": "category.amblyopia"},
         ]
 
     def _resolve_label(self, item):
