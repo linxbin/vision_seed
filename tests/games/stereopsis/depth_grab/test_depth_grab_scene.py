@@ -259,3 +259,11 @@ class DepthGrabSceneTests(unittest.TestCase):
                     first_display["center"][1] - second_display["center"][1],
                 )
                 self.assertGreaterEqual(distance, first_display["glasses_radius"] + second_display["glasses_radius"] + 12)
+
+    def test_play_scene_renders_after_resize(self):
+        scene = DepthGrabScene(_ManagerStub())
+        scene._start_game()
+        scene.on_resize(840, 640)
+        surface = pygame.Surface((840, 640))
+        scene.draw(surface)
+        self.assertGreater(sum(surface.get_at((420, 320))[:3]), 0)

@@ -90,6 +90,46 @@ class TestMenuSceneUI(UITestCase):
         self.assertEqual(self.mock_manager.active_category, "simultaneous")
         self.mock_manager.set_scene.assert_called_with("category")
 
+    def test_small_window_long_recommendation_text_still_renders(self):
+        self.scene.recommendation_hint = (
+            "Review the weaker binocular category first, then complete a short fresh session before moving on."
+        )
+        self.scene.recommendations = [
+            {"game_name": "Very Long Simultaneous Vision Training Name", "reason_key": "reason.one", "accuracy": 82.4},
+            {"game_name": "Another Extended Recommendation Label", "reason_key": "reason.two", "accuracy": 76.1},
+        ]
+        self.scene.recent_completions = [
+            {"game_name": "Long Recent Game Name", "accuracy": 91.2, "game_id": "simultaneous.pong"},
+        ]
+        def mock_t(key, **kwargs):
+            values = {
+                "menu.recommend.title": "Today's Recommended Order",
+                "menu.recent.title": "Recent",
+                "menu.recent.none": "No session yet",
+                "reason.one": "review (82.4%)",
+                "reason.two": "fresh today",
+                "menu.title": "VisionSeed",
+                "menu.multigame_subtitle": "Multi-Game Training",
+                "menu.hint": "Shortcuts: 1-9",
+                "category.accommodation": "Accommodation Training",
+                "category.simultaneous": "Simultaneous Vision Training",
+                "category.fusion": "Fusion Training",
+                "category.suppression": "Suppression Release Training",
+                "category.stereopsis": "Stereopsis Training",
+                "category.amblyopia": "Amblyopia Training",
+                "menu.system_settings": "System Settings",
+                "menu.exit": "Exit",
+                "menu.recent.item": "{game} ({accuracy}%)",
+            }
+            template = values.get(key, key)
+            return template.format(**kwargs) if kwargs else template
+
+        self.mock_manager.t = mock_t
+        self.scene.on_resize(840, 640)
+        frame = self.capture_frame(self.scene)
+        panel_color = self.get_surface_average_color(frame, (30, 400, 500, 170))
+        self.assertGreater(sum(panel_color[:3]), 30)
+
 
 if __name__ == '__main__':
     unittest.main()

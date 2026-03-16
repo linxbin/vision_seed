@@ -216,8 +216,17 @@ class LicenseScene(BaseScene):
         title = self.title_font.render(self.manager.t("license.title"), True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(title, (self.width // 2 - title.get_width() // 2, self.panel_rect.y + 28))
 
-        subtitle = self.small_font.render(self.manager.t("license.subtitle"), True, PlatformTheme.TEXT_MUTED)
-        screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, self.panel_rect.y + 88))
+        self.draw_text_block(
+            screen,
+            self.small_font,
+            self.manager.t("license.subtitle"),
+            PlatformTheme.TEXT_MUTED,
+            (self.panel_rect.x + 30, self.panel_rect.y + 82),
+            self.panel_rect.width - 60,
+            line_gap=3,
+            max_lines=2,
+            ellipsis=True,
+        )
 
         device_hash = self.manager.license_manager.get_device_hash()
         device_title = self.small_font.render(self.manager.t("license.device_hash"), True, PlatformTheme.TEXT_PRIMARY)
@@ -283,14 +292,41 @@ class LicenseScene(BaseScene):
             (92, 106, 144),
         )
 
-        hint = self.small_font.render(self.manager.t("license.hint"), True, PlatformTheme.TEXT_MUTED)
-        screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.panel_rect.y + 312))
-        paste_tip = self.small_font.render(self.manager.t("license.paste_tip"), True, PlatformTheme.TEXT_MUTED)
-        screen.blit(paste_tip, (self.panel_rect.x + 30, self.input_rect.y - 24))
+        self.draw_text_block(
+            screen,
+            self.small_font,
+            self.manager.t("license.hint"),
+            PlatformTheme.TEXT_MUTED,
+            (self.panel_rect.x + 30, self.panel_rect.y + 312),
+            self.panel_rect.width - 60,
+            line_gap=2,
+            max_lines=2,
+            ellipsis=True,
+        )
+        self.draw_text_block(
+            screen,
+            self.small_font,
+            self.manager.t("license.paste_tip"),
+            PlatformTheme.TEXT_MUTED,
+            (self.panel_rect.x + 30, self.input_rect.y - 42),
+            self.input_rect.width,
+            line_gap=2,
+            max_lines=2,
+            ellipsis=True,
+        )
 
         if self.message:
-            msg = self.small_font.render(self.message, True, self.message_color)
-            screen.blit(msg, (self.width // 2 - msg.get_width() // 2, self.panel_rect.y + 342))
+            self.draw_text_block(
+                screen,
+                self.small_font,
+                self.message,
+                self.message_color,
+                (self.panel_rect.x + 30, self.panel_rect.y + 342),
+                self.panel_rect.width - 60,
+                line_gap=2,
+                max_lines=2,
+                ellipsis=True,
+            )
 
     def update(self):
         if self.input_active and self._backspace_held:

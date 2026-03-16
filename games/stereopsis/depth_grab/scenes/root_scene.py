@@ -400,28 +400,39 @@ class DepthGrabScene(BaseScene):
         hud_secondary = (88, 28, 92) if is_glasses_mode else (86, 104, 130)
         hud_alert = (132, 18, 32) if is_glasses_mode else (222, 74, 74)
         mode_text = self.manager.t("depth_grab.mode.naked") if self.mode == self.MODE_NAKED else self.manager.t("depth_grab.mode.glasses")
-        screen.blit(self.body_font.render(mode_text, True, hud_primary), (24, 18))
         remaining = max(0, int(self.session.session_seconds - self.session.session_elapsed))
-        timer_surface = self.body_font.render(self.manager.t("depth_grab.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"), True, hud_alert if remaining <= 30 else hud_primary)
-        screen.blit(timer_surface, (self.width // 2 - timer_surface.get_width() // 2, 14))
-        score_surface = self.body_font.render(self.manager.t("depth_grab.score", score=self.scoring.score), True, hud_primary)
-        screen.blit(score_surface, (self.width // 2 - score_surface.get_width() // 2, 44))
+        right_lines = []
         if is_glasses_mode:
-            glasses = self.small_font.render(self.manager.t("depth_grab.glasses_tip"), True, hud_secondary)
             direction_key = "depth_grab.filter.lr" if self.filter_direction == self.FILTER_LR else "depth_grab.filter.rl"
-            direction = self.small_font.render(self.manager.t(direction_key), True, hud_secondary)
-            screen.blit(glasses, (24, 50))
-            screen.blit(direction, (24, 74))
-        stage = self.small_font.render(self.manager.t(self.board_service.stage_label_key(self.round_data["stage_index"])), True, hud_secondary)
-        goal = self.small_font.render(self.manager.t(self.board_service.goal_label_key(self.round_data["stage_index"])), True, hud_secondary)
+            right_lines = [
+                self.manager.t("depth_grab.glasses_tip"),
+                self.manager.t(direction_key),
+            ]
+        self.draw_session_hud(
+            screen,
+            top_font=self.body_font,
+            meta_font=self.small_font,
+            left_title=mode_text,
+            timer_text=self.manager.t("depth_grab.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"),
+            center_text=self.manager.t("depth_grab.score", score=self.scoring.score),
+            left_lines=(
+                self.manager.t(self.board_service.stage_label_key(self.round_data["stage_index"])),
+                self.manager.t(self.board_service.goal_label_key(self.round_data["stage_index"])),
+            ),
+            right_lines=tuple(right_lines),
+            play_area=self.play_area,
+            timer_color=hud_alert if remaining <= 30 else hud_primary,
+            center_color=hud_primary,
+            left_title_color=hud_primary,
+            meta_color=hud_secondary,
+            meta_start_y=50,
+        )
         guide = self.small_font.render(self.manager.t("depth_grab.play.guide"), True, hud_secondary)
-        screen.blit(stage, (self.play_area.x, 98))
-        screen.blit(goal, (self.play_area.right - goal.get_width(), 98))
-        screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, 122))
+        screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, max(98, self.play_area.y - 28)))
         self._draw_targets(screen)
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.body_font.render(self.feedback_text, True, self.feedback_color)
-            screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 12))
+            screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 18))
         self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (62, 52, 128) if is_glasses_mode else (86, 116, 170), icon_name="back_arrow")
 
     def _draw_result(self, screen):
@@ -432,19 +443,27 @@ class DepthGrabScene(BaseScene):
         if self.final_stats.get("mode") == self.MODE_GLASSES:
             filter_text = self.manager.t("depth_grab.filter.lr" if self.final_stats.get("filter_direction") == self.FILTER_LR else "depth_grab.filter.rl")
         lines = [
-            self.manager.t("depth_grab.result.duration", sec=self.final_stats.get("duration", 0)),
-            self.manager.t("depth_grab.result.success", n=self.final_stats.get("success", 0)),
-            self.manager.t("depth_grab.result.wrong", n=self.final_stats.get("wrong", 0)),
-            self.manager.t("depth_grab.result.accuracy", value=self.final_stats.get("accuracy", 0.0)),
-            self.manager.t("depth_grab.result.score", n=self.final_stats.get("score", 0)),
-            self.manager.t("depth_grab.result.grab_time", sec=self.final_stats.get("avg_grab_time", 0.0)),
-            self.manager.t("depth_grab.result.confusion", n=self.final_stats.get("front_back_confusion_count", 0)),
-            self.manager.t("depth_grab.result.mode", mode=mode_text),
-            self.manager.t("depth_grab.result.filter", direction=filter_text),
+            (self.manager.t("depth_grab.result.duration", sec=self.final_stats.get("duration", 0)), (58, 84, 118)),
+            (self.manager.t("depth_grab.result.success", n=self.final_stats.get("success", 0)), (58, 84, 118)),
+            (self.manager.t("depth_grab.result.wrong", n=self.final_stats.get("wrong", 0)), (58, 84, 118)),
+            (self.manager.t("depth_grab.result.accuracy", value=self.final_stats.get("accuracy", 0.0)), (58, 84, 118)),
+            (self.manager.t("depth_grab.result.score", n=self.final_stats.get("score", 0)), (58, 84, 118)),
+            (self.manager.t("depth_grab.result.grab_time", sec=self.final_stats.get("avg_grab_time", 0.0)), (58, 84, 118)),
+            (self.manager.t("depth_grab.result.confusion", n=self.final_stats.get("front_back_confusion_count", 0)), (58, 84, 118)),
+            (self.manager.t("depth_grab.result.mode", mode=mode_text), (96, 114, 138)),
+            (self.manager.t("depth_grab.result.filter", direction=filter_text), (96, 114, 138)),
         ]
-        for idx, text in enumerate(lines):
-            line = self.body_font.render(text, True, (58, 84, 118) if idx < 7 else (96, 114, 138))
-            screen.blit(line, (self.width // 2 - line.get_width() // 2, 176 + idx * 30))
+        self.draw_two_column_stats(
+            screen,
+            font=self.body_font,
+            entries=lines,
+            top_y=184,
+            left_x=self.width // 2 - 320,
+            right_x=self.width // 2 + 24,
+            column_width=296,
+            rows_per_column=5,
+            row_gap=38,
+        )
         self._draw_button(screen, self.btn_continue, self.manager.t("depth_grab.result.continue"), (84, 148, 108), icon_name="check")
         self._draw_button(screen, self.btn_exit, self.manager.t("depth_grab.result.exit"), (120, 134, 168), icon_name="cross")
 

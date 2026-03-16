@@ -147,3 +147,11 @@ class PrecisionAimSceneTests(unittest.TestCase):
         scene.session.session_started_at = time.time() - scene._session_seconds()
         scene.update()
         self.assertEqual(scene.final_stats["center_hit_rate"], 60.0)
+
+    def test_play_scene_renders_after_resize(self):
+        scene = PrecisionAimScene(_ManagerStub())
+        scene._start_game()
+        scene.on_resize(840, 640)
+        surface = pygame.Surface((840, 640))
+        scene.draw(surface)
+        self.assertGreater(sum(surface.get_at((420, 320))[:3]), 0)

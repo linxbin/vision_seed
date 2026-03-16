@@ -1,3 +1,4 @@
+import logging
 import pygame
 import random
 import time
@@ -7,6 +8,9 @@ from core.ui_theme import PlatformTheme, draw_chip, draw_chip_label, draw_platfo
 from ..services import ETrainingRecordsService
 from core.e_generator import EGenerator
 from config import E_SIZE_LEVELS, SCREEN_WIDTH, SCREEN_HEIGHT
+
+
+logger = logging.getLogger(__name__)
 
 
 class Particle:
@@ -290,12 +294,12 @@ class TrainingScene(BaseScene):
             
             success = self.records_service.save_session(session_data)
             if success:
-                print(f"Training record saved successfully: {session_data['timestamp']}")
+                logger.info("Training record saved successfully: %s", session_data["timestamp"])
             else:
-                print("Failed to save training record")
+                logger.warning("Failed to save training record")
                 
         except Exception as e:
-            print(f"Error saving training record: {e}")
+            logger.warning("Error saving training record: %s", e)
 
     def _finalize_finish_transition(self):
         """统一训练结束逻辑，确保边界值安全。"""

@@ -1,10 +1,14 @@
 import json
+import logging
 import os
 import shutil
 import tempfile
 from typing import List, Dict, Any, Tuple
 from config import E_SIZE_LEVELS
 from core.app_paths import get_install_root, get_user_data_dir
+
+
+logger = logging.getLogger(__name__)
 
 
 class DataManager:
@@ -26,7 +30,7 @@ class DataManager:
                 shutil.copyfile(legacy_records, self.records_file)
                 return
             except OSError as e:
-                print(f"Error migrating legacy records file: {e}")
+                logger.warning("Error migrating legacy records file: %s", e)
         self._init_records_file()
 
     def _init_records_file(self):
@@ -130,7 +134,7 @@ class DataManager:
                 return migrated_data
             return {"schema_version": self.CURRENT_SCHEMA_VERSION, "sessions": []}
         except (json.JSONDecodeError, IOError) as e:
-            print(f"Error reading records file: {e}")
+            logger.warning("Error reading records file: %s", e)
             self._init_records_file()
             return {"schema_version": self.CURRENT_SCHEMA_VERSION, "sessions": []}
 
@@ -145,8 +149,8 @@ class DataManager:
                 os.fsync(f.fileno())
             os.replace(temp_path, self.records_file)
             return True
-        except IOError as e:
-            print(f"Error writing records file: {e}")
+        except OSError as e:
+            logger.warning("Error writing records file: %s", e)
             if temp_path and os.path.exists(temp_path):
                 try:
                     os.remove(temp_path)
@@ -166,7 +170,7 @@ class DataManager:
             data['schema_version'] = self.CURRENT_SCHEMA_VERSION
             return self._write_json(data)
         except Exception as e:
-            print(f"Error saving training session: {e}")
+            logger.warning("Error saving training session: %s", e)
             return False
 
     def get_all_sessions(self) -> List[Dict[str, Any]]:

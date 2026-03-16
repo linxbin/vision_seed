@@ -15,6 +15,7 @@ class CategoryScene(BaseScene):
         self._items = []
         self._title = ""
         self.back_rect = pygame.Rect(0, 0, 1, 1)
+        self.focused_index = 0
         self._build_items()
 
     def _refresh_fonts(self):
@@ -45,6 +46,7 @@ class CategoryScene(BaseScene):
             summary1, summary2 = summarize_session(self.manager, latest)
             self._items.append({"rect": rect, "index": index, "game_id": game.game_id, "name": game_name, "summary1": summary1, "summary2": summary2})
         self.back_rect = pygame.Rect(self.width - 126, 24, 92, 40)
+        self.focused_index = max(0, min(self.focused_index, len(self._items)))
 
     def _resolve_label(self, item):
         if not item:
@@ -62,6 +64,9 @@ class CategoryScene(BaseScene):
         self.height = height
         self._build_items()
 
+    def _all_items(self):
+        return self._items + [{"rect": self.back_rect, "kind": "back"}]
+
     def _enter_game(self, game_id: str):
         self.manager.active_game_id = game_id
         self.manager.set_scene("game_host")
@@ -73,6 +78,20 @@ class CategoryScene(BaseScene):
                 if event.key == pygame.K_ESCAPE:
                     self.manager.set_scene("menu")
                     continue
+                all_items = self._all_items()
+                if event.key in (pygame.K_UP, pygame.K_LEFT) and all_items:
+                    self.focused_index = (self.focused_index - 1) % len(all_items)
+                    continue
+                if event.key in (pygame.K_DOWN, pygame.K_RIGHT) and all_items:
+                    self.focused_index = (self.focused_index + 1) % len(all_items)
+                    continue
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE) and all_items:
+                    target = all_items[self.focused_index]
+                    if target.get("kind") == "back":
+                        self.manager.set_scene("menu")
+                    else:
+                        self._enter_game(target["game_id"])
+                    continue
 
                 if pygame.K_1 <= event.key <= pygame.K_9:
                     idx = event.key - pygame.K_0
@@ -81,10 +100,12 @@ class CategoryScene(BaseScene):
                         self._enter_game(target["game_id"])
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.back_rect.collidepoint(mouse_pos):
+                    self.focused_index = len(self._items)
                     self.manager.set_scene("menu")
                     continue
-                for item in self._items:
+                for index, item in enumerate(self._items):
                     if item["rect"].collidepoint(mouse_pos):
+                        self.focused_index = index
                         self._enter_game(item["game_id"])
                         break
 
@@ -101,7 +122,7 @@ class CategoryScene(BaseScene):
         else:
             mouse_pos = pygame.mouse.get_pos()
             for index, item in enumerate(self._items, start=1):
-                hovered = item["rect"].collidepoint(mouse_pos)
+                hovered = item["rect"].collidepoint(mouse_pos) or (index - 1) == self.focused_index
                 draw_card(screen, item["rect"], hovered=hovered, alt=index % 2 == 0)
                 label = self.item_font.render(f"{item['index']}. {item['name']}", True, PlatformTheme.TEXT_PRIMARY)
                 label_x = item["rect"].x + 16
@@ -115,7 +136,7 @@ class CategoryScene(BaseScene):
                     screen.blit(summary2, (label_x, item["rect"].y + 62))
 
         mouse_pos = pygame.mouse.get_pos()
-        hovered = self.back_rect.collidepoint(mouse_pos)
+        hovered = self.back_rect.collidepoint(mouse_pos) or self.focused_index == len(self._items)
         draw_chip_label(screen, self.back_rect, self.hint_font, self.manager.t("common.back"), hovered=hovered, icon_name="back_arrow")
 
         hint = self.hint_font.render(self.manager.t("category.hint"), True, PlatformTheme.TEXT_MUTED)

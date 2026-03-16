@@ -304,29 +304,37 @@ class PrecisionAimScene(BaseScene):
         hud_primary = (55, 82, 122)
         hud_secondary = (86, 104, 130)
         hud_alert = (222, 74, 74)
-        screen.blit(self.body_font.render(self.manager.t("precision_aim.mode.naked"), True, hud_primary), (24, 18))
         remaining = max(0, int(self.session.session_seconds - self.session.session_elapsed))
-        timer = self.body_font.render(self.manager.t("precision_aim.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"), True, hud_alert if remaining <= 30 else hud_primary)
-        score = self.body_font.render(self.manager.t("precision_aim.score", score=self.scoring.score), True, hud_primary)
-        screen.blit(timer, (self.width // 2 - timer.get_width() // 2, 14))
-        screen.blit(score, (self.width // 2 - score.get_width() // 2, 44))
-        stage = self.small_font.render(self.manager.t(self.board_service.stage_label_key(self.round_data["stage_index"])), True, hud_secondary)
-        goal = self.small_font.render(self.manager.t(self.board_service.goal_label_key(self.round_data["stage_index"])), True, hud_secondary)
         guide = self.small_font.render(self.manager.t("precision_aim.play.guide"), True, hud_secondary)
         round_left = max(0, int(self.session.ROUND_SECONDS - self.session.round_elapsed))
-        countdown = self.small_font.render(self.manager.t("precision_aim.round_time", sec=round_left), True, hud_alert if round_left <= 3 else hud_secondary)
-        screen.blit(stage, (self.play_area.x, 98))
-        screen.blit(goal, (self.play_area.right - goal.get_width(), 98))
-        guide_y = max(86, self.play_area.y - 48)
+        self.draw_session_hud(
+            screen,
+            top_font=self.body_font,
+            meta_font=self.small_font,
+            left_title=self.manager.t("precision_aim.mode.naked"),
+            timer_text=self.manager.t("precision_aim.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"),
+            center_text=self.manager.t("precision_aim.score", score=self.scoring.score),
+            left_lines=(
+                self.manager.t(self.board_service.stage_label_key(self.round_data["stage_index"])),
+                self.manager.t(self.board_service.goal_label_key(self.round_data["stage_index"])),
+            ),
+            right_lines=(self.manager.t("precision_aim.round_time", sec=round_left),),
+            play_area=self.play_area,
+            timer_color=hud_alert if remaining <= 30 else hud_primary,
+            center_color=hud_primary,
+            left_title_color=hud_primary,
+            meta_color=hud_secondary,
+            meta_start_y=50,
+        )
+        guide_y = max(100, self.play_area.y - 30)
         screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, guide_y))
-        screen.blit(countdown, (self.play_area.centerx - countdown.get_width() // 2, self.play_area.bottom + 20))
         self._draw_target(screen)
         if self.scoring.center_streak >= 2:
             streak = self.small_font.render(f"STREAK x{self.scoring.center_streak}", True, (72, 132, 208))
             screen.blit(streak, (self.play_area.right - streak.get_width() - 12, self.play_area.y + 12))
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.body_font.render(self.feedback_text, True, self.feedback_color)
-            screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 54))
+            screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 18))
         self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow")
 
     def _draw_result(self, screen):
@@ -344,9 +352,18 @@ class PrecisionAimScene(BaseScene):
             self.manager.t("precision_aim.result.smallest", n=self.final_stats.get("smallest_target_hit", 0)),
             self.manager.t("precision_aim.result.streak", n=self.final_stats.get("best_center_streak", 0)),
         ]
-        for idx, text in enumerate(lines):
-            line = self.body_font.render(text, True, (58, 84, 118))
-            screen.blit(line, (self.width // 2 - line.get_width() // 2, 176 + idx * 30))
+        self.draw_two_column_stats(
+            screen,
+            font=self.body_font,
+            entries=lines,
+            top_y=182,
+            left_x=self.width // 2 - 330,
+            right_x=self.width // 2 + 20,
+            column_width=310,
+            rows_per_column=5,
+            row_gap=38,
+            default_color=(58, 84, 118),
+        )
         self._draw_button(screen, self.btn_continue, self.manager.t("precision_aim.result.continue"), (84, 148, 108), icon_name="check")
         self._draw_button(screen, self.btn_exit, self.manager.t("precision_aim.result.exit"), (120, 134, 168), icon_name="cross")
 

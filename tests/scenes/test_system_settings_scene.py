@@ -62,6 +62,18 @@ class SystemSettingsSceneTests(unittest.TestCase):
         scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_ESCAPE)])
         self.assertEqual(manager.last_scene, "menu")
 
+    def test_focus_navigation_and_enter_activate_items(self):
+        manager = _ManagerStub()
+        scene = SystemSettingsScene(manager)
+        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_DOWN)])
+        self.assertEqual(scene.focused_index, 1)
+        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)])
+        self.assertEqual(manager.settings["language"], "zh-CN")
+        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_UP)])
+        self.assertEqual(scene.focused_index, 0)
+        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE)])
+        self.assertFalse(manager.settings["sound_enabled"])
+
 
 if __name__ == "__main__":
     unittest.main()

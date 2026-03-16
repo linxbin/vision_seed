@@ -75,11 +75,21 @@ class OnboardingScene(BaseScene):
         draw_platform_background(screen, self.width, self.height)
         draw_card(screen, self.panel_rect, alt=True, radius=20)
 
-        title = self.title_font.render(self.manager.t("onboarding.title"), True, PlatformTheme.TEXT_PRIMARY)
+        title_text = self.fit_text_to_width(self.title_font, self.manager.t("onboarding.title"), self.panel_rect.width - 64)
+        title = self.title_font.render(title_text, True, PlatformTheme.TEXT_PRIMARY)
         screen.blit(title, (self.width // 2 - title.get_width() // 2, self.panel_rect.y + 24))
 
-        subtitle = self.subtitle_font.render(self.manager.t("onboarding.subtitle"), True, PlatformTheme.TEXT_MUTED)
-        screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, self.panel_rect.y + 82))
+        subtitle_lines, subtitle_height = self.draw_text_block(
+            screen,
+            self.subtitle_font,
+            self.manager.t("onboarding.subtitle"),
+            PlatformTheme.TEXT_MUTED,
+            (self.panel_rect.x + 52, self.panel_rect.y + 82),
+            self.panel_rect.width - 104,
+            line_gap=4,
+            max_lines=2,
+            ellipsis=True,
+        )
 
         tips = [
             self.manager.t("onboarding.tip1"),
@@ -87,15 +97,33 @@ class OnboardingScene(BaseScene):
             self.manager.t("onboarding.tip3"),
             self.manager.t("onboarding.tip4"),
         ]
-        tip_y = self.panel_rect.y + 150
+        tip_y = self.panel_rect.y + 118 + subtitle_height
+        tip_width = self.panel_rect.width - 104
         for idx, tip in enumerate(tips, start=1):
-            tip_text = f"{idx}. {tip}"
-            tip_surface = self.body_font.render(tip_text, True, PlatformTheme.TEXT_PRIMARY)
-            screen.blit(tip_surface, (self.panel_rect.x + 52, tip_y))
-            tip_y += 52
+            lines, used_height = self.draw_text_block(
+                screen,
+                self.body_font,
+                f"{idx}. {tip}",
+                PlatformTheme.TEXT_PRIMARY,
+                (self.panel_rect.x + 52, tip_y),
+                tip_width,
+                line_gap=4,
+                max_lines=2,
+                ellipsis=True,
+            )
+            tip_y += used_height + 14
 
-        est = self.small_font.render(self.manager.t("onboarding.estimate"), True, PlatformTheme.TEXT_MUTED)
-        screen.blit(est, (self.panel_rect.x + 52, self.panel_rect.bottom - 112))
+        self.draw_text_block(
+            screen,
+            self.small_font,
+            self.manager.t("onboarding.estimate"),
+            PlatformTheme.TEXT_MUTED,
+            (self.panel_rect.x + 52, self.panel_rect.bottom - 122),
+            self.panel_rect.width - 104,
+            line_gap=3,
+            max_lines=2,
+            ellipsis=True,
+        )
 
         self._draw_button(screen, self.start_button_rect, self.manager.t("onboarding.start"), (63, 154, 92))
         self._draw_button(screen, self.skip_button_rect, self.manager.t("onboarding.skip"), (88, 108, 152))

@@ -112,7 +112,36 @@ class CatchFruitScene(BaseScene):
     def _new_round(self):
         current_basket_x = self.round_data.get("basket_x") if self.round_data else None
         self.round_data = self.board_service.create_round(self.play_area, self._stage_index(), 3, basket_x=current_basket_x)
+        self._sync_round_aliases()
         self.session.restart_round(time.time())
+
+    def _sync_round_aliases(self):
+        fruits = self.round_data.get("fruits") or []
+        if not fruits:
+            self.round_data.pop("fruit_x", None)
+            self.round_data.pop("fruit_y", None)
+            self.round_data.pop("fruit_speed", None)
+            self.round_data.pop("fruit_name", None)
+            return
+        primary = fruits[0]
+        self.round_data["fruit_x"] = primary["x"]
+        self.round_data["fruit_y"] = primary["y"]
+        self.round_data["fruit_speed"] = primary["speed"]
+        self.round_data["fruit_name"] = primary["fruit_name"]
+
+    def _sync_aliases_to_primary_fruit(self):
+        fruits = self.round_data.get("fruits") or []
+        if not fruits:
+            return
+        primary = fruits[0]
+        if "fruit_x" in self.round_data:
+            primary["x"] = self.round_data["fruit_x"]
+        if "fruit_y" in self.round_data:
+            primary["y"] = self.round_data["fruit_y"]
+        if "fruit_speed" in self.round_data:
+            primary["speed"] = self.round_data["fruit_speed"]
+        if "fruit_name" in self.round_data:
+            primary["fruit_name"] = self.round_data["fruit_name"]
 
     def _start_game(self):
         self.state = self.STATE_PLAY
@@ -147,6 +176,7 @@ class CatchFruitScene(BaseScene):
         occupied_x = [item["x"] for item in self.round_data["fruits"] if item is not fruit]
         replacement = self.board_service.create_fruit(self.play_area, self.round_data["stage_index"], 3, occupied_x)
         fruit.update(replacement)
+        self._sync_round_aliases()
 
     def _finish_game(self):
         self.state = self.STATE_RESULT
@@ -345,6 +375,7 @@ class CatchFruitScene(BaseScene):
         now = time.time()
         if self.state == self.STATE_PLAY:
             self.session.tick(now)
+            self._sync_aliases_to_primary_fruit()
             if self.round_data["move_dir"] != 0:
                 self.round_data["basket_x"] += self.round_data["move_dir"] * 8
                 self.round_data["basket_x"] = max(self.play_area.left + 60, min(self.play_area.right - 60, self.round_data["basket_x"]))
@@ -353,6 +384,7 @@ class CatchFruitScene(BaseScene):
                 if fruit["y"] >= self.play_area.bottom - 46:
                     success = abs(fruit["x"] - self.round_data["basket_x"]) <= 70 and self._clarity(fruit) >= 0.55
                     self._resolve_catch(success, fruit)
+            self._sync_round_aliases()
             if self.session.is_complete():
                 self._finish_game()
                 return

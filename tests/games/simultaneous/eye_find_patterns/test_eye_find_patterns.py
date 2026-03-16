@@ -116,6 +116,14 @@ class EyeFindPatternsTests(unittest.TestCase):
         scene = EyeFindPatternsScene(manager)
         self.assertEqual(scene._session_seconds(), 600)
 
+    def test_play_scene_renders_after_resize(self):
+        scene = EyeFindPatternsScene(_ManagerStub())
+        scene._start_game()
+        scene.on_resize(840, 640)
+        surface = pygame.Surface((840, 640))
+        scene.draw(surface)
+        self.assertGreater(sum(surface.get_at((420, 320))[:3]), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

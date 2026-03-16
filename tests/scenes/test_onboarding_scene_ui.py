@@ -89,6 +89,23 @@ class TestOnboardingSceneUI(UITestCase):
         # 验证场景切换逻辑被触发
         self.mock_manager.set_scene.assert_called_with("menu")
 
+    def test_small_window_with_long_copy_still_renders(self):
+        self.mock_manager.t.side_effect = lambda key, **kwargs: {
+            "onboarding.title": "30s Quick Start For Visual Training",
+            "onboarding.subtitle": "Finish this once before your first training session to understand the posture, distance, response keys, and pacing tips.",
+            "onboarding.tip1": "Sit upright, keep a stable viewing distance, and avoid glare from nearby windows or lamps.",
+            "onboarding.tip2": "Use arrow keys to answer E direction and keep your shoulders relaxed during the task.",
+            "onboarding.tip3": "Train 5-10 minutes per session, and stop early if your eyes feel too tired.",
+            "onboarding.tip4": "This app is only a training aid and does not replace medical diagnosis or treatment.",
+            "onboarding.estimate": "Recommended start: L4 / 20-30 questions / steady pace with short breaks if needed.",
+            "onboarding.start": "I Understand",
+            "onboarding.skip": "Skip",
+        }.get(key, key)
+        self.scene.on_resize(840, 640)
+        frame = self.capture_frame(self.scene)
+        center_color = self.get_surface_average_color(frame, (170, 120, 500, 320))
+        self.assertGreater(sum(center_color[:3]), 10)
+
 
 if __name__ == '__main__':
     unittest.main()

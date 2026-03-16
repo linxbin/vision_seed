@@ -16,6 +16,7 @@ class SystemSettingsScene(BaseScene):
         self.language_rect = pygame.Rect(0, 0, 1, 1)
         self.duration_rect = pygame.Rect(0, 0, 1, 1)
         self.back_rect = pygame.Rect(0, 0, 1, 1)
+        self.focused_index = 0
         self._reflow_layout()
 
     def _refresh_fonts(self):
@@ -53,6 +54,19 @@ class SystemSettingsScene(BaseScene):
     def _go_back(self):
         self.manager.set_scene("menu")
 
+    def _all_items(self):
+        return [self.sound_rect, self.language_rect, self.duration_rect, self.back_rect]
+
+    def _activate_focus(self):
+        if self.focused_index == 0:
+            self._toggle_sound()
+        elif self.focused_index == 1:
+            self._toggle_language()
+        elif self.focused_index == 2:
+            self._cycle_session_duration()
+        else:
+            self._go_back()
+
     def _cycle_session_duration(self):
         current = int(self.manager.settings.get("session_duration_minutes", 5))
         next_value = current + 1
@@ -67,25 +81,38 @@ class SystemSettingsScene(BaseScene):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self._go_back()
+                elif event.key in (pygame.K_UP, pygame.K_LEFT):
+                    self.focused_index = (self.focused_index - 1) % len(self._all_items())
+                elif event.key in (pygame.K_DOWN, pygame.K_RIGHT):
+                    self.focused_index = (self.focused_index + 1) % len(self._all_items())
+                elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                    self._activate_focus()
                 elif event.key == pygame.K_1:
+                    self.focused_index = 0
                     self._toggle_sound()
                 elif event.key == pygame.K_2:
+                    self.focused_index = 1
                     self._toggle_language()
                 elif event.key == pygame.K_3:
+                    self.focused_index = 2
                     self._cycle_session_duration()
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.sound_rect.collidepoint(mouse_pos):
+                    self.focused_index = 0
                     self._toggle_sound()
                 elif self.language_rect.collidepoint(mouse_pos):
+                    self.focused_index = 1
                     self._toggle_language()
                 elif self.duration_rect.collidepoint(mouse_pos):
+                    self.focused_index = 2
                     self._cycle_session_duration()
                 elif self.back_rect.collidepoint(mouse_pos):
+                    self.focused_index = 3
                     self._go_back()
 
-    def _draw_item(self, screen, rect, text):
+    def _draw_item(self, screen, rect, text, focused=False):
         mouse_pos = pygame.mouse.get_pos()
-        hovered = rect.collidepoint(mouse_pos)
+        hovered = rect.collidepoint(mouse_pos) or focused
         draw_card(screen, rect, hovered=hovered)
         if rect == self.sound_rect:
             icon_name = "audio_on_dark" if self.manager.settings.get("sound_enabled", True) else "audio_off_dark"
@@ -110,10 +137,10 @@ class SystemSettingsScene(BaseScene):
         sound_on = self.manager.t("config.on") if self.manager.settings.get("sound_enabled", True) else self.manager.t("config.off")
         lang_text = self.manager.t("config.lang_en") if self.manager.settings.get("language") == "en-US" else self.manager.t("config.lang_zh")
         duration_text = self.manager.t("system.duration_value", n=int(self.manager.settings.get("session_duration_minutes", 5)))
-        self._draw_item(screen, self.sound_rect, self.manager.t("system.sound", value=sound_on))
-        self._draw_item(screen, self.language_rect, self.manager.t("system.language", value=lang_text))
-        self._draw_item(screen, self.duration_rect, self.manager.t("system.duration", value=duration_text))
+        self._draw_item(screen, self.sound_rect, self.manager.t("system.sound", value=sound_on), focused=self.focused_index == 0)
+        self._draw_item(screen, self.language_rect, self.manager.t("system.language", value=lang_text), focused=self.focused_index == 1)
+        self._draw_item(screen, self.duration_rect, self.manager.t("system.duration", value=duration_text), focused=self.focused_index == 2)
 
         mouse_pos = pygame.mouse.get_pos()
-        hovered = self.back_rect.collidepoint(mouse_pos)
+        hovered = self.back_rect.collidepoint(mouse_pos) or self.focused_index == 3
         draw_chip_label(screen, self.back_rect, self.label_font, self.manager.t("common.back"), hovered=hovered, icon_name="back_arrow")

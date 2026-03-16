@@ -417,29 +417,37 @@ class EyeFindPatternsScene(BaseScene):
         hud_primary = (42, 12, 72) if is_glasses_mode else (55, 82, 122)
         hud_secondary = (88, 28, 92) if is_glasses_mode else (86, 104, 130)
         hud_alert = (132, 18, 32) if is_glasses_mode else (222, 74, 74)
-        tip_color = (82, 22, 76) if is_glasses_mode else (106, 70, 70)
-        direction_color = (32, 16, 112) if is_glasses_mode else (76, 96, 142)
         confirm_color = (52, 124, 82) if is_glasses_mode else (72, 148, 102)
         back_color = (62, 52, 128) if is_glasses_mode else (86, 116, 170)
 
         mode_text = self.manager.t("eye_find.mode.naked") if self.mode == self.MODE_NAKED else self.manager.t("eye_find.mode.glasses")
-        mode_surface = self.body_font.render(mode_text, True, hud_primary)
-        screen.blit(mode_surface, (24, 18))
-
         remaining = max(0, self._session_seconds() - self.session_elapsed)
-        timer_color = hud_alert if remaining <= 30 else hud_primary
-        timer_surface = self.body_font.render(self.manager.t("eye_find.time", sec=self._format_time(remaining)), True, timer_color)
-        screen.blit(timer_surface, (self.width // 2 - timer_surface.get_width() // 2, 14))
-
-        score_surface = self.body_font.render(self.manager.t("eye_find.score", score=self.scoring.score), True, hud_primary)
-        screen.blit(score_surface, (self.width // 2 - score_surface.get_width() // 2, 44))
-
+        attempt_left = max(0, int(self.ATTEMPT_SECONDS - self.attempt_elapsed))
+        right_lines = (self.manager.t("eye_find.attempt_time", sec=attempt_left),)
         if is_glasses_mode:
-            glasses = self.small_font.render(self.manager.t("eye_find.glasses_tip"), True, tip_color)
             filter_text_key = "eye_find.filter.lr" if self.filter_direction == self.FILTER_LR else "eye_find.filter.rl"
-            direction = self.small_font.render(self.manager.t(filter_text_key), True, direction_color)
-            screen.blit(glasses, (24, 50))
-            screen.blit(direction, (24, 74))
+            right_lines = (
+                self.manager.t("eye_find.glasses_tip"),
+                self.manager.t(filter_text_key),
+                self.manager.t("eye_find.attempt_time", sec=attempt_left),
+            )
+        self.draw_session_hud(
+            screen,
+            top_font=self.body_font,
+            meta_font=self.small_font,
+            left_title=mode_text,
+            timer_text=self.manager.t("eye_find.time", sec=self._format_time(remaining)),
+            center_text=self.manager.t("eye_find.score", score=self.scoring.score),
+            left_lines=(),
+            right_lines=right_lines,
+            play_area=self.play_area,
+            timer_color=hud_alert if remaining <= 30 else hud_primary,
+            center_color=hud_primary,
+            left_title_color=hud_primary,
+            meta_color=hud_secondary,
+            meta_start_y=50,
+            meta_gap=22,
+        )
 
         left = self._apply_filter(self.pattern_surface, "left")
         right = self._apply_filter(self.pattern_surface, "right")
@@ -453,19 +461,14 @@ class EyeFindPatternsScene(BaseScene):
         screen.blit(blend_layer, (0, 0))
 
         guide = self.small_font.render(self.manager.t("eye_find.play.guide"), True, hud_secondary)
-        screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, self.play_area.bottom + 8))
-
-        attempt_left = max(0, int(self.ATTEMPT_SECONDS - self.attempt_elapsed))
-        attempt_color = hud_alert if attempt_left <= 8 else hud_secondary
-        attempt_surface = self.small_font.render(self.manager.t("eye_find.attempt_time", sec=attempt_left), True, attempt_color)
-        screen.blit(attempt_surface, (self.play_area.centerx - attempt_surface.get_width() // 2, self.play_area.bottom + 30))
+        screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, self.play_area.bottom + 12))
 
         self._draw_button(screen, self.btn_confirm, self.manager.t("eye_find.confirm"), confirm_color, icon_name="check")
         self._draw_button(screen, self.btn_home, self.manager.t("common.back"), back_color, icon_name="back_arrow")
 
         if self.feedback_text:
             fb = self.body_font.render(self.feedback_text, True, self.feedback_color)
-            screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.y - 36))
+            screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 36))
 
     def _draw_result(self, screen):
         title = self.title_font.render(self.manager.t("eye_find.result.title"), True, (42, 70, 110))
@@ -478,18 +481,25 @@ class EyeFindPatternsScene(BaseScene):
                 "eye_find.filter.lr" if self.final_stats.get("filter_direction") == self.FILTER_LR else "eye_find.filter.rl"
             )
         lines = [
-            self.manager.t("eye_find.result.duration", sec=self.final_stats.get("duration", 0)),
-            self.manager.t("eye_find.result.success", n=self.final_stats.get("success", 0)),
-            self.manager.t("eye_find.result.score", n=self.final_stats.get("score", 0)),
-            self.manager.t("eye_find.result.mode", mode=mode_text),
-            self.manager.t("eye_find.result.filter", direction=filter_text),
-            self.manager.t("eye_find.result.reset_tip"),
-            self.manager.t("eye_find.result.eye_tip"),
+            (self.manager.t("eye_find.result.duration", sec=self.final_stats.get("duration", 0)), (58, 84, 118)),
+            (self.manager.t("eye_find.result.success", n=self.final_stats.get("success", 0)), (58, 84, 118)),
+            (self.manager.t("eye_find.result.score", n=self.final_stats.get("score", 0)), (58, 84, 118)),
+            (self.manager.t("eye_find.result.mode", mode=mode_text), (58, 84, 118)),
+            (self.manager.t("eye_find.result.filter", direction=filter_text), (58, 84, 118)),
+            (self.manager.t("eye_find.result.reset_tip"), (96, 114, 138)),
+            (self.manager.t("eye_find.result.eye_tip"), (96, 114, 138)),
         ]
-        for idx, text in enumerate(lines):
-            color = (58, 84, 118) if idx < 5 else (96, 114, 138)
-            line = self.body_font.render(text, True, color)
-            screen.blit(line, (self.width // 2 - line.get_width() // 2, 184 + idx * 36))
+        self.draw_two_column_stats(
+            screen,
+            font=self.body_font,
+            entries=lines,
+            top_y=184,
+            left_x=self.width // 2 - 320,
+            right_x=self.width // 2 + 24,
+            column_width=296,
+            rows_per_column=4,
+            row_gap=40,
+        )
 
         self._draw_button(screen, self.btn_continue, self.manager.t("eye_find.result.continue"), (84, 148, 108), icon_name="check")
         self._draw_button(screen, self.btn_exit, self.manager.t("eye_find.result.exit"), (120, 134, 168), icon_name="cross")

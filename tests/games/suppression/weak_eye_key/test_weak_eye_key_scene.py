@@ -134,3 +134,11 @@ class WeakEyeKeySceneTests(unittest.TestCase):
         self.assertEqual(clue["shape"], target["shape"])
         self.assertEqual(clue["teeth"], target["teeth"])
         self.assertEqual(clue["color"], target["color"])
+
+    def test_play_scene_renders_after_resize(self):
+        scene = WeakEyeKeyScene(_ManagerStub())
+        scene._start_game()
+        scene.on_resize(840, 640)
+        surface = pygame.Surface((840, 640))
+        scene.draw(surface)
+        self.assertGreater(sum(surface.get_at((420, 320))[:3]), 0)

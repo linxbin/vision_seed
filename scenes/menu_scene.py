@@ -189,13 +189,30 @@ class MenuScene(BaseScene):
         if not self._compact_recommendation:
             badge_rect = pygame.Rect(self.recommend_panel.right - 112, self.recommend_panel.y + 14, 96, 28)
 
-        hint = self.meta_font.render(self.recommendation_hint, True, PlatformTheme.TEXT_MUTED)
-        screen.blit(hint, (self.recommend_panel.x + 16, self.recommend_panel.y + 48))
+        text_left = self.recommend_panel.x + 16
+        text_width = self.recommend_panel.width - 32
+        hint_lines, hint_height = self.draw_text_block(
+            screen,
+            self.meta_font,
+            self.recommendation_hint,
+            PlatformTheme.TEXT_MUTED,
+            (text_left, self.recommend_panel.y + 48),
+            text_width,
+            line_gap=2,
+            max_lines=2,
+            ellipsis=True,
+        )
+        recommendation_start_y = self.recommend_panel.y + 54 + hint_height
 
         for idx, item in enumerate(self.recommendations[: self._recommendation_lines], start=1):
             reason = self.manager.t(item["reason_key"], accuracy=f"{item['accuracy']:.1f}")
-            line = self.meta_font.render(f"{idx}. {item['game_name']}  ·  {reason}", True, PlatformTheme.TEXT_PRIMARY)
-            line_y = self.recommend_panel.y + 72 + (idx - 1) * 18
+            line_text = self.fit_text_to_width(
+                self.meta_font,
+                f"{idx}. {item['game_name']}  ·  {reason}",
+                self.recommend_panel.width - 44,
+            )
+            line = self.meta_font.render(line_text, True, PlatformTheme.TEXT_PRIMARY)
+            line_y = recommendation_start_y + (idx - 1) * 18
             bullet_icon = load_image_if_exists(project_path("assets", "ui", "star_dark.png"), (12, 12))
             line_x = self.recommend_panel.x + 18
             if bullet_icon is not None:
@@ -204,7 +221,7 @@ class MenuScene(BaseScene):
             screen.blit(line, (line_x, line_y))
 
         recent_title = self.meta_font.render(self.manager.t("menu.recent.title"), True, PlatformTheme.TEXT_PRIMARY)
-        recent_y = self._recent_row_y + 4
+        recent_y = max(self._recent_row_y + 4, recommendation_start_y + self._recommendation_lines * 18 + 8)
         divider_y = recent_y - 12
         pygame.draw.line(
             screen,
@@ -224,15 +241,22 @@ class MenuScene(BaseScene):
                         accuracy=f"{item['accuracy']:.1f}",
                     )
                 )
-            recent_text = self.meta_font.render("  |  ".join(parts), True, PlatformTheme.TEXT_MUTED)
+            recent_text = self.meta_font.render(
+                self.fit_text_to_width(self.meta_font, "  |  ".join(parts), self.recommend_panel.width - 134),
+                True,
+                PlatformTheme.TEXT_MUTED,
+            )
             screen.blit(recent_text, (self.recommend_panel.x + 118, recent_y))
         else:
-            empty = self.meta_font.render(self.manager.t("menu.recent.none"), True, PlatformTheme.TEXT_MUTED)
+            empty = self.meta_font.render(
+                self.fit_text_to_width(self.meta_font, self.manager.t("menu.recent.none"), self.recommend_panel.width - 134),
+                True,
+                PlatformTheme.TEXT_MUTED,
+            )
             screen.blit(empty, (self.recommend_panel.x + 118, recent_y))
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
-        self._build_items()
         draw_platform_background(screen, self.width, self.height)
 
         title = self.title_font.render(self.manager.t("menu.title"), True, PlatformTheme.TEXT_PRIMARY)

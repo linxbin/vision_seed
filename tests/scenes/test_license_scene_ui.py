@@ -101,6 +101,29 @@ class TestLicenseSceneUI(UITestCase):
         # 验证授权验证逻辑被触发
         self.mock_manager.license_manager.activate_with_token.assert_called_with("VS1.test123456")
 
+    def test_small_window_with_long_messages_still_renders(self):
+        def long_t(key, **kwargs):
+            values = {
+                "license.title": "License Activation",
+                "license.subtitle": "Send your device hash to the seller to receive a device-bound activation token for this computer.",
+                "license.device_hash": "Device Hash",
+                "license.copy_hash": "Copy Hash",
+                "license.paste": "Paste",
+                "license.activate": "Activate",
+                "license.exit": "Exit",
+                "license.hint": "C: Copy Hash  Enter: Activate  Esc: Exit  Ctrl+V: Paste token into the activation field",
+                "license.paste_tip": "Tip: click Paste or press Ctrl+V to insert the token from the clipboard.",
+                "license.input_placeholder": "Paste activation token (VS1....)",
+            }
+            return values.get(key, key)
+
+        self.mock_manager.t.side_effect = long_t
+        self.scene.message = "Activation failed [ERR_SIGNATURE] The token signature check failed for this device."
+        self.scene.on_resize(840, 640)
+        frame = self.capture_frame(self.scene)
+        center_color = self.get_surface_average_color(frame, (130, 110, 580, 360))
+        self.assertGreater(sum(center_color[:3]), 10)
+
 
 if __name__ == '__main__':
     unittest.main()

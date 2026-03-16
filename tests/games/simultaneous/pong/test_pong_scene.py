@@ -108,6 +108,14 @@ class PongSceneTests(unittest.TestCase):
         self.assertIn("encouragement", scene.final_stats)
         self.assertIn("accuracy", scene.final_stats)
 
+    def test_match_scene_renders_after_resize(self):
+        scene = PongScene(_ManagerStub())
+        scene._start_match()
+        scene.on_resize(840, 640)
+        surface = pygame.Surface((840, 640))
+        scene.draw(surface)
+        self.assertGreater(sum(surface.get_at((420, 320))[:3]), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

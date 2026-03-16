@@ -40,8 +40,10 @@ class DataManagerIOTests(unittest.TestCase):
                 manager = DataManager()
                 baseline = manager._read_json()
                 next_data = {"schema_version": DataManager.CURRENT_SCHEMA_VERSION, "sessions": [{"timestamp": "x"}]}
-                with patch("core.data_manager.os.replace", side_effect=OSError("replace failed")):
-                    manager._write_json(next_data)
+                with self.assertLogs("core.data_manager", level="WARNING") as logs:
+                    with patch("core.data_manager.os.replace", side_effect=OSError("replace failed")):
+                        manager._write_json(next_data)
+                self.assertTrue(any("Error writing records file: replace failed" in line for line in logs.output))
                 after = manager._read_json()
                 self.assertEqual(after, baseline)
                 self.assertEqual(list(Path(tmp_dir).glob(".records.*.tmp")), [])
@@ -52,18 +54,20 @@ class DataManagerIOTests(unittest.TestCase):
                 "core.data_manager.get_install_root", return_value=tmp_dir
             ):
                 manager = DataManager()
-                with patch("core.data_manager.os.replace", side_effect=OSError("replace failed")):
-                    ok = manager.save_training_session(
-                        {
-                            "timestamp": "2026-02-27T00:00:00",
-                            "difficulty_level": 3,
-                            "total_questions": 10,
-                            "correct_count": 7,
-                            "wrong_count": 3,
-                            "duration_seconds": 12.3,
-                        }
-                    )
+                with self.assertLogs("core.data_manager", level="WARNING") as logs:
+                    with patch("core.data_manager.os.replace", side_effect=OSError("replace failed")):
+                        ok = manager.save_training_session(
+                            {
+                                "timestamp": "2026-02-27T00:00:00",
+                                "difficulty_level": 3,
+                                "total_questions": 10,
+                                "correct_count": 7,
+                                "wrong_count": 3,
+                                "duration_seconds": 12.3,
+                            }
+                        )
                 self.assertFalse(ok)
+                self.assertTrue(any("Error writing records file: replace failed" in line for line in logs.output))
 
     def test_get_sessions_by_game_filters_namespace(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
