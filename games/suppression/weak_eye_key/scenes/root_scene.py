@@ -14,7 +14,6 @@ class WeakEyeKeyScene(BaseScene):
     STATE_HELP = "help"
     STATE_PLAY = "play"
     STATE_RESULT = "result"
-    MODE_NAKED = "naked"
     MODE_GLASSES = MODE_GLASSES
     FILTER_LR = FILTER_LR
     FILTER_RL = FILTER_RL
@@ -24,7 +23,7 @@ class WeakEyeKeyScene(BaseScene):
         self.width = 900
         self.height = 700
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = self.FILTER_LR
         self.show_filter_picker = False
         self.feedback_text = ""
@@ -50,9 +49,8 @@ class WeakEyeKeyScene(BaseScene):
     def _build_ui(self):
         card_w = min(560, self.width - 120)
         start_x = self.width // 2 - card_w // 2
-        self.btn_naked = pygame.Rect(start_x, 208, card_w, 58)
-        self.btn_glasses = pygame.Rect(start_x, 282, card_w, 58)
-        self.btn_help = pygame.Rect(start_x, 356, card_w, 58)
+        self.btn_start = pygame.Rect(start_x, 208, card_w, 58)
+        self.btn_help = pygame.Rect(start_x, 282, card_w, 58)
         self.btn_back = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_home = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_confirm = pygame.Rect(self.width // 2 - 94, self.height - 62, 188, 44)
@@ -76,7 +74,7 @@ class WeakEyeKeyScene(BaseScene):
 
     def reset(self):
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = self.FILTER_LR
         self.show_filter_picker = False
         self.feedback_text = ""
@@ -382,8 +380,7 @@ class WeakEyeKeyScene(BaseScene):
     def _draw_home(self, screen):
         title = self.title_font.render(self.manager.t("weak_eye_key.title"), True, (38, 66, 108))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 82))
-        self._draw_button(screen, self.btn_naked, self.manager.t("weak_eye_key.home.naked"), (64, 138, 212), icon_name="check")
-        self._draw_button(screen, self.btn_glasses, self.manager.t("weak_eye_key.home.glasses"), GLASSES_BUTTON_COLOR, icon_name="target")
+        self._draw_button(screen, self.btn_start, self.manager.t("weak_eye_key.home.start"), GLASSES_BUTTON_COLOR, icon_name="target")
         self._draw_button(screen, self.btn_help, self.manager.t("weak_eye_key.home.help"), (126, 142, 174), icon_name="question")
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (88, 116, 168), icon_name="back_arrow")
         if self.show_filter_picker:
@@ -430,13 +427,13 @@ class WeakEyeKeyScene(BaseScene):
         confirm_color = (52, 124, 82) if is_glasses_mode else (72, 148, 102)
         back_color = (62, 52, 128) if is_glasses_mode else (86, 116, 170)
 
-        mode_text = self.manager.t("weak_eye_key.mode.naked") if self.mode == self.MODE_NAKED else self.manager.t("weak_eye_key.mode.glasses")
+        mode_text = self.manager.t("weak_eye_key.mode.glasses")
         remaining = max(0, int(self.session.session_seconds - self.session.session_elapsed))
         right_lines = ()
         if is_glasses_mode:
             filter_text_key = "weak_eye_key.filter.lr" if self.filter_direction == self.FILTER_LR else "weak_eye_key.filter.rl"
             right_lines = (
-                self.manager.t("weak_eye_key.home.glasses"),
+                self.manager.t("weak_eye_key.mode.glasses"),
                 self.manager.t(filter_text_key),
             )
         self.draw_session_hud(
@@ -471,7 +468,7 @@ class WeakEyeKeyScene(BaseScene):
     def _draw_result(self, screen):
         title = self.title_font.render(self.manager.t("weak_eye_key.result.title"), True, (42, 70, 110))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 100))
-        mode_text = self.manager.t("weak_eye_key.mode.naked") if self.final_stats.get("mode") == self.MODE_NAKED else self.manager.t("weak_eye_key.mode.glasses")
+        mode_text = self.manager.t("weak_eye_key.mode.glasses")
         filter_text = "-"
         if self.final_stats.get("mode") == self.MODE_GLASSES:
             filter_text = self.manager.t("weak_eye_key.filter.lr") if self.final_stats.get("filter_direction") == self.FILTER_LR else self.manager.t("weak_eye_key.filter.rl")
@@ -528,22 +525,14 @@ class WeakEyeKeyScene(BaseScene):
                     if event.key == pygame.K_ESCAPE:
                         self._go_category()
                     elif event.key == pygame.K_1:
-                        self.mode = self.MODE_NAKED
-                        self._start_game()
-                    elif event.key == pygame.K_2:
-                        self.mode = self.MODE_GLASSES
                         self.show_filter_picker = True
-                    elif event.key == pygame.K_3:
+                    elif event.key == pygame.K_2:
                         self.state = self.STATE_HELP
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
                     if self.btn_back.collidepoint(pos):
                         self._go_category()
-                    elif self.btn_naked.collidepoint(pos):
-                        self.mode = self.MODE_NAKED
-                        self._start_game()
-                    elif self.btn_glasses.collidepoint(pos):
-                        self.mode = self.MODE_GLASSES
+                    elif self.btn_start.collidepoint(pos):
                         self.show_filter_picker = True
                     elif self.btn_help.collidepoint(pos):
                         self.state = self.STATE_HELP

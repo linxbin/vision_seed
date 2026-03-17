@@ -13,7 +13,6 @@ class PathFusionScene(BaseScene):
     STATE_HELP = "help"
     STATE_PLAY = "play"
     STATE_RESULT = "result"
-    MODE_NAKED = "naked"
     MODE_GLASSES = MODE_GLASSES
     GLASSES_PATH_OFFSET = 8
 
@@ -22,7 +21,7 @@ class PathFusionScene(BaseScene):
         self.width = 900
         self.height = 700
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = FILTER_LR
         self.show_filter_picker = False
         self.feedback_text = ""
@@ -47,9 +46,8 @@ class PathFusionScene(BaseScene):
     def _build_ui(self):
         card_w = min(560, self.width - 120)
         start_x = self.width // 2 - card_w // 2
-        self.btn_naked = pygame.Rect(start_x, 208, card_w, 58)
-        self.btn_glasses = pygame.Rect(start_x, 282, card_w, 58)
-        self.btn_help = pygame.Rect(start_x, 356, card_w, 58)
+        self.btn_start = pygame.Rect(start_x, 208, card_w, 58)
+        self.btn_help = pygame.Rect(start_x, 282, card_w, 58)
         self.btn_back = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_home = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_continue = pygame.Rect(self.width // 2 - 210, self.height - 100, 180, 48)
@@ -199,8 +197,7 @@ class PathFusionScene(BaseScene):
     def _draw_home(self, screen):
         title = self.title_font.render(self.manager.t("path_fusion.title"), True, (34, 60, 96))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 82))
-        self._draw_button(screen, self.btn_naked, self.manager.t("path_fusion.home.naked"), (96, 140, 214))
-        self._draw_button(screen, self.btn_glasses, self.manager.t("path_fusion.home.glasses"), GLASSES_BUTTON_COLOR)
+        self._draw_button(screen, self.btn_start, self.manager.t("path_fusion.home.start"), GLASSES_BUTTON_COLOR)
         self._draw_button(screen, self.btn_help, self.manager.t("path_fusion.home.help"), (124, 140, 168))
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170))
 
@@ -218,7 +215,7 @@ class PathFusionScene(BaseScene):
         remaining = max(0, int(self.session.session_seconds - self.session.session_elapsed))
         timer = self.body_font.render(self.manager.t("path_fusion.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"), True, (86, 116, 170))
         score = self.body_font.render(self.manager.t("path_fusion.score", score=self.scoring.score), True, (44, 60, 88))
-        mode = self.body_font.render(self.manager.t("path_fusion.mode.glasses" if self.mode == self.MODE_GLASSES else "path_fusion.mode.naked"), True, (44, 60, 88))
+        mode = self.body_font.render(self.manager.t("path_fusion.mode.glasses"), True, (44, 60, 88))
         guide = self.small_font.render(self.manager.t("path_fusion.play.guide"), True, (54, 70, 96))
         screen.blit(mode, (self.width - mode.get_width() - 126, 18))
         screen.blit(timer, (self.width // 2 - timer.get_width() // 2, 18))
@@ -230,29 +227,22 @@ class PathFusionScene(BaseScene):
         start = (board.x + 90, board.y + 80)
         mid = (board.centerx, board.centery)
         target_points = [(board.right - 90, board.y + 70), (board.right - 90, board.centery), (board.right - 90, board.bottom - 70)]
-        if self.mode == self.MODE_GLASSES:
-            left_color, right_color = self._glasses_colors()
-            left_start = (start[0] - self.GLASSES_PATH_OFFSET, start[1])
-            left_mid = (mid[0] - self.GLASSES_PATH_OFFSET, mid[1])
-            right_mid = (mid[0] + self.GLASSES_PATH_OFFSET, mid[1])
-            pygame.draw.circle(screen, left_color, left_start, 10)
-            pygame.draw.line(screen, left_color, left_start, left_mid, 5)
-            for idx, point in enumerate(target_points):
-                right_point = (point[0] + self.GLASSES_PATH_OFFSET, point[1])
-                pygame.draw.circle(screen, right_color, right_point, 12, 3)
-                pygame.draw.line(screen, right_color, right_mid, right_point, 5 if idx == self.selected_path else 3)
-            for idx, point in enumerate(target_points):
-                outline_color = (38, 42, 52) if idx == self.round_data["target"] else (124, 134, 152)
-                pygame.draw.circle(screen, outline_color, point, 8 if idx == self.round_data["target"] else 6)
-                pygame.draw.circle(screen, (248, 250, 252), point, 3 if idx == self.round_data["target"] else 2)
-            pygame.draw.circle(screen, (66, 84, 114), start, 5)
-            pygame.draw.circle(screen, (66, 84, 114), mid, 5)
-        else:
-            pygame.draw.circle(screen, (82, 130, 232), start, 10)
-            for idx, point in enumerate(target_points):
-                pygame.draw.circle(screen, (232, 78, 78) if idx == self.round_data["target"] else (180, 188, 204), point, 12, 3)
-                pygame.draw.line(screen, (96, 140, 214) if idx == self.selected_path else (154, 170, 196), mid, point, 5)
-            pygame.draw.line(screen, (154, 170, 196), start, mid, 5)
+        left_color, right_color = self._glasses_colors()
+        left_start = (start[0] - self.GLASSES_PATH_OFFSET, start[1])
+        left_mid = (mid[0] - self.GLASSES_PATH_OFFSET, mid[1])
+        right_mid = (mid[0] + self.GLASSES_PATH_OFFSET, mid[1])
+        pygame.draw.circle(screen, left_color, left_start, 10)
+        pygame.draw.line(screen, left_color, left_start, left_mid, 5)
+        for idx, point in enumerate(target_points):
+            right_point = (point[0] + self.GLASSES_PATH_OFFSET, point[1])
+            pygame.draw.circle(screen, right_color, right_point, 12, 3)
+            pygame.draw.line(screen, right_color, right_mid, right_point, 5 if idx == self.selected_path else 3)
+        for idx, point in enumerate(target_points):
+            outline_color = (38, 42, 52) if idx == self.round_data["target"] else (124, 134, 152)
+            pygame.draw.circle(screen, outline_color, point, 8 if idx == self.round_data["target"] else 6)
+            pygame.draw.circle(screen, (248, 250, 252), point, 3 if idx == self.round_data["target"] else 2)
+        pygame.draw.circle(screen, (66, 84, 114), start, 5)
+        pygame.draw.circle(screen, (66, 84, 114), mid, 5)
         for idx, rect in enumerate(self.option_rects):
             self._draw_button(screen, rect, str(idx + 1), (96, 140, 214) if idx == self.selected_path else (124, 140, 168))
         if self.feedback_text and time.time() <= self.feedback_until:
@@ -296,11 +286,7 @@ class PathFusionScene(BaseScene):
             elif self.state == self.STATE_HOME:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
-                    if self.btn_naked.collidepoint(pos):
-                        self.mode = self.MODE_NAKED
-                        self._start_game()
-                    elif self.btn_glasses.collidepoint(pos):
-                        self.mode = self.MODE_GLASSES
+                    if self.btn_start.collidepoint(pos):
                         self.show_filter_picker = True
                     elif self.btn_help.collidepoint(pos):
                         self.state = self.STATE_HELP

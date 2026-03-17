@@ -14,7 +14,6 @@ class PongScene(BaseScene):
     STATE_HELP = "help"
     STATE_PLAY = "play"
     STATE_RESULT = "result"
-    MODE_NAKED = "naked"
     MODE_GLASSES = MODE_GLASSES
     FILTER_LR = FILTER_LR
     FILTER_RL = FILTER_RL
@@ -24,7 +23,7 @@ class PongScene(BaseScene):
         self.width = 900
         self.height = 700
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = self.FILTER_LR
         self.show_filter_picker = False
         self.home_focus = 0
@@ -58,9 +57,8 @@ class PongScene(BaseScene):
     def _build_ui(self):
         card_w = min(560, self.width - 120)
         start_x = self.width // 2 - card_w // 2
-        self.btn_naked = pygame.Rect(start_x, 208, card_w, 58)
-        self.btn_glasses = pygame.Rect(start_x, 282, card_w, 58)
-        self.btn_help = pygame.Rect(start_x, 356, card_w, 58)
+        self.btn_start = pygame.Rect(start_x, 208, card_w, 58)
+        self.btn_help = pygame.Rect(start_x, 282, card_w, 58)
         self.btn_back = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_home = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_continue = pygame.Rect(self.width // 2 - 210, self.height - 100, 180, 48)
@@ -80,7 +78,7 @@ class PongScene(BaseScene):
 
     def reset(self):
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = self.FILTER_LR
         self.show_filter_picker = False
         self.home_focus = 0
@@ -300,27 +298,19 @@ class PongScene(BaseScene):
                     if event.key == pygame.K_ESCAPE:
                         self._go_category()
                     elif event.key in (pygame.K_UP, pygame.K_LEFT):
-                        self.home_focus = (self.home_focus - 1) % 4
+                        self.home_focus = (self.home_focus - 1) % 3
                     elif event.key in (pygame.K_DOWN, pygame.K_RIGHT):
-                        self.home_focus = (self.home_focus + 1) % 4
+                        self.home_focus = (self.home_focus + 1) % 3
                     elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                         if self.home_focus == 0:
-                            self.mode = self.MODE_NAKED
-                            self._start_match()
-                        elif self.home_focus == 1:
-                            self.mode = self.MODE_GLASSES
                             self.show_filter_picker = True
-                        elif self.home_focus == 2:
+                        elif self.home_focus == 1:
                             self.state = self.STATE_HELP
                         else:
                             self._go_category()
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
-                    if self.btn_naked.collidepoint(pos):
-                        self.mode = self.MODE_NAKED
-                        self._start_match()
-                    elif self.btn_glasses.collidepoint(pos):
-                        self.mode = self.MODE_GLASSES
+                    if self.btn_start.collidepoint(pos):
                         self.show_filter_picker = True
                     elif self.btn_help.collidepoint(pos):
                         self.state = self.STATE_HELP
@@ -441,10 +431,9 @@ class PongScene(BaseScene):
         subtitle = self.sub_font.render(self.manager.t("pong.subtitle"), True, (86, 104, 130))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 82))
         screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 138))
-        self._draw_button(screen, self.btn_naked, self.manager.t("pong.home.naked"), (96, 140, 214), selected=self.home_focus == 0)
-        self._draw_button(screen, self.btn_glasses, self.manager.t("pong.home.glasses"), GLASSES_BUTTON_COLOR, selected=self.home_focus == 1)
-        self._draw_button(screen, self.btn_help, self.manager.t("pong.home.help"), (124, 140, 168), icon_name="question", selected=self.home_focus == 2)
-        self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow", selected=self.home_focus == 3)
+        self._draw_button(screen, self.btn_start, self.manager.t("pong.home.start"), GLASSES_BUTTON_COLOR, selected=self.home_focus == 0, icon_name="target")
+        self._draw_button(screen, self.btn_help, self.manager.t("pong.home.help"), (124, 140, 168), icon_name="question", selected=self.home_focus == 1)
+        self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow", selected=self.home_focus == 2)
 
     def _draw_help(self, screen):
         title = self.title_font.render(self.manager.t("pong.help.title"), True, (34, 60, 96))
@@ -504,7 +493,7 @@ class PongScene(BaseScene):
 
     def _draw_play(self, screen):
         time_left = max(0, int(self._session_seconds() - (time.time() - self.session_started_at)))
-        mode_key = "pong.mode.naked" if self.mode == self.MODE_NAKED else "pong.mode.glasses"
+        mode_key = "pong.mode.glasses"
         self.draw_session_hud(
             screen,
             top_font=self.body_font,
@@ -545,7 +534,7 @@ class PongScene(BaseScene):
     def _draw_result(self, screen):
         title = self.title_font.render(self.manager.t("pong.result.title"), True, (34, 60, 96))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 74))
-        mode_text = self.manager.t("pong.mode.naked") if self.final_stats.get("mode") == self.MODE_NAKED else self.manager.t("pong.mode.glasses")
+        mode_text = self.manager.t("pong.mode.glasses")
         filter_text = "-"
         if self.final_stats.get("mode") == self.MODE_GLASSES:
             filter_text = self.manager.t("pong.filter.lr") if self.final_stats.get("filter_direction") == self.FILTER_LR else self.manager.t("pong.filter.rl")

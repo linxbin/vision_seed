@@ -84,7 +84,7 @@ class RedBlueCatchSceneTests(unittest.TestCase):
         scene.show_filter_picker = True
         scene.reset()
         self.assertEqual(scene.state, scene.STATE_HOME)
-        self.assertEqual(scene.mode, scene.MODE_NAKED)
+        self.assertEqual(scene.mode, scene.MODE_GLASSES)
         self.assertFalse(scene.show_filter_picker)
 
     def test_correct_catch_scores(self):
@@ -103,13 +103,11 @@ class RedBlueCatchSceneTests(unittest.TestCase):
         scene._start_game()
         self.assertGreaterEqual(len(scene.round_data["balls"]), 2)
 
-    def test_glasses_mode_uses_same_speed_profile_as_naked_mode(self):
+    def test_glasses_mode_uses_expected_speed_profile(self):
         board_service = RedBlueCatchScene(_ManagerStub()).board_service
         with patch("random.uniform", return_value=9.0):
-            naked_ball = board_service.create_ball(pygame.Rect(70, 136, 760, 462), stage_index=1, mode="naked")
-        with patch("random.uniform", return_value=9.0):
             glasses_ball = board_service.create_ball(pygame.Rect(70, 136, 760, 462), stage_index=1, mode="glasses")
-        self.assertEqual(naked_ball["speed"], glasses_ball["speed"])
+        self.assertEqual(glasses_ball["speed"], 6.0)
 
     def test_missed_ball_counts_failure(self):
         manager = _ManagerStub()

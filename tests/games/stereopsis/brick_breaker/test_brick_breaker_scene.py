@@ -77,7 +77,7 @@ class BrickBreakerSceneTests(unittest.TestCase):
         scene.show_filter_picker = True
         scene.reset()
         self.assertEqual(scene.state, scene.STATE_HOME)
-        self.assertEqual(scene.mode, scene.MODE_NAKED)
+        self.assertEqual(scene.mode, scene.MODE_GLASSES)
         self.assertFalse(scene.show_filter_picker)
 
     def test_round_has_single_row_with_random_depths(self):

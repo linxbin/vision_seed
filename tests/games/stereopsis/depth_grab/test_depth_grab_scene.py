@@ -109,11 +109,14 @@ class DepthGrabSceneTests(unittest.TestCase):
         self.assertEqual(scene.scoring.front_back_confusion_count, 1)
         self.assertEqual(manager.sound_manager.wrong_calls, 1)
 
-    def test_click_inside_circle_but_outside_star_does_not_hit(self):
+    def test_click_outside_projected_stars_does_not_hit(self):
         scene = DepthGrabScene(_ManagerStub())
         scene._start_game()
         center = (220, 180)
         radius = 40
+        disparity = 18
+        eye_shift = max(5, disparity // 2)
+        glasses_radius = radius + 6
         variant = {"tips": 5, "rotation": -1.57}
         scene.round_data = {
             "targets": [
@@ -121,24 +124,26 @@ class DepthGrabSceneTests(unittest.TestCase):
                     "center": center,
                     "radius": radius,
                     "depth_rank": 0,
-                    "disparity": 18,
+                    "disparity": disparity,
                     "layer_offset": 0,
                     "star_variant": variant,
-                    "naked_color": (255, 129, 146),
                 }
             ],
             "correct_index": 0,
             "stage_index": 0,
         }
         miss_point = None
-        for ratio in (0.82, 0.78, 0.74, 0.7, 0.66, 0.62):
+        for ratio in (1.24, 1.18, 1.12, 1.06):
             for step in range(36):
                 angle = math.tau * step / 36
                 candidate = (
                     center[0] + math.cos(angle) * radius * ratio,
                     center[1] + math.sin(angle) * radius * ratio,
                 )
-                if not scene._point_in_star(candidate, center, radius, variant):
+                if (
+                    not scene._point_in_star(candidate, (center[0] - eye_shift, center[1]), glasses_radius, variant)
+                    and not scene._point_in_star(candidate, (center[0] + eye_shift, center[1]), glasses_radius, variant)
+                ):
                     miss_point = candidate
                     break
             if miss_point is not None:
@@ -184,7 +189,6 @@ class DepthGrabSceneTests(unittest.TestCase):
                     "disparity": 20,
                     "layer_offset": -12,
                     "star_variant": {"tips": 5, "rotation": -1.57},
-                    "naked_color": (255, 129, 146),
                 }
             ],
             "correct_index": 0,
@@ -220,8 +224,6 @@ class DepthGrabSceneTests(unittest.TestCase):
         variants = [target["star_variant"] for target in scene.round_data["targets"]]
         self.assertTrue(all("tips" in variant and "rotation" in variant for variant in variants))
         self.assertTrue(all(variant["tips"] == 5 for variant in variants))
-        colors = {target["naked_color"] for target in scene.round_data["targets"]}
-        self.assertGreaterEqual(len(colors), 3)
         radii = {target["radius"] for target in scene.round_data["targets"]}
         self.assertEqual(radii, {32})
 

@@ -24,7 +24,6 @@ class FusionPushBoxScene(BaseScene):
     STATE_HELP = "help"
     STATE_PLAY = "play"
     STATE_RESULT = "result"
-    MODE_NAKED = "naked"
     MODE_GLASSES = MODE_GLASSES
     FILTER_LR = FILTER_LR
     FILTER_RL = FILTER_RL
@@ -34,7 +33,7 @@ class FusionPushBoxScene(BaseScene):
         self.width = 900
         self.height = 700
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = self.FILTER_LR
         self.show_filter_picker = False
         self.feedback_text = ""
@@ -60,9 +59,8 @@ class FusionPushBoxScene(BaseScene):
     def _build_ui(self):
         card_w = min(560, self.width - 120)
         start_x = self.width // 2 - card_w // 2
-        self.btn_naked = pygame.Rect(start_x, 208, card_w, 58)
-        self.btn_glasses = pygame.Rect(start_x, 282, card_w, 58)
-        self.btn_help = pygame.Rect(start_x, 356, card_w, 58)
+        self.btn_start = pygame.Rect(start_x, 208, card_w, 58)
+        self.btn_help = pygame.Rect(start_x, 282, card_w, 58)
         self.btn_back = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_home = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_continue = pygame.Rect(self.width // 2 - 210, self.height - 100, 180, 48)
@@ -83,7 +81,7 @@ class FusionPushBoxScene(BaseScene):
 
     def reset(self):
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = self.FILTER_LR
         self.show_filter_picker = False
         self.feedback_text = ""
@@ -344,12 +342,8 @@ class FusionPushBoxScene(BaseScene):
                     if event.key == pygame.K_ESCAPE:
                         self._go_category()
                     elif event.key == pygame.K_1:
-                        self.mode = self.MODE_NAKED
-                        self._start_game()
-                    elif event.key == pygame.K_2:
-                        self.mode = self.MODE_GLASSES
                         self.show_filter_picker = True
-                    elif event.key == pygame.K_3:
+                    elif event.key == pygame.K_2:
                         self.state = self.STATE_HELP
                     elif event.key == pygame.K_RETURN and self.show_filter_picker:
                         self.show_filter_picker = False
@@ -367,11 +361,7 @@ class FusionPushBoxScene(BaseScene):
                         continue
                     if self.btn_back.collidepoint(pos):
                         self._go_category()
-                    elif self.btn_naked.collidepoint(pos):
-                        self.mode = self.MODE_NAKED
-                        self._start_game()
-                    elif self.btn_glasses.collidepoint(pos):
-                        self.mode = self.MODE_GLASSES
+                    elif self.btn_start.collidepoint(pos):
                         self.show_filter_picker = True
                     elif self.btn_help.collidepoint(pos):
                         self.state = self.STATE_HELP
@@ -436,11 +426,10 @@ class FusionPushBoxScene(BaseScene):
             subtitle = self.sub_font.render(self.manager.t("fusion_push_box.subtitle"), True, (97, 118, 148))
             screen.blit(title, (self.width // 2 - title.get_width() // 2, 92))
             screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 144))
-            self._draw_button(screen, self.btn_naked, self.manager.t("fusion_push_box.home.naked"), (72, 130, 214), icon_name="target")
             self._draw_button(
                 screen,
-                self.btn_glasses,
-                self.manager.t("fusion_push_box.home.glasses"),
+                self.btn_start,
+                self.manager.t("fusion_push_box.home.start"),
                 GLASSES_BUTTON_COLOR,
                 icon_name="star",
             )
@@ -515,12 +504,10 @@ class FusionPushBoxScene(BaseScene):
             self.manager.t("fusion_push_box.result.cleared", n=self.final_stats.get("clear_count", 0)),
             self.manager.t("fusion_push_box.result.score", n=self.final_stats.get("score", 0)),
             self.manager.t("fusion_push_box.result.steps", n=self.final_stats.get("steps", 0)),
-            self.manager.t(
-                "fusion_push_box.result.mode",
-                mode=self.manager.t(
-                    "fusion_push_box.mode.glasses" if self.final_stats.get("mode") == self.MODE_GLASSES else "fusion_push_box.mode.naked"
+                self.manager.t(
+                    "fusion_push_box.result.mode",
+                    mode=self.manager.t("fusion_push_box.mode.glasses"),
                 ),
-            ),
             self.manager.t("fusion_push_box.result.filter", direction=self.final_stats.get("filter_direction", self.FILTER_LR)),
             self.final_stats.get("encouragement", ""),
         )

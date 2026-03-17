@@ -13,7 +13,6 @@ class FroggerScene(BaseScene):
     STATE_HELP = "help"
     STATE_PLAY = "play"
     STATE_RESULT = "result"
-    MODE_NAKED = "naked"
     MODE_GLASSES = MODE_GLASSES
     GLASSES_FROG_OFFSET = 9
 
@@ -22,7 +21,7 @@ class FroggerScene(BaseScene):
         self.width = 900
         self.height = 700
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = FILTER_LR
         self.show_filter_picker = False
         self.feedback_text = ""
@@ -46,9 +45,8 @@ class FroggerScene(BaseScene):
     def _build_ui(self):
         card_w = min(560, self.width - 120)
         start_x = self.width // 2 - card_w // 2
-        self.btn_naked = pygame.Rect(start_x, 208, card_w, 58)
-        self.btn_glasses = pygame.Rect(start_x, 282, card_w, 58)
-        self.btn_help = pygame.Rect(start_x, 356, card_w, 58)
+        self.btn_start = pygame.Rect(start_x, 208, card_w, 58)
+        self.btn_help = pygame.Rect(start_x, 282, card_w, 58)
         self.btn_back = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_home = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_continue = pygame.Rect(self.width // 2 - 210, self.height - 100, 180, 48)
@@ -210,8 +208,7 @@ class FroggerScene(BaseScene):
     def _draw_home(self, screen):
         title = self.title_font.render(self.manager.t("frogger.title"), True, (34, 60, 96))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 82))
-        self._draw_button(screen, self.btn_naked, self.manager.t("frogger.home.naked"), (96, 140, 214))
-        self._draw_button(screen, self.btn_glasses, self.manager.t("frogger.home.glasses"), GLASSES_BUTTON_COLOR)
+        self._draw_button(screen, self.btn_start, self.manager.t("frogger.home.start"), GLASSES_BUTTON_COLOR)
         self._draw_button(screen, self.btn_help, self.manager.t("frogger.home.help"), (124, 140, 168))
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170))
 
@@ -230,21 +227,11 @@ class FroggerScene(BaseScene):
         timer = self.body_font.render(self.manager.t("frogger.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"), True, (86, 116, 170))
         score = self.body_font.render(self.manager.t("frogger.score", score=self.scoring.score), True, (44, 60, 88))
         guide = self.small_font.render(self.manager.t("frogger.play.guide"), True, (54, 70, 96))
-        screen.blit(self.body_font.render(self.manager.t("frogger.mode.glasses" if self.mode == self.MODE_GLASSES else "frogger.mode.naked"), True, (44, 60, 88)), (24, 18))
+        screen.blit(self.body_font.render(self.manager.t("frogger.mode.glasses"), True, (44, 60, 88)), (24, 18))
         screen.blit(timer, (self.width // 2 - timer.get_width() // 2, 18))
         screen.blit(score, (84, 22))
         screen.blit(guide, (self.width // 2 - guide.get_width() // 2, 98))
-        if self.mode == self.MODE_GLASSES:
-            self._draw_glasses_play_content(screen)
-        else:
-            safe_zone = pygame.Rect(self.play_area.left, self.play_area.top, self.play_area.width, 44)
-            pygame.draw.rect(screen, (190, 230, 190), safe_zone)
-            for lane in self.round_data["lanes"]:
-                pygame.draw.rect(screen, (228, 232, 242), pygame.Rect(self.play_area.left, lane["y"] - 26, self.play_area.width, 52))
-                for car in lane["cars"]:
-                    pygame.draw.rect(screen, (242, 132, 132), pygame.Rect(car[0] - 28, lane["y"] - 18, 56, 36), border_radius=8)
-            frog = self.round_data["frog"]
-            pygame.draw.circle(screen, (92, 182, 112), (int(frog[0]), int(frog[1])), 18)
+        self._draw_glasses_play_content(screen)
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.option_font.render(self.feedback_text, True, self.feedback_color)
             screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 20))
@@ -273,6 +260,7 @@ class FroggerScene(BaseScene):
                     self.filter_direction = FILTER_RL if self.filter_direction == FILTER_LR else FILTER_LR
                 elif event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     self.show_filter_picker = False
+                    self.mode = self.MODE_GLASSES
                     self._start_game()
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
@@ -284,12 +272,17 @@ class FroggerScene(BaseScene):
                         self.show_filter_picker = False
                         self._start_game()
             elif self.state == self.STATE_HOME:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.manager.set_scene("category")
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        self.mode = self.MODE_GLASSES
+                        self.show_filter_picker = True
+                    elif event.key == pygame.K_h:
+                        self.state = self.STATE_HELP
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
-                    if self.btn_naked.collidepoint(pos):
-                        self.mode = self.MODE_NAKED
-                        self._start_game()
-                    elif self.btn_glasses.collidepoint(pos):
+                    if self.btn_start.collidepoint(pos):
                         self.mode = self.MODE_GLASSES
                         self.show_filter_picker = True
                     elif self.btn_help.collidepoint(pos):

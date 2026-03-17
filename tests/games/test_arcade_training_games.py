@@ -90,6 +90,8 @@ class ProductizedGamesTests(unittest.TestCase):
             self.assertEqual(scene.state, scene.STATE_HOME)
             start_pos = scene.btn_start.center if hasattr(scene, "btn_start") else scene.btn_naked.center
             scene.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=start_pos)])
+            if getattr(scene, "show_filter_picker", False):
+                scene.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=scene.filter_start.center)])
             self.assertEqual(scene.state, scene.STATE_PLAY)
             scene.session.session_started_at = time.time() - scene._session_seconds()
             scene.update()
@@ -129,7 +131,10 @@ class ProductizedGamesTests(unittest.TestCase):
         for descriptor in (build_catch_fruit_descriptor(), build_precision_aim_descriptor(), build_depth_grab_descriptor()):
             manager = _ManagerStub(descriptor.game_id, descriptor.category)
             scene = descriptor.factory(manager)
-            scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_1)])
+            start_pos = scene.btn_start.center if hasattr(scene, "btn_start") else scene.btn_naked.center
+            scene.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=start_pos)])
+            if getattr(scene, "show_filter_picker", False):
+                scene.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=scene.filter_start.center)])
             scene.session.session_started_at = time.time() - scene._session_seconds()
             scene.update()
             self.assertTrue(scene.final_stats)

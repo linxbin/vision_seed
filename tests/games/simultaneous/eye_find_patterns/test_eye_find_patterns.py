@@ -91,7 +91,7 @@ class EyeFindPatternsTests(unittest.TestCase):
         manager = _ManagerStub()
         scene = EyeFindPatternsScene(manager)
         scene.state = scene.STATE_HOME
-        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_3)])
+        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_2)])
         self.assertEqual(scene.state, scene.STATE_HELP)
         x = scene.help_ok.centerx
         y = scene.help_ok.centery

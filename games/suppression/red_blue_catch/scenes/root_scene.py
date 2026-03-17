@@ -13,7 +13,6 @@ class RedBlueCatchScene(BaseScene):
     STATE_HELP = "help"
     STATE_PLAY = "play"
     STATE_RESULT = "result"
-    MODE_NAKED = "naked"
     MODE_GLASSES = MODE_GLASSES
     GLASSES_X_OFFSET = 8
 
@@ -22,7 +21,7 @@ class RedBlueCatchScene(BaseScene):
         self.width = 900
         self.height = 700
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = FILTER_LR
         self.show_filter_picker = False
         self.feedback_text = ""
@@ -46,9 +45,8 @@ class RedBlueCatchScene(BaseScene):
     def _build_ui(self):
         card_w = min(560, self.width - 120)
         start_x = self.width // 2 - card_w // 2
-        self.btn_naked = pygame.Rect(start_x, 208, card_w, 58)
-        self.btn_glasses = pygame.Rect(start_x, 282, card_w, 58)
-        self.btn_help = pygame.Rect(start_x, 356, card_w, 58)
+        self.btn_start = pygame.Rect(start_x, 208, card_w, 58)
+        self.btn_help = pygame.Rect(start_x, 282, card_w, 58)
         self.btn_back = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_home = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_continue = pygame.Rect(self.width // 2 - 210, self.height - 100, 180, 48)
@@ -69,7 +67,7 @@ class RedBlueCatchScene(BaseScene):
 
     def reset(self):
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = FILTER_LR
         self.show_filter_picker = False
         self.feedback_text = ""
@@ -240,8 +238,7 @@ class RedBlueCatchScene(BaseScene):
     def _draw_home(self, screen):
         title = self.title_font.render(self.manager.t("red_blue_catch.title"), True, (34, 60, 96))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 82))
-        self._draw_button(screen, self.btn_naked, self.manager.t("red_blue_catch.home.naked"), (96, 140, 214))
-        self._draw_button(screen, self.btn_glasses, self.manager.t("red_blue_catch.home.glasses"), GLASSES_BUTTON_COLOR)
+        self._draw_button(screen, self.btn_start, self.manager.t("red_blue_catch.home.start"), GLASSES_BUTTON_COLOR)
         self._draw_button(screen, self.btn_help, self.manager.t("red_blue_catch.home.help"), (124, 140, 168))
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170))
 
@@ -260,7 +257,7 @@ class RedBlueCatchScene(BaseScene):
         timer = self.body_font.render(self.manager.t("red_blue_catch.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"), True, (86, 116, 170))
         score_text = self.body_font.render(self.manager.t("red_blue_catch.score", score=self.scoring.score), True, (44, 60, 88))
         combo_text = self.body_font.render(self.manager.t("red_blue_catch.combo", combo=self.scoring.best_combo), True, (92, 102, 120))
-        mode_text = self.body_font.render(self.manager.t("red_blue_catch.mode.glasses" if self.mode == self.MODE_GLASSES else "red_blue_catch.mode.naked"), True, (44, 60, 88))
+        mode_text = self.body_font.render(self.manager.t("red_blue_catch.mode.glasses"), True, (44, 60, 88))
         guide = self.small_font.render(self.manager.t("red_blue_catch.play.guide"), True, (54, 70, 96))
         screen.blit(mode_text, (self.width - mode_text.get_width() - 126, 18))
         screen.blit(timer, (self.width // 2 - timer.get_width() // 2, 18))
@@ -283,7 +280,7 @@ class RedBlueCatchScene(BaseScene):
     def _draw_result(self, screen):
         title = self.title_font.render(self.manager.t("red_blue_catch.result.title"), True, (34, 60, 96))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 84))
-        mode_text = self.manager.t("red_blue_catch.mode.glasses") if self.final_stats.get("mode") == self.MODE_GLASSES else self.manager.t("red_blue_catch.mode.naked")
+        mode_text = self.manager.t("red_blue_catch.mode.glasses")
         filter_text = "-" if self.final_stats.get("mode") != self.MODE_GLASSES else self.manager.t("red_blue_catch.filter.lr" if self.final_stats.get("filter_direction") == FILTER_LR else "red_blue_catch.filter.rl")
         lines = [
             self.manager.t("red_blue_catch.result.duration", sec=self.final_stats.get("duration", 0)),
@@ -321,11 +318,7 @@ class RedBlueCatchScene(BaseScene):
             elif self.state == self.STATE_HOME:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
-                    if self.btn_naked.collidepoint(pos):
-                        self.mode = self.MODE_NAKED
-                        self._start_game()
-                    elif self.btn_glasses.collidepoint(pos):
-                        self.mode = self.MODE_GLASSES
+                    if self.btn_start.collidepoint(pos):
                         self.show_filter_picker = True
                     elif self.btn_help.collidepoint(pos):
                         self.state = self.STATE_HELP

@@ -13,7 +13,6 @@ class FusionTetrisScene(BaseScene):
     STATE_HELP = "help"
     STATE_PLAY = "play"
     STATE_RESULT = "result"
-    MODE_NAKED = "naked"
     MODE_GLASSES = MODE_GLASSES
 
     def __init__(self, manager):
@@ -21,7 +20,7 @@ class FusionTetrisScene(BaseScene):
         self.width = 900
         self.height = 700
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = FILTER_LR
         self.show_filter_picker = False
         self.feedback_text = ""
@@ -46,9 +45,8 @@ class FusionTetrisScene(BaseScene):
     def _build_ui(self):
         card_w = min(560, self.width - 120)
         start_x = self.width // 2 - card_w // 2
-        self.btn_naked = pygame.Rect(start_x, 208, card_w, 58)
-        self.btn_glasses = pygame.Rect(start_x, 282, card_w, 58)
-        self.btn_help = pygame.Rect(start_x, 356, card_w, 58)
+        self.btn_start = pygame.Rect(start_x, 208, card_w, 58)
+        self.btn_help = pygame.Rect(start_x, 282, card_w, 58)
         self.btn_back = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_home = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_continue = pygame.Rect(self.width // 2 - 210, self.height - 100, 180, 48)
@@ -257,8 +255,7 @@ class FusionTetrisScene(BaseScene):
     def _draw_home(self, screen):
         title = self.title_font.render(self.manager.t("fusion_tetris.title"), True, (34, 60, 96))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 82))
-        self._draw_button(screen, self.btn_naked, self.manager.t("fusion_tetris.home.naked"), (96, 140, 214))
-        self._draw_button(screen, self.btn_glasses, self.manager.t("fusion_tetris.home.glasses"), GLASSES_BUTTON_COLOR)
+        self._draw_button(screen, self.btn_start, self.manager.t("fusion_tetris.home.start"), GLASSES_BUTTON_COLOR)
         self._draw_button(screen, self.btn_help, self.manager.t("fusion_tetris.home.help"), (124, 140, 168))
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170))
 
@@ -276,30 +273,20 @@ class FusionTetrisScene(BaseScene):
         remaining = max(0, int(self.session.session_seconds - self.session.session_elapsed))
         timer = self.body_font.render(self.manager.t("fusion_tetris.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"), True, (86, 116, 170))
         score = self.body_font.render(self.manager.t("fusion_tetris.score", score=self.scoring.score), True, (44, 60, 88))
-        mode = self.body_font.render(self.manager.t("fusion_tetris.mode.glasses" if self.mode == self.MODE_GLASSES else "fusion_tetris.mode.naked"), True, (44, 60, 88))
+        mode = self.body_font.render(self.manager.t("fusion_tetris.mode.glasses"), True, (44, 60, 88))
         guide = self.small_font.render(self.manager.t("fusion_tetris.play.guide"), True, (54, 70, 96))
         screen.blit(mode, (self.width - mode.get_width() - 126, 18))
         screen.blit(timer, (self.width // 2 - timer.get_width() // 2, 18))
         screen.blit(score, (84, 22))
         screen.blit(guide, (self.width // 2 - guide.get_width() // 2, 98))
-        if self.mode != self.MODE_GLASSES:
-            pygame.draw.rect(screen, (246, 250, 255), self.board_rect, border_radius=14)
         pygame.draw.rect(screen, (190, 206, 228), self.board_rect, 2, border_radius=14)
         origin_x, origin_y, cell = self._grid_origin()
-        if self.mode == self.MODE_GLASSES:
-            for entry in self.round_data["stack"]:
-                rect = pygame.Rect(origin_x + entry["x"] * cell + 2, origin_y + entry["y"] * cell + 2, cell - 4, cell - 4)
-                pygame.draw.rect(screen, self._piece_color(entry["side"]), rect, border_radius=5)
-            for dx, dy in self.round_data["piece"]:
-                rect = pygame.Rect(origin_x + (self.round_data["piece_x"] + dx) * cell + 2, origin_y + (self.round_data["piece_y"] + dy) * cell + 2, cell - 4, cell - 4)
-                pygame.draw.rect(screen, self._piece_color(self.round_data["piece_side"]), rect, border_radius=5)
-        else:
-            for entry in self.round_data["stack"]:
-                rect = pygame.Rect(origin_x + entry["x"] * cell + 2, origin_y + entry["y"] * cell + 2, cell - 4, cell - 4)
-                pygame.draw.rect(screen, (132, 188, 244), rect)
-            for dx, dy in self.round_data["piece"]:
-                rect = pygame.Rect(origin_x + (self.round_data["piece_x"] + dx) * cell + 2, origin_y + (self.round_data["piece_y"] + dy) * cell + 2, cell - 4, cell - 4)
-                pygame.draw.rect(screen, (82, 130, 232), rect)
+        for entry in self.round_data["stack"]:
+            rect = pygame.Rect(origin_x + entry["x"] * cell + 2, origin_y + entry["y"] * cell + 2, cell - 4, cell - 4)
+            pygame.draw.rect(screen, self._piece_color(entry["side"]), rect, border_radius=5)
+        for dx, dy in self.round_data["piece"]:
+            rect = pygame.Rect(origin_x + (self.round_data["piece_x"] + dx) * cell + 2, origin_y + (self.round_data["piece_y"] + dy) * cell + 2, cell - 4, cell - 4)
+            pygame.draw.rect(screen, self._piece_color(self.round_data["piece_side"]), rect, border_radius=5)
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.option_font.render(self.feedback_text, True, self.feedback_color)
             screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.board_rect.bottom + 16))
@@ -341,11 +328,7 @@ class FusionTetrisScene(BaseScene):
             elif self.state == self.STATE_HOME:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
-                    if self.btn_naked.collidepoint(pos):
-                        self.mode = self.MODE_NAKED
-                        self._start_game()
-                    elif self.btn_glasses.collidepoint(pos):
-                        self.mode = self.MODE_GLASSES
+                    if self.btn_start.collidepoint(pos):
                         self.show_filter_picker = True
                     elif self.btn_help.collidepoint(pos):
                         self.state = self.STATE_HELP

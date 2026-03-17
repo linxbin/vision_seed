@@ -13,7 +13,6 @@ class BrickBreakerScene(BaseScene):
     STATE_HELP = "help"
     STATE_PLAY = "play"
     STATE_RESULT = "result"
-    MODE_NAKED = "naked"
     MODE_GLASSES = MODE_GLASSES
     GLASSES_BALL_OFFSET = 14
     TARGET_DEPTH_COLORS = {
@@ -32,7 +31,7 @@ class BrickBreakerScene(BaseScene):
         self.width = 900
         self.height = 700
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = FILTER_LR
         self.show_filter_picker = False
         self.feedback_text = ""
@@ -56,9 +55,8 @@ class BrickBreakerScene(BaseScene):
     def _build_ui(self):
         card_w = min(560, self.width - 120)
         start_x = self.width // 2 - card_w // 2
-        self.btn_naked = pygame.Rect(start_x, 208, card_w, 58)
-        self.btn_glasses = pygame.Rect(start_x, 282, card_w, 58)
-        self.btn_help = pygame.Rect(start_x, 356, card_w, 58)
+        self.btn_start = pygame.Rect(start_x, 208, card_w, 58)
+        self.btn_help = pygame.Rect(start_x, 282, card_w, 58)
         self.btn_back = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_home = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_continue = pygame.Rect(self.width // 2 - 210, self.height - 100, 180, 48)
@@ -79,7 +77,7 @@ class BrickBreakerScene(BaseScene):
 
     def reset(self):
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = FILTER_LR
         self.show_filter_picker = False
         self.feedback_text = ""
@@ -235,8 +233,7 @@ class BrickBreakerScene(BaseScene):
     def _draw_home(self, screen):
         title = self.title_font.render(self.manager.t("brick_breaker.title"), True, (34, 60, 96))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 82))
-        self._draw_button(screen, self.btn_naked, self.manager.t("brick_breaker.home.naked"), (96, 140, 214))
-        self._draw_button(screen, self.btn_glasses, self.manager.t("brick_breaker.home.glasses"), GLASSES_BUTTON_COLOR)
+        self._draw_button(screen, self.btn_start, self.manager.t("brick_breaker.home.start"), GLASSES_BUTTON_COLOR)
         self._draw_button(screen, self.btn_help, self.manager.t("brick_breaker.home.help"), (124, 140, 168))
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170))
 
@@ -253,7 +250,7 @@ class BrickBreakerScene(BaseScene):
         timer = self.body_font.render(self.manager.t("brick_breaker.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"), True, (86, 116, 170))
         score = self.body_font.render(self.manager.t("brick_breaker.score", score=self.scoring.score), True, (44, 60, 88))
         target = self.body_font.render(self._target_depth_label(), True, (44, 60, 88))
-        mode = self.body_font.render(self.manager.t("brick_breaker.mode.glasses" if self.mode == self.MODE_GLASSES else "brick_breaker.mode.naked"), True, (44, 60, 88))
+        mode = self.body_font.render(self.manager.t("brick_breaker.mode.glasses"), True, (44, 60, 88))
         guide = self.small_font.render(self.manager.t("brick_breaker.play.guide"), True, (54, 70, 96))
         screen.blit(mode, (24, 18))
         screen.blit(timer, (self.width // 2 - timer.get_width() // 2, 18))
@@ -262,26 +259,7 @@ class BrickBreakerScene(BaseScene):
         depth_color = self.TARGET_DEPTH_COLORS.get(self.round_data["attack_depth"], (82, 130, 232))
         pygame.draw.circle(screen, depth_color, (self.width - 64, 31), 11)
         screen.blit(guide, (self.width // 2 - guide.get_width() // 2, 98))
-        if self.mode == self.MODE_GLASSES:
-            self._draw_glasses_play_content(screen)
-        else:
-            launcher = pygame.Rect(0, 0, 104, 16)
-            launcher.center = (int(self.round_data["launcher_x"]), self.play_area.bottom - 24)
-            pygame.draw.rect(screen, (88, 116, 170), launcher, border_radius=8)
-            attack_ball = self.round_data.get("attack_ball")
-            attack_center = (int(attack_ball["x"]), int(attack_ball["y"])) if attack_ball else (int(self.round_data["launcher_x"]), self.play_area.bottom - 46)
-            radius = 13
-            depth_shift = self.DEPTH_SHIFT.get(self.round_data["attack_depth"], 8) // 2
-            ball_color = self.TARGET_DEPTH_COLORS.get(self.round_data["attack_depth"], (82, 130, 232))
-            shadow_center = (attack_center[0] + depth_shift, attack_center[1] + self.round_data["attack_depth"] * 4)
-            pygame.draw.circle(screen, (54, 64, 82), shadow_center, radius)
-            pygame.draw.circle(screen, ball_color, attack_center, radius)
-            for brick in self.round_data["bricks"]:
-                rect = pygame.Rect(brick["rect"])
-                color = self.TARGET_DEPTH_COLORS.get(brick["depth"], (132, 188, 244))
-                shadow_rect = rect.move(self.DEPTH_SHIFT.get(brick["depth"], 8) // 2, brick["depth"] * 4)
-                pygame.draw.rect(screen, (54, 64, 82), shadow_rect, border_radius=8)
-                pygame.draw.rect(screen, color, rect, border_radius=8)
+        self._draw_glasses_play_content(screen)
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.option_font.render(self.feedback_text, True, self.feedback_color)
             screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 20))
@@ -311,6 +289,7 @@ class BrickBreakerScene(BaseScene):
                     self.filter_direction = FILTER_RL if self.filter_direction == FILTER_LR else FILTER_LR
                 elif event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     self.show_filter_picker = False
+                    self.mode = self.MODE_GLASSES
                     self._start_game()
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
@@ -322,12 +301,17 @@ class BrickBreakerScene(BaseScene):
                         self.show_filter_picker = False
                         self._start_game()
             elif self.state == self.STATE_HOME:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.manager.set_scene("category")
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        self.mode = self.MODE_GLASSES
+                        self.show_filter_picker = True
+                    elif event.key == pygame.K_h:
+                        self.state = self.STATE_HELP
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
-                    if self.btn_naked.collidepoint(pos):
-                        self.mode = self.MODE_NAKED
-                        self._start_game()
-                    elif self.btn_glasses.collidepoint(pos):
+                    if self.btn_start.collidepoint(pos):
                         self.mode = self.MODE_GLASSES
                         self.show_filter_picker = True
                     elif self.btn_help.collidepoint(pos):

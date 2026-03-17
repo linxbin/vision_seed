@@ -13,7 +13,6 @@ class FindSameScene(BaseScene):
     STATE_HELP = "help"
     STATE_PLAY = "play"
     STATE_RESULT = "result"
-    MODE_NAKED = "naked"
     MODE_GLASSES = MODE_GLASSES
 
     def __init__(self, manager):
@@ -21,7 +20,7 @@ class FindSameScene(BaseScene):
         self.width = 900
         self.height = 700
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = FILTER_LR
         self.show_filter_picker = False
         self.selected_index = 0
@@ -51,9 +50,8 @@ class FindSameScene(BaseScene):
     def _build_ui(self):
         card_w = min(560, self.width - 120)
         start_x = self.width // 2 - card_w // 2
-        self.btn_naked = pygame.Rect(start_x, 210, card_w, 58)
-        self.btn_glasses = pygame.Rect(start_x, 284, card_w, 58)
-        self.btn_help = pygame.Rect(start_x, 358, card_w, 58)
+        self.btn_start = pygame.Rect(start_x, 210, card_w, 58)
+        self.btn_help = pygame.Rect(start_x, 284, card_w, 58)
         self.btn_back = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_home = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_confirm = pygame.Rect(self.width // 2 - 94, self.height - 58, 188, 44)
@@ -211,8 +209,7 @@ class FindSameScene(BaseScene):
         subtitle = self.sub_font.render(self.manager.t("find_same.subtitle"), True, (86, 104, 130))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 84))
         screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 140))
-        self._draw_button(screen, self.btn_naked, self.manager.t("find_same.home.naked"), (96, 140, 214))
-        self._draw_button(screen, self.btn_glasses, self.manager.t("find_same.home.glasses"), GLASSES_BUTTON_COLOR)
+        self._draw_button(screen, self.btn_start, self.manager.t("find_same.home.start"), GLASSES_BUTTON_COLOR)
         self._draw_button(screen, self.btn_help, self.manager.t("find_same.home.help"), (124, 140, 168))
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170))
 
@@ -309,11 +306,7 @@ class FindSameScene(BaseScene):
             elif self.state == self.STATE_HOME:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
-                    if self.btn_naked.collidepoint(pos):
-                        self.mode = self.MODE_NAKED
-                        self._start_game()
-                    elif self.btn_glasses.collidepoint(pos):
-                        self.mode = self.MODE_GLASSES
+                    if self.btn_start.collidepoint(pos):
                         self.show_filter_picker = True
                     elif self.btn_help.collidepoint(pos):
                         self.state = self.STATE_HELP

@@ -14,7 +14,6 @@ class SpotDifferenceScene(BaseScene):
     STATE_HELP = "help"
     STATE_PLAY = "play"
     STATE_RESULT = "result"
-    MODE_NAKED = "naked"
     MODE_GLASSES = MODE_GLASSES
     FILTER_LR = FILTER_LR
     FILTER_RL = FILTER_RL
@@ -24,7 +23,7 @@ class SpotDifferenceScene(BaseScene):
         self.width = 900
         self.height = 700
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = self.FILTER_LR
         self.show_filter_picker = False
         self.home_focus = 0
@@ -57,9 +56,8 @@ class SpotDifferenceScene(BaseScene):
     def _build_ui(self):
         card_w = min(560, self.width - 120)
         start_x = self.width // 2 - card_w // 2
-        self.btn_naked = pygame.Rect(start_x, 208, card_w, 58)
-        self.btn_glasses = pygame.Rect(start_x, 282, card_w, 58)
-        self.btn_help = pygame.Rect(start_x, 356, card_w, 58)
+        self.btn_start = pygame.Rect(start_x, 208, card_w, 58)
+        self.btn_help = pygame.Rect(start_x, 282, card_w, 58)
         self.btn_back = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_home = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_confirm = pygame.Rect(self.width // 2 - 94, self.height - 58, 188, 44)
@@ -86,7 +84,7 @@ class SpotDifferenceScene(BaseScene):
 
     def reset(self):
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = self.FILTER_LR
         self.show_filter_picker = False
         self.home_focus = 0
@@ -374,10 +372,9 @@ class SpotDifferenceScene(BaseScene):
         subtitle = self.sub_font.render(self.manager.t("spot_difference.subtitle"), True, (86, 104, 130))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 82))
         screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 138))
-        self._draw_button(screen, self.btn_naked, self.manager.t("spot_difference.home.naked"), (96, 140, 214), selected=self.home_focus == 0)
-        self._draw_button(screen, self.btn_glasses, self.manager.t("spot_difference.home.glasses"), GLASSES_BUTTON_COLOR, selected=self.home_focus == 1)
-        self._draw_button(screen, self.btn_help, self.manager.t("spot_difference.home.help"), (124, 140, 168), icon_name="question", selected=self.home_focus == 2)
-        self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow", selected=self.home_focus == 3)
+        self._draw_button(screen, self.btn_start, self.manager.t("spot_difference.home.start"), GLASSES_BUTTON_COLOR, selected=self.home_focus == 0, icon_name="target")
+        self._draw_button(screen, self.btn_help, self.manager.t("spot_difference.home.help"), (124, 140, 168), icon_name="question", selected=self.home_focus == 1)
+        self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow", selected=self.home_focus == 2)
 
     def _draw_help(self, screen):
         title = self.title_font.render(self.manager.t("spot_difference.help.title"), True, (34, 60, 96))
@@ -470,7 +467,7 @@ class SpotDifferenceScene(BaseScene):
     def _draw_result(self, screen):
         title = self.title_font.render(self.manager.t("spot_difference.result.title"), True, (34, 60, 96))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 74))
-        mode_text = self.manager.t("spot_difference.mode.naked") if self.final_stats.get("mode") == self.MODE_NAKED else self.manager.t("spot_difference.mode.glasses")
+        mode_text = self.manager.t("spot_difference.mode.glasses")
         filter_text = "-"
         if self.final_stats.get("mode") == self.MODE_GLASSES:
             filter_text = self.manager.t("spot_difference.filter.lr") if self.final_stats.get("filter_direction") == self.FILTER_LR else self.manager.t("spot_difference.filter.rl")
@@ -518,27 +515,19 @@ class SpotDifferenceScene(BaseScene):
                     if event.key == pygame.K_ESCAPE:
                         self._go_category()
                     elif event.key in (pygame.K_UP, pygame.K_LEFT):
-                        self.home_focus = (self.home_focus - 1) % 4
+                        self.home_focus = (self.home_focus - 1) % 3
                     elif event.key in (pygame.K_DOWN, pygame.K_RIGHT):
-                        self.home_focus = (self.home_focus + 1) % 4
+                        self.home_focus = (self.home_focus + 1) % 3
                     elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                         if self.home_focus == 0:
-                            self.mode = self.MODE_NAKED
-                            self._start_game()
-                        elif self.home_focus == 1:
-                            self.mode = self.MODE_GLASSES
                             self.show_filter_picker = True
-                        elif self.home_focus == 2:
+                        elif self.home_focus == 1:
                             self.state = self.STATE_HELP
                         else:
                             self._go_category()
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
-                    if self.btn_naked.collidepoint(pos):
-                        self.mode = self.MODE_NAKED
-                        self._start_game()
-                    elif self.btn_glasses.collidepoint(pos):
-                        self.mode = self.MODE_GLASSES
+                    if self.btn_start.collidepoint(pos):
                         self.show_filter_picker = True
                     elif self.btn_help.collidepoint(pos):
                         self.state = self.STATE_HELP

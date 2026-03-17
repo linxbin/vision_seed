@@ -15,7 +15,6 @@ class EyeFindPatternsScene(BaseScene):
     STATE_PLAY = "play"
     STATE_RESULT = "result"
 
-    MODE_NAKED = "naked"
     MODE_GLASSES = "glasses"
 
     FILTER_LR = "left_red_right_blue"
@@ -31,7 +30,7 @@ class EyeFindPatternsScene(BaseScene):
         self.height = 700
 
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = self.FILTER_LR
         self.show_filter_picker = False
 
@@ -70,9 +69,8 @@ class EyeFindPatternsScene(BaseScene):
         start_x = self.width // 2 - card_w // 2
         start_y = 210
         gap = 16
-        self.btn_naked = pygame.Rect(start_x, start_y, card_w, card_h)
-        self.btn_glasses = pygame.Rect(start_x, start_y + card_h + gap, card_w, card_h)
-        self.btn_help = pygame.Rect(start_x, start_y + (card_h + gap) * 2, card_w, card_h)
+        self.btn_start = pygame.Rect(start_x, start_y, card_w, card_h)
+        self.btn_help = pygame.Rect(start_x, start_y + card_h + gap, card_w, card_h)
         self.btn_back = pygame.Rect(self.width - 108, 18, 88, 36)
 
         self.btn_confirm = pygame.Rect(self.width // 2 - 94, self.height - 58, 188, 44)
@@ -97,7 +95,7 @@ class EyeFindPatternsScene(BaseScene):
 
     def reset(self):
         self.state = self.STATE_HOME
-        self.mode = self.MODE_NAKED
+        self.mode = self.MODE_GLASSES
         self.filter_direction = self.FILTER_LR
         self.show_filter_picker = False
         self.feedback_text = ""
@@ -261,12 +259,8 @@ class EyeFindPatternsScene(BaseScene):
                     if event.key == pygame.K_ESCAPE:
                         self.manager.set_scene("category")
                     elif event.key == pygame.K_1:
-                        self.mode = self.MODE_NAKED
-                        self._start_game()
-                    elif event.key == pygame.K_2:
-                        self.mode = self.MODE_GLASSES
                         self.show_filter_picker = True
-                    elif event.key == pygame.K_3:
+                    elif event.key == pygame.K_2:
                         self.state = self.STATE_HELP
                     elif event.key == pygame.K_RETURN and self.show_filter_picker:
                         self.show_filter_picker = False
@@ -284,11 +278,7 @@ class EyeFindPatternsScene(BaseScene):
                         continue
                     if self.btn_back.collidepoint(pos):
                         self.manager.set_scene("category")
-                    elif self.btn_naked.collidepoint(pos):
-                        self.mode = self.MODE_NAKED
-                        self._start_game()
-                    elif self.btn_glasses.collidepoint(pos):
-                        self.mode = self.MODE_GLASSES
+                    elif self.btn_start.collidepoint(pos):
                         self.show_filter_picker = True
                     elif self.btn_help.collidepoint(pos):
                         self.state = self.STATE_HELP
@@ -369,8 +359,7 @@ class EyeFindPatternsScene(BaseScene):
     def _draw_home(self, screen):
         title = self.title_font.render(self.manager.t("eye_find.title"), True, (38, 66, 108))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 86))
-        self._draw_button(screen, self.btn_naked, self.manager.t("eye_find.home.naked"), (64, 138, 212), icon_name="check")
-        self._draw_button(screen, self.btn_glasses, self.manager.t("eye_find.home.glasses"), GLASSES_BUTTON_COLOR, icon_name="target")
+        self._draw_button(screen, self.btn_start, self.manager.t("eye_find.home.start"), GLASSES_BUTTON_COLOR, icon_name="target")
         self._draw_button(screen, self.btn_help, self.manager.t("eye_find.home.help"), (126, 142, 174), icon_name="question")
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (88, 116, 168), icon_name="back_arrow")
 
@@ -420,7 +409,7 @@ class EyeFindPatternsScene(BaseScene):
         confirm_color = (52, 124, 82) if is_glasses_mode else (72, 148, 102)
         back_color = (62, 52, 128) if is_glasses_mode else (86, 116, 170)
 
-        mode_text = self.manager.t("eye_find.mode.naked") if self.mode == self.MODE_NAKED else self.manager.t("eye_find.mode.glasses")
+        mode_text = self.manager.t("eye_find.mode.glasses")
         remaining = max(0, self._session_seconds() - self.session_elapsed)
         attempt_left = max(0, int(self.ATTEMPT_SECONDS - self.attempt_elapsed))
         right_lines = (self.manager.t("eye_find.attempt_time", sec=attempt_left),)
@@ -474,7 +463,7 @@ class EyeFindPatternsScene(BaseScene):
         title = self.title_font.render(self.manager.t("eye_find.result.title"), True, (42, 70, 110))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 100))
 
-        mode_text = self.manager.t("eye_find.mode.naked") if self.final_stats.get("mode") == self.MODE_NAKED else self.manager.t("eye_find.mode.glasses")
+        mode_text = self.manager.t("eye_find.mode.glasses")
         filter_text = "-"
         if self.final_stats.get("mode") == self.MODE_GLASSES:
             filter_text = self.manager.t(
