@@ -233,6 +233,7 @@ class PongScene(BaseScene):
             "mode": self.mode,
             "filter_direction": self.filter_direction,
         }
+        self.play_completed_sound()
         self._save_result()
 
     def _save_result(self):
@@ -398,11 +399,13 @@ class PongScene(BaseScene):
             if self.ball_x < self.play_rect.left:
                 self.ai_score += 1
                 self.current_rally = 0
+                self.play_wrong_sound()
                 self._set_feedback_text(self.manager.t("pong.feedback.miss"), color=(232, 110, 110), duration=0.8)
                 self._start_serve(1)
             elif self.ball_x > self.play_rect.right:
                 self.player_score += 1
                 self.current_rally = 0
+                self.play_correct_sound()
                 self._set_feedback("pong.feedback.point", 0.8)
                 self._start_serve(-1)
         if self.feedback_text and now > self.feedback_until:

@@ -107,7 +107,13 @@ class FusionTetrisSceneTests(unittest.TestCase):
         scene.draw(screen)
         origin_x, origin_y, cell = scene._grid_origin()
         color = screen.get_at((origin_x + cell // 2, origin_y + cell // 2))[:3]
-        self.assertEqual(color, scene._piece_color("left"))
+        self.assertEqual(color, (255, 0, 0))
+
+        scene.round_data["piece_side"] = "right"
+        screen = pygame.Surface((scene.width, scene.height))
+        scene.draw(screen)
+        color = screen.get_at((origin_x + cell // 2, origin_y + cell // 2))[:3]
+        self.assertEqual(color, (0, 0, 255))
 
     def test_piece_locks_when_reaching_bottom(self):
         scene = FusionTetrisScene(_ManagerStub())
@@ -120,17 +126,26 @@ class FusionTetrisSceneTests(unittest.TestCase):
         scene._lock_piece()
         self.assertTrue(any(cell["y"] == scene.round_data["rows"] - 1 for cell in scene.round_data["stack"]))
 
-    def test_glasses_filter_direction_changes_render(self):
+    def test_glasses_filter_direction_keeps_piece_channels_pure(self):
         scene = FusionTetrisScene(_ManagerStub())
         scene._start_game()
         scene.mode = scene.MODE_GLASSES
-        first = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
-        second = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
+        screen = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
+        origin_x, origin_y, cell = scene._grid_origin()
+        sample = (origin_x + cell // 2, origin_y + cell // 2)
+        scene.round_data["stack"] = []
+        scene.round_data["piece"] = [(0, 0)]
+        scene.round_data["piece_x"] = 0
+        scene.round_data["piece_y"] = 0
+        scene.round_data["piece_side"] = "left"
         scene.filter_direction = "left_red_right_blue"
-        scene.draw(first)
+        scene.draw(screen)
+        self.assertEqual(screen.get_at(sample)[:3], (255, 0, 0))
+
+        screen = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
         scene.filter_direction = "left_blue_right_red"
-        scene.draw(second)
-        self.assertNotEqual(pygame.image.tostring(first, "RGBA"), pygame.image.tostring(second, "RGBA"))
+        scene.draw(screen)
+        self.assertEqual(screen.get_at(sample)[:3], (255, 0, 0))
 
     def test_finish_saves_result(self):
         manager = _ManagerStub()
@@ -141,3 +156,21 @@ class FusionTetrisSceneTests(unittest.TestCase):
         self.assertEqual(scene.state, scene.STATE_RESULT)
         self.assertEqual(manager.data_manager.saved[-1]["game_id"], "fusion.tetris")
         self.assertEqual(manager.sound_manager.completed_calls, 1)
+
+    def test_stack_reaching_top_ends_game(self):
+        manager = _ManagerStub()
+        scene = FusionTetrisScene(manager)
+        scene._start_game()
+        scene.round_data["stack"] = [{"x": 0, "y": 0, "side": "left"}]
+        scene.round_data["piece"] = [(0, 0)]
+        scene.round_data["piece_x"] = 0
+        scene.round_data["piece_y"] = 1
+        scene.round_data["piece_side"] = "right"
+        scene._lock_piece()
+        self.assertEqual(scene.state, scene.STATE_RESULT)
+        self.assertGreaterEqual(scene.scoring.failures, 1)
+        self.assertEqual(manager.sound_manager.wrong_calls, 1)
+
+    def test_board_rect_is_larger(self):
+        scene = FusionTetrisScene(_ManagerStub())
+        self.assertEqual(scene.board_rect.size, (264, 436))

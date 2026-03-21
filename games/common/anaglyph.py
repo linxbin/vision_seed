@@ -74,7 +74,7 @@ def _bitwise_overlap(left_rgb, right_rgb, overlap_mask):
     return result
 
 
-def blend_filtered_patterns(canvas_size, left_surface, left_rect, right_surface, right_rect, crop_border=0):
+def blend_filtered_patterns(canvas_size, left_surface, left_rect, right_surface, right_rect, crop_border=0, use_offset_crop=True):
     left_layer = pygame.Surface(canvas_size, pygame.SRCALPHA)
     right_layer = pygame.Surface(canvas_size, pygame.SRCALPHA)
     left_layer.blit(left_surface, left_rect)
@@ -102,7 +102,7 @@ def blend_filtered_patterns(canvas_size, left_surface, left_rect, right_surface,
         output_rgb[overlap] = overlap_rgb[overlap]
         output_alpha[overlap] = np.maximum(left_alpha[overlap], right_alpha[overlap])
 
-    total_crop = _rect_offset_crop(left_rect, right_rect)
+    total_crop = _rect_offset_crop(left_rect, right_rect) if use_offset_crop else (0, 0)
     extra_crop = crop_border if isinstance(crop_border, tuple) else (crop_border, crop_border)
     crop = (
         max(total_crop[0], int(extra_crop[0])),

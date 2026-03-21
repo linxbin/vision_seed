@@ -44,6 +44,8 @@ class EyeFindPatternsScene(BaseScene):
         self.dragging_right = False
         self.drag_offset = (0, 0)
         self.pattern_surface = pygame.Surface((1, 1), pygame.SRCALPHA)
+        self.left_pattern_surface = pygame.Surface((1, 1), pygame.SRCALPHA)
+        self.right_pattern_surface = pygame.Surface((1, 1), pygame.SRCALPHA)
         self.pattern_id = "star"
         self.pattern_color = (255, 214, 140, 255)
         self.session_elapsed = 0.0
@@ -128,6 +130,7 @@ class EyeFindPatternsScene(BaseScene):
     def _finish_game(self):
         self.state = self.STATE_RESULT
         self.final_stats = self.session.build_final_stats(self.scoring, self.mode, self.filter_direction)
+        self.play_completed_sound()
         self.scoring.reset()
 
     def _set_feedback(self, key, color):
@@ -140,11 +143,27 @@ class EyeFindPatternsScene(BaseScene):
         self.pattern_id = pattern["pattern_id"]
         self.pattern_color = pattern["color"]
         self.pattern_surface = pattern["surface"]
+        self._refresh_pattern_cache()
         if reset_position:
             self.left_center, self.right_center = self.pattern_service.reset_positions(self.width, self.height)
 
-    def _apply_filter(self, base, side):
-        return self.pattern_service.apply_filter(base, self.mode, self.filter_direction, side, self.MODE_GLASSES, self.FILTER_LR)
+    def _refresh_pattern_cache(self):
+        self.left_pattern_surface = self.pattern_service.apply_filter(
+            self.pattern_surface,
+            self.mode,
+            self.filter_direction,
+            "left",
+            self.MODE_GLASSES,
+            self.FILTER_LR,
+        )
+        self.right_pattern_surface = self.pattern_service.apply_filter(
+            self.pattern_surface,
+            self.mode,
+            self.filter_direction,
+            "right",
+            self.MODE_GLASSES,
+            self.FILTER_LR,
+        )
 
     def _is_overlapped(self):
         dx = self.left_center[0] - self.right_center[0]
@@ -154,6 +173,7 @@ class EyeFindPatternsScene(BaseScene):
     def _confirm_action(self):
         if self._is_overlapped():
             gained = self.scoring.on_success()
+            self.play_correct_sound()
             self._set_feedback("eye_find.success", (90, 226, 132))
             if gained > EyeFindScoringService.BASE_SCORE:
                 self.feedback_text = f"{self.feedback_text}  +{gained}"
@@ -161,6 +181,7 @@ class EyeFindPatternsScene(BaseScene):
             self._new_pattern(reset_position=True)
         else:
             self.scoring.on_failure()
+            self.play_wrong_sound()
             self._set_feedback("eye_find.fail", (238, 118, 118))
 
     def _draw_gradient_bg(self, screen):
@@ -270,8 +291,10 @@ class EyeFindPatternsScene(BaseScene):
                     if self.show_filter_picker:
                         if self.filter_lr.collidepoint(pos):
                             self.filter_direction = self.FILTER_LR
+                            self._refresh_pattern_cache()
                         elif self.filter_rl.collidepoint(pos):
                             self.filter_direction = self.FILTER_RL
+                            self._refresh_pattern_cache()
                         elif self.filter_start.collidepoint(pos):
                             self.show_filter_picker = False
                             self._start_game()
@@ -335,6 +358,7 @@ class EyeFindPatternsScene(BaseScene):
                 return
             if self.session.is_attempt_timed_out():
                 self.scoring.on_failure()
+                self.play_wrong_sound()
                 self._set_feedback("eye_find.fail", (238, 118, 118))
                 self.session.restart_attempt(now)
         if self.feedback_text and now > self.feedback_until:
@@ -438,16 +462,19 @@ class EyeFindPatternsScene(BaseScene):
             meta_gap=22,
         )
 
-        left = self._apply_filter(self.pattern_surface, "left")
-        right = self._apply_filter(self.pattern_surface, "right")
-        blend_layer = self.pattern_service.blend_filtered_patterns(
-            (self.width, self.height),
-            left,
-            left.get_rect(center=self.left_center),
-            right,
-            right.get_rect(center=self.right_center),
-        )
-        screen.blit(blend_layer, (0, 0))
+        left_rect = self.left_pattern_surface.get_rect(center=self.left_center)
+        right_rect = self.right_pattern_surface.get_rect(center=self.right_center)
+        blend_bounds = left_rect.union(right_rect).clip(screen.get_rect())
+        if blend_bounds.width > 0 and blend_bounds.height > 0:
+            blend_layer = self.pattern_service.blend_filtered_patterns(
+                blend_bounds.size,
+                self.left_pattern_surface,
+                left_rect.move(-blend_bounds.x, -blend_bounds.y),
+                self.right_pattern_surface,
+                right_rect.move(-blend_bounds.x, -blend_bounds.y),
+                use_offset_crop=False,
+            )
+            screen.blit(blend_layer, blend_bounds.topleft)
 
         guide = self.small_font.render(self.manager.t("eye_find.play.guide"), True, hud_secondary)
         screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, self.play_area.bottom + 12))

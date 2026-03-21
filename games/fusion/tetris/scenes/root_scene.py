@@ -56,7 +56,7 @@ class FusionTetrisScene(BaseScene):
         self.filter_lr = pygame.Rect(self.filter_modal.x + 24, self.filter_modal.y + 68, 210, 46)
         self.filter_rl = pygame.Rect(self.filter_modal.x + 266, self.filter_modal.y + 68, 210, 46)
         self.filter_start = pygame.Rect(self.filter_modal.centerx - 90, self.filter_modal.y + 150, 180, 44)
-        self.board_rect = pygame.Rect(self.width // 2 - 112, 156, 224, 392)
+        self.board_rect = pygame.Rect(self.width // 2 - 132, 144, 264, 436)
 
     def on_resize(self, width, height):
         self.width = width
@@ -131,9 +131,7 @@ class FusionTetrisScene(BaseScene):
         return self.board_rect.x + (self.board_rect.width - grid_w) // 2, self.board_rect.y + (self.board_rect.height - grid_h) // 2, cell
 
     def _piece_color(self, side):
-        left_color = RED_FILTER[:3] if self.filter_direction == FILTER_LR else BLUE_FILTER[:3]
-        right_color = BLUE_FILTER[:3] if self.filter_direction == FILTER_LR else RED_FILTER[:3]
-        return left_color if side == "left" else right_color
+        return RED_FILTER[:3] if side == "left" else BLUE_FILTER[:3]
 
     def _rotate_piece(self):
         rotated = [(-dy, dx) for dx, dy in self.round_data["piece"]]
@@ -196,10 +194,7 @@ class FusionTetrisScene(BaseScene):
             x = self.round_data["piece_x"] + dx
             y = self.round_data["piece_y"] + dy
             if y < 0:
-                self.scoring.on_failure()
-                self.play_wrong_sound()
-                self._set_feedback("fusion_tetris.feedback.stack", (214, 96, 96))
-                self._new_round()
+                self._trigger_stack_game_over()
                 return
             cells.append({"x": x, "y": y, "side": self.round_data["piece_side"]})
             occupied.add((x, y))
@@ -220,6 +215,14 @@ class FusionTetrisScene(BaseScene):
         self.round_data["piece_x"] = cols // 2 - 1
         self.round_data["piece_y"] = 0
         self.round_data["piece_side"] = self.board_service.create_round(cols, rows)["piece_side"]
+        if any(cell["y"] <= 0 for cell in self.round_data["stack"]) or not self._can_move(self.round_data["piece_x"], self.round_data["piece_y"]):
+            self._trigger_stack_game_over()
+
+    def _trigger_stack_game_over(self):
+        self.scoring.on_failure()
+        self.play_wrong_sound()
+        self._set_feedback("fusion_tetris.feedback.stack", (214, 96, 96))
+        self._finish_game()
 
     def _can_move(self, new_x, new_y):
         cols = self.round_data["cols"]

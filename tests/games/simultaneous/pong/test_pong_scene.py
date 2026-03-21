@@ -27,6 +27,16 @@ class _ManagerStub:
         self.last_scene = None
         self.data_manager = _DataManagerStub()
         self.frame_scale = 1.0
+        self.sound_manager = type(
+            "SoundManager",
+            (),
+            {
+                "__init__": lambda self: setattr(self, "calls", {"correct": 0, "wrong": 0, "completed": 0}),
+                "play_correct": lambda self: self.calls.__setitem__("correct", self.calls["correct"] + 1),
+                "play_wrong": lambda self: self.calls.__setitem__("wrong", self.calls["wrong"] + 1),
+                "play_completed": lambda self: self.calls.__setitem__("completed", self.calls["completed"] + 1),
+            },
+        )()
 
     def t(self, key, **kwargs):
         if kwargs:
@@ -67,6 +77,7 @@ class PongSceneTests(unittest.TestCase):
         self.assertEqual(scene.state, scene.STATE_RESULT)
         self.assertEqual(manager.data_manager.saved[-1]["game_id"], "simultaneous.pong")
         self.assertIn("return_accuracy", manager.data_manager.saved[-1]["training_metrics"])
+        self.assertEqual(manager.sound_manager.calls["completed"], 1)
 
     def test_keyboard_moves_player_paddle(self):
         manager = _ManagerStub()
@@ -128,6 +139,20 @@ class PongSceneTests(unittest.TestCase):
         surface = pygame.Surface((840, 640))
         scene.draw(surface)
         self.assertGreater(sum(surface.get_at((420, 320))[:3]), 0)
+
+    def test_scoring_and_miss_play_feedback_sounds(self):
+        manager = _ManagerStub()
+        scene = PongScene(manager)
+        scene._start_match()
+        scene.serve_until = 0
+        scene.ball_x = scene.play_rect.right + 2
+        scene.update()
+        self.assertEqual(manager.sound_manager.calls["correct"], 1)
+
+        scene.serve_until = 0
+        scene.ball_x = scene.play_rect.left - 2
+        scene.update()
+        self.assertEqual(manager.sound_manager.calls["wrong"], 1)
 
 
 if __name__ == "__main__":

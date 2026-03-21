@@ -26,6 +26,16 @@ class _ManagerStub:
         self.active_category = "simultaneous"
         self.last_scene = None
         self.data_manager = _DataManagerStub()
+        self.sound_manager = type(
+            "SoundManager",
+            (),
+            {
+                "__init__": lambda self: setattr(self, "calls", {"correct": 0, "wrong": 0, "completed": 0}),
+                "play_correct": lambda self: self.calls.__setitem__("correct", self.calls["correct"] + 1),
+                "play_wrong": lambda self: self.calls.__setitem__("wrong", self.calls["wrong"] + 1),
+                "play_completed": lambda self: self.calls.__setitem__("completed", self.calls["completed"] + 1),
+            },
+        )()
 
     def t(self, key, **kwargs):
         if kwargs:
@@ -77,6 +87,7 @@ class SpotDifferenceSceneTests(unittest.TestCase):
         scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)])
         self.assertGreaterEqual(scene.scoring.success_count, 1)
         self.assertNotIn(first_index, scene.pending_indices)
+        self.assertEqual(manager.sound_manager.calls["correct"], 1)
 
     def test_multiple_marked_differences_submit_once(self):
         manager = _ManagerStub()
@@ -164,6 +175,17 @@ class SpotDifferenceSceneTests(unittest.TestCase):
         self.assertEqual(scene.final_stats["wrong"], 2)
         self.assertEqual(scene.final_stats["accuracy"], round((4 / 6) * 100, 1))
         self.assertEqual(scene.final_stats["avg_find_time"], 1.3)
+        self.assertEqual(manager.sound_manager.calls["completed"], 1)
+
+    def test_wrong_confirmation_plays_wrong_sound(self):
+        manager = _ManagerStub()
+        scene = SpotDifferenceScene(manager)
+        scene._start_game()
+        wrong_index = next(idx for idx in range(len(scene.round_data["right"])) if idx not in scene.round_data["diff_indices"])
+        scene.selected_index = wrong_index
+        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE)])
+        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)])
+        self.assertEqual(manager.sound_manager.calls["wrong"], 1)
 
 
 if __name__ == "__main__":

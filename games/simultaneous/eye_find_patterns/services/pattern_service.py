@@ -159,5 +159,13 @@ class EyeFindPatternService:
     def apply_filter(self, base, mode, filter_direction, side, mode_glasses, filter_lr):
         return apply_filter(base, mode, filter_direction, side, mode_glasses, filter_lr)
 
-    def blend_filtered_patterns(self, canvas_size, left_surface, left_rect, right_surface, right_rect):
-        return blend_filtered_patterns(canvas_size, left_surface, left_rect, right_surface, right_rect)
+    def blend_filtered_patterns(self, canvas_size, left_surface, left_rect, right_surface, right_rect, crop_border=0, use_offset_crop=True):
+        return blend_filtered_patterns(
+            canvas_size,
+            left_surface,
+            left_rect,
+            right_surface,
+            right_rect,
+            crop_border=crop_border,
+            use_offset_crop=use_offset_crop,
+        )

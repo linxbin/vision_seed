@@ -210,6 +210,7 @@ class SpotDifferenceScene(BaseScene):
             "mode": self.mode,
             "filter_direction": self.filter_direction,
         }
+        self.play_completed_sound()
         self._save_result()
 
     def _result_encouragement(self):
@@ -269,6 +270,7 @@ class SpotDifferenceScene(BaseScene):
                 self.scoring.on_success(reaction_time)
             self.found_indices.update(pending)
             self.pending_indices.clear()
+            self.play_correct_sound()
             if len(self.found_indices) >= len(self.round_data["diff_indices"]):
                 self.round_flash_until = time.time() + 0.55
                 self._set_feedback("spot_difference.feedback.round_clear", (90, 226, 132))
@@ -278,6 +280,7 @@ class SpotDifferenceScene(BaseScene):
             self.scoring.on_failure()
             self.failure_count += 1
             self.pending_indices.clear()
+            self.play_wrong_sound()
             self._set_feedback("spot_difference.feedback.fail", (238, 118, 118))
 
     def _toggle_pending_selection(self, index):

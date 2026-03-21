@@ -1,4 +1,5 @@
 import os
+import time
 import unittest
 from unittest.mock import patch
 
@@ -16,6 +17,16 @@ class _ManagerStub:
         self.active_game_id = "simultaneous.eye_find_patterns"
         self.active_category = "simultaneous"
         self.last_scene = None
+        self.sound_manager = type(
+            "SoundManager",
+            (),
+            {
+                "__init__": lambda self: setattr(self, "calls", {"correct": 0, "wrong": 0, "completed": 0}),
+                "play_correct": lambda self: self.calls.__setitem__("correct", self.calls["correct"] + 1),
+                "play_wrong": lambda self: self.calls.__setitem__("wrong", self.calls["wrong"] + 1),
+                "play_completed": lambda self: self.calls.__setitem__("completed", self.calls["completed"] + 1),
+            },
+        )()
 
     def t(self, key, **kwargs):
         if kwargs:
@@ -58,12 +69,14 @@ class EyeFindPatternsTests(unittest.TestCase):
         scene._confirm_action()
         self.assertEqual(scene.scoring.success_count, 1)
         self.assertEqual(scene.scoring.score, 10)
+        self.assertEqual(manager.sound_manager.calls["correct"], 1)
 
         scene.right_center = (420, 320)
         scene._confirm_action()
         self.assertEqual(scene.scoring.success_count, 1)
         self.assertEqual(scene.scoring.score, 10)
         self.assertEqual(scene.scoring.combo, 0)
+        self.assertEqual(manager.sound_manager.calls["wrong"], 1)
 
     def test_home_button_exit_to_main_menu(self):
         manager = _ManagerStub()
@@ -123,6 +136,47 @@ class EyeFindPatternsTests(unittest.TestCase):
         surface = pygame.Surface((840, 640))
         scene.draw(surface)
         self.assertGreater(sum(surface.get_at((420, 320))[:3]), 0)
+
+    def test_drag_render_uses_local_blend_bounds(self):
+        scene = EyeFindPatternsScene(_ManagerStub())
+        scene._start_game()
+        scene.left_center = (320, 320)
+        scene.right_center = (420, 320)
+        surface = pygame.Surface((scene.width, scene.height))
+        captured = {}
+
+        def _capture(canvas_size, left_surface, left_rect, right_surface, right_rect, crop_border=0, use_offset_crop=True):
+            captured["canvas_size"] = canvas_size
+            merged = pygame.Surface(canvas_size, pygame.SRCALPHA)
+            merged.blit(left_surface, left_rect)
+            merged.blit(right_surface, right_rect)
+            return merged
+
+        with patch.object(scene.pattern_service, "blend_filtered_patterns", side_effect=_capture):
+            scene.draw(surface)
+        self.assertLess(captured["canvas_size"][0], scene.width)
+        self.assertLess(captured["canvas_size"][1], scene.height)
+
+    def test_play_scene_draws_visible_patterns(self):
+        scene = EyeFindPatternsScene(_ManagerStub())
+        scene._start_game()
+        scene.left_center = (320, 320)
+        scene.right_center = (420, 320)
+        surface = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
+        scene.draw(surface)
+        left_sample = surface.get_at((320, 320))
+        right_sample = surface.get_at((420, 320))
+        self.assertGreater(left_sample[3], 0)
+        self.assertGreater(right_sample[3], 0)
+
+    def test_finish_game_plays_completed_sound(self):
+        manager = _ManagerStub()
+        scene = EyeFindPatternsScene(manager)
+        scene._start_game()
+        scene.session.session_started_at = time.time() - scene._session_seconds()
+        scene.update()
+        self.assertEqual(scene.state, scene.STATE_RESULT)
+        self.assertEqual(manager.sound_manager.calls["completed"], 1)
 
 
 if __name__ == "__main__":
