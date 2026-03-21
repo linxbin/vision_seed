@@ -16,6 +16,7 @@ from games.simultaneous.spot_difference.i18n import TRANSLATIONS as SPOT_DIFFERE
 from games.stereopsis.depth_grab.i18n import TRANSLATIONS as DEPTH_GRAB_TRANSLATIONS
 from games.stereopsis.brick_breaker.i18n import TRANSLATIONS as BRICK_BREAKER_TRANSLATIONS
 from games.stereopsis.frogger.i18n import TRANSLATIONS as FROGGER_TRANSLATIONS
+from games.stereopsis.ring_flight.i18n import TRANSLATIONS as RING_FLIGHT_TRANSLATIONS
 from games.suppression.find_same.i18n import TRANSLATIONS as FIND_SAME_TRANSLATIONS
 from games.suppression.red_blue_catch.i18n import TRANSLATIONS as RED_BLUE_CATCH_TRANSLATIONS
 from games.suppression.weak_eye_key.i18n import TRANSLATIONS as WEAK_EYE_KEY_TRANSLATIONS
@@ -230,6 +231,7 @@ class LanguageManager:
         DEPTH_GRAB_TRANSLATIONS,
         BRICK_BREAKER_TRANSLATIONS,
         FROGGER_TRANSLATIONS,
+        RING_FLIGHT_TRANSLATIONS,
         PRECISION_AIM_TRANSLATIONS,
         FRUIT_SLICE_TRANSLATIONS,
         WHACK_A_MOLE_TRANSLATIONS,

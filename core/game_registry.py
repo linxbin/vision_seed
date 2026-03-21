@@ -4,7 +4,7 @@ from games.accommodation import build_catch_fruit_descriptor, build_descriptor a
 from games.amblyopia import build_fruit_slice_descriptor, build_precision_aim_descriptor, build_whack_a_mole_descriptor
 from games.fusion import build_path_fusion_descriptor, build_push_box_descriptor, build_tetris_descriptor
 from games.simultaneous import build_eye_find_patterns_descriptor, build_pong_descriptor, build_spot_difference_descriptor
-from games.stereopsis import build_brick_breaker_descriptor, build_depth_grab_descriptor, build_frogger_descriptor
+from games.stereopsis import build_brick_breaker_descriptor, build_depth_grab_descriptor, build_frogger_descriptor, build_ring_flight_descriptor
 from games.suppression import build_find_same_descriptor, build_red_blue_catch_descriptor, build_weak_eye_key_descriptor
 
 from .game_contract import GameDescriptor
@@ -41,6 +41,7 @@ class GameRegistry:
         self.register(build_depth_grab_descriptor())
         self.register(build_brick_breaker_descriptor())
         self.register(build_frogger_descriptor())
+        self.register(build_ring_flight_descriptor())
         self.register(build_precision_aim_descriptor())
         self.register(build_whack_a_mole_descriptor())
         self.register(build_fruit_slice_descriptor())
