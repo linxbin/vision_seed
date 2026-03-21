@@ -199,6 +199,41 @@ class FusionPushBoxSceneTests(unittest.TestCase):
         scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_LEFT)])
         self.assertEqual(scene.board_state["player"], (4, 4))
 
+    def test_glasses_mode_keeps_player_red_and_boxes_blue(self):
+        manager = _ManagerStub()
+        scene = FusionPushBoxScene(manager)
+        scene.mode = scene.MODE_GLASSES
+        scene.filter_direction = scene.FILTER_LR
+        scene.board_state = {
+            "width": 5,
+            "height": 5,
+            "walls": set(),
+            "targets": set(),
+            "boxes": {(3, 2)},
+            "player": (1, 2),
+            "steps": 0,
+            "pushes": 0,
+            "level_index": 0,
+        }
+        screen = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
+        scene._draw_play_board(screen)
+
+        cell, offset_x, offset_y = scene._grid_metrics()
+        player_center = (
+            scene.board_rect.x + offset_x + cell + cell // 2,
+            scene.board_rect.y + offset_y + 2 * cell + cell // 2,
+        )
+        box_center = (
+            scene.board_rect.x + offset_x + 3 * cell + cell // 2,
+            scene.board_rect.y + offset_y + 2 * cell + cell // 2,
+        )
+
+        player_pixel = screen.get_at(player_center)
+        box_pixel = screen.get_at(box_center)
+
+        self.assertEqual(player_pixel[:3], (255, 0, 0))
+        self.assertEqual(box_pixel[:3], (0, 0, 255))
+
 
 if __name__ == "__main__":
     unittest.main()

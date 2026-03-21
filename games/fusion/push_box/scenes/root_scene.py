@@ -293,19 +293,22 @@ class FusionPushBoxScene(BaseScene):
     def _draw_entities(self, surface, show_player, show_boxes):
         surface.fill((0, 0, 0, 0))
         cell, offset_x, offset_y = self._grid_metrics()
+        glasses_mode = self.mode == self.MODE_GLASSES
         if show_boxes:
             for box in self.board_state["boxes"]:
                 rect = pygame.Rect(offset_x + box[0] * cell, offset_y + box[1] * cell, cell, cell).inflate(-18, -18)
-                color = (248, 184, 82)
-                pygame.draw.rect(surface, color, rect, border_radius=10)
-                pygame.draw.rect(surface, (135, 92, 48), rect, 3, border_radius=10)
+                if glasses_mode:
+                    pygame.draw.rect(surface, (255, 255, 255), rect, border_radius=10)
+                else:
+                    pygame.draw.rect(surface, (248, 184, 82), rect, border_radius=10)
+                    pygame.draw.rect(surface, (135, 92, 48), rect, 3, border_radius=10)
         if show_player:
             px, py = self.board_state["player"]
             center = (offset_x + px * cell + cell // 2, offset_y + py * cell + cell // 2)
-            color = (82, 160, 255)
-            pygame.draw.circle(surface, color, center, max(10, cell // 4))
-            pygame.draw.circle(surface, (255, 255, 255), (center[0] - 6, center[1] - 4), 3)
-            pygame.draw.circle(surface, (255, 255, 255), (center[0] + 6, center[1] - 4), 3)
+            pygame.draw.circle(surface, (255, 255, 255) if glasses_mode else (82, 160, 255), center, max(10, cell // 4))
+            if not glasses_mode:
+                pygame.draw.circle(surface, (255, 255, 255), (center[0] - 6, center[1] - 4), 3)
+                pygame.draw.circle(surface, (255, 255, 255), (center[0] + 6, center[1] - 4), 3)
 
     def _draw_play_board(self, screen):
         board_size = self.board_rect.size
