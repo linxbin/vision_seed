@@ -118,6 +118,12 @@ class RingFlightScene(BaseScene):
         depth = self._current_target_depth()
         return f"ring_flight.target.{self.board_service.DEPTH_LABELS[depth]}"
 
+    def _filter_direction_label(self, direction=None):
+        direction = direction or self.filter_direction
+        if direction == FILTER_RL:
+            return self.manager.t("ring_flight.filter.rl")
+        return self.manager.t("ring_flight.filter.lr")
+
     def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), selected=False):
         hovered = rect.collidepoint(pygame.mouse.get_pos())
         fill = tuple(min(255, c + 18) for c in color) if hovered else color
@@ -467,7 +473,10 @@ class RingFlightScene(BaseScene):
             self.manager.t("ring_flight.result.score", n=self.final_stats.get("score", 0)),
             self.manager.t("ring_flight.result.switches", n=self.final_stats.get("switches", 0)),
             self.manager.t("ring_flight.result.mode", mode=self.manager.t("ring_flight.mode.glasses")),
-            self.manager.t("ring_flight.result.filter", direction=self.final_stats.get("filter_direction", FILTER_LR)),
+            self.manager.t(
+                "ring_flight.result.filter",
+                direction=self._filter_direction_label(self.final_stats.get("filter_direction", FILTER_LR)),
+            ),
         ]
         for idx, text in enumerate(lines):
             line = self.body_font.render(text, True, (66, 84, 114))

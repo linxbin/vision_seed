@@ -8,6 +8,7 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame
 
 from games.stereopsis.ring_flight.scenes.root_scene import RingFlightScene
+from games.common.anaglyph import FILTER_LR, FILTER_RL
 
 
 class _DataManagerStub:
@@ -53,6 +54,25 @@ class _ManagerStub:
 
     def set_scene(self, name):
         self.last_scene = name
+
+
+class _ZhManagerStub(_ManagerStub):
+    def __init__(self):
+        super().__init__()
+        self.settings["language"] = "zh-CN"
+
+    def t(self, key, **kwargs):
+        mapping = {
+            "ring_flight.filter.lr": "左红右蓝",
+            "ring_flight.filter.rl": "左蓝右红",
+        }
+        value = mapping.get(key, key)
+        if kwargs:
+            try:
+                return value.format(**kwargs)
+            except Exception:
+                return value
+        return value
 
 
 class RingFlightSceneTests(unittest.TestCase):
@@ -202,3 +222,8 @@ class RingFlightSceneTests(unittest.TestCase):
         surface = pygame.Surface((840, 640))
         scene.draw(surface)
         self.assertGreater(sum(surface.get_at((420, 320))[:3]), 0)
+
+    def test_filter_direction_label_uses_localized_text(self):
+        scene = RingFlightScene(_ZhManagerStub())
+        self.assertEqual(scene._filter_direction_label(FILTER_LR), "左红右蓝")
+        self.assertEqual(scene._filter_direction_label(FILTER_RL), "左蓝右红")
