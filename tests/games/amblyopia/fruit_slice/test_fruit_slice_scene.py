@@ -40,6 +40,7 @@ class _ManagerStub:
         self.data_manager = _DataManagerStub()
         self.sound_manager = _SoundManagerStub()
         self.last_scene = None
+        self.frame_scale = 1.0
 
     def t(self, key, **kwargs):
         if kwargs:
@@ -95,3 +96,12 @@ class FruitSliceSceneTests(unittest.TestCase):
         self.assertEqual(scene.state, scene.STATE_RESULT)
         self.assertEqual(manager.data_manager.saved[-1]["game_id"], "amblyopia.fruit_slice")
         self.assertEqual(manager.sound_manager.completed_calls, 1)
+
+    def test_frame_scale_keeps_background_phase_consistent(self):
+        manager = _ManagerStub()
+        manager.frame_scale = 2.0
+        scene = FruitSliceScene(manager)
+        scene._start_game()
+        initial_phase = scene.background_phase
+        scene.update()
+        self.assertAlmostEqual(scene.background_phase, initial_phase + 0.1)

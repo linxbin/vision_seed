@@ -40,6 +40,7 @@ class _ManagerStub:
         self.data_manager = _DataManagerStub()
         self.sound_manager = _SoundManagerStub()
         self.last_scene = None
+        self.frame_scale = 1.0
 
     def t(self, key, **kwargs):
         if kwargs:
@@ -100,6 +101,37 @@ class CatchFruitSceneTests(unittest.TestCase):
         scene = CatchFruitScene(_ManagerStub())
         scene._start_game()
         self.assertGreaterEqual(len(scene.round_data["fruits"]), 2)
+
+    def test_frame_scale_keeps_fruit_fall_speed_consistent(self):
+        manager = _ManagerStub()
+        manager.frame_scale = 2.0
+        scene = CatchFruitScene(manager)
+        scene._start_game()
+        scene.round_data["move_dir"] = 0
+        scene.round_data["fruits"] = [
+            {
+                "x": scene.play_area.centerx,
+                "y": scene.play_area.top + 30,
+                "speed": 4.0,
+                "fruit_name": "apple",
+                "start_size": 88,
+                "end_size": 36,
+            }
+        ]
+        scene._sync_round_aliases()
+        initial_y = scene.round_data["fruits"][0]["y"]
+        scene.update()
+        self.assertAlmostEqual(scene.round_data["fruits"][0]["y"], initial_y + 8.0)
+
+    def test_frame_scale_keeps_basket_move_speed_consistent(self):
+        manager = _ManagerStub()
+        manager.frame_scale = 2.0
+        scene = CatchFruitScene(manager)
+        scene._start_game()
+        scene.round_data["move_dir"] = 1
+        initial_x = scene.round_data["basket_x"]
+        scene.update()
+        self.assertAlmostEqual(scene.round_data["basket_x"], initial_x + 16.0)
 
     def test_finish_saves_result(self):
         manager = _ManagerStub()

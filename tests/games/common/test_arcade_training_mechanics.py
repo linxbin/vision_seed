@@ -14,6 +14,7 @@ class _ManagerStub:
         self.active_game_id = "amblyopia.precision_aim"
         self.active_category = "amblyopia"
         self.current_result = {}
+        self.frame_scale = 1.0
         self.data_manager = type("DataManager", (), {"save_training_session": lambda self, payload: payload})()
         self.sound_manager = type("SoundManager", (), {"play_correct": lambda self: None, "play_wrong": lambda self: None, "play_completed": lambda self: None})()
 
@@ -143,6 +144,34 @@ class ArcadeTrainingMechanicTests(unittest.TestCase):
         self.assertEqual(mechanic.score_for_outcome(True), 38)
         self.assertEqual(mechanic.best_streak, 3)
         self.assertEqual(mechanic.bonus_hits, 1)
+
+    def test_catch_fruit_mechanic_scales_with_frame_rate(self):
+        manager = _ManagerStub()
+        manager.frame_scale = 2.0
+        config = ArcadeGameConfig(
+            game_id="accommodation.catch_fruit",
+            category="accommodation",
+            name="Catch Fruit Focus",
+            name_key="game.accommodation.catch_fruit",
+            title_key="catch_fruit.title",
+            subtitle_key="catch_fruit.subtitle",
+            guide_key="catch_fruit.play.guide",
+            metric_label_key="catch_fruit.metric.label",
+            help_steps=("catch_fruit.help.step1", "catch_fruit.help.step2", "catch_fruit.help.step3"),
+            mechanic_type="catch_fruit",
+            theme_color=(96, 156, 104),
+            difficulty_level=3,
+        )
+        scene = ArcadeTrainingScene(manager, config)
+        scene._start_session()
+        mechanic = scene.mechanic
+        mechanic.move_dir = 1
+        mechanic.fruit_speed = 4.0
+        initial_basket_x = mechanic.basket_x
+        initial_fruit_y = mechanic.fruit_y
+        mechanic.update(0.0)
+        self.assertAlmostEqual(mechanic.basket_x, initial_basket_x + 16.0)
+        self.assertAlmostEqual(mechanic.fruit_y, initial_fruit_y + 8.0)
 
     def test_precision_aim_quality_grades_center_hit(self):
         manager = _ManagerStub()

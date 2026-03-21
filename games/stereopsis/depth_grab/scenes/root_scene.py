@@ -530,7 +530,7 @@ class DepthGrabScene(BaseScene):
         now = time.time()
         if self.state == self.STATE_PLAY:
             self.session.tick(now)
-            self._depth_phase += 0.05
+            self._depth_phase += 0.05 * self.frame_scale()
             if self.session.is_complete():
                 self._finish_game()
                 return

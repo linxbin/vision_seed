@@ -215,6 +215,13 @@ class BaseScene:
             surface = font.render(fitted, True, color)
             screen.blit(surface, (column_x, row_y))
 
+    def frame_scale(self, clamp=3.0):
+        scale = float(getattr(self.manager, "frame_scale", 1.0))
+        return max(0.25, min(clamp, scale))
+
+    def scale_frame_step(self, amount, clamp=3.0):
+        return amount * self.frame_scale(clamp=clamp)
+
     def play_correct_sound(self):
         sound_manager = getattr(self.manager, "sound_manager", None)
         if sound_manager is not None:

@@ -41,6 +41,7 @@ class _ManagerStub:
         self.data_manager = _DataManagerStub()
         self.sound_manager = _SoundManagerStub()
         self.last_scene = None
+        self.frame_scale = 1.0
 
     def t(self, key, **kwargs):
         if kwargs:
@@ -117,3 +118,13 @@ class FroggerSceneTests(unittest.TestCase):
         self.assertEqual(scene.state, scene.STATE_RESULT)
         self.assertEqual(manager.data_manager.saved[-1]["game_id"], "stereopsis.frogger")
         self.assertEqual(manager.sound_manager.completed_calls, 1)
+
+    def test_frame_scale_keeps_lane_speed_consistent(self):
+        manager = _ManagerStub()
+        manager.frame_scale = 2.0
+        scene = FroggerScene(manager)
+        scene._start_game()
+        lane = scene.round_data["lanes"][0]
+        initial_x = lane["cars"][0][0]
+        scene.update()
+        self.assertAlmostEqual(lane["cars"][0][0], initial_x + lane["direction"] * 8.0)

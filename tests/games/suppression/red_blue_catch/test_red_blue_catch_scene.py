@@ -41,6 +41,7 @@ class _ManagerStub:
         self.data_manager = _DataManagerStub()
         self.sound_manager = _SoundManagerStub()
         self.last_scene = None
+        self.frame_scale = 1.0
 
     def t(self, key, **kwargs):
         if kwargs:
@@ -136,6 +137,16 @@ class RedBlueCatchSceneTests(unittest.TestCase):
         surface = pygame.Surface((scene.width, scene.height))
         scene.draw(surface)
         self.assertEqual(scene.state, scene.STATE_PLAY)
+
+    def test_frame_scale_keeps_ball_drop_speed_consistent(self):
+        manager = _ManagerStub()
+        manager.frame_scale = 2.0
+        scene = RedBlueCatchScene(manager)
+        scene._start_game()
+        scene.round_data["balls"] = [{"x": scene.play_area.centerx, "y": scene.play_area.top + 40, "speed": 6.0, "color": "red"}]
+        initial_y = scene.round_data["balls"][0]["y"]
+        scene.update()
+        self.assertAlmostEqual(scene.round_data["balls"][0]["y"], initial_y + 12.0)
 
     def test_session_finish_saves_result(self):
         manager = _ManagerStub()

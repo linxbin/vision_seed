@@ -374,13 +374,14 @@ class CatchFruitScene(BaseScene):
     def update(self):
         now = time.time()
         if self.state == self.STATE_PLAY:
+            frame_scale = self.frame_scale()
             self.session.tick(now)
             self._sync_aliases_to_primary_fruit()
             if self.round_data["move_dir"] != 0:
-                self.round_data["basket_x"] += self.round_data["move_dir"] * 8
+                self.round_data["basket_x"] += self.round_data["move_dir"] * 8 * frame_scale
                 self.round_data["basket_x"] = max(self.play_area.left + 60, min(self.play_area.right - 60, self.round_data["basket_x"]))
             for fruit in self.round_data["fruits"]:
-                fruit["y"] += fruit["speed"]
+                fruit["y"] += fruit["speed"] * frame_scale
                 if fruit["y"] >= self.play_area.bottom - 46:
                     success = abs(fruit["x"] - self.round_data["basket_x"]) <= 70 and self._clarity(fruit) >= 0.55
                     self._resolve_catch(success, fruit)

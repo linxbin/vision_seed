@@ -355,6 +355,7 @@ class RedBlueCatchScene(BaseScene):
     def update(self):
         now = time.time()
         if self.state == self.STATE_PLAY:
+            frame_scale = self.frame_scale()
             self.session.tick(now)
             if self.session.is_complete():
                 self._finish_game()
@@ -362,7 +363,7 @@ class RedBlueCatchScene(BaseScene):
             basket_left = self.round_data["basket_x"] - self.round_data["basket_width"] // 2
             basket_right = self.round_data["basket_x"] + self.round_data["basket_width"] // 2
             for ball in self.round_data["balls"]:
-                ball["y"] += ball["speed"]
+                ball["y"] += ball["speed"] * frame_scale
                 if ball["y"] >= self.play_area.bottom - 30:
                     if basket_left <= ball["x"] <= basket_right:
                         self._handle_catch(ball)

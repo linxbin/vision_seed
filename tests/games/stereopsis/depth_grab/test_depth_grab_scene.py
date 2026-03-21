@@ -43,6 +43,7 @@ class _ManagerStub:
         self.data_manager = _DataManagerStub()
         self.sound_manager = _SoundManagerStub()
         self.last_scene = None
+        self.frame_scale = 1.0
 
     def t(self, key, **kwargs):
         if kwargs:
@@ -269,3 +270,12 @@ class DepthGrabSceneTests(unittest.TestCase):
         surface = pygame.Surface((840, 640))
         scene.draw(surface)
         self.assertGreater(sum(surface.get_at((420, 320))[:3]), 0)
+
+    def test_frame_scale_keeps_depth_animation_consistent(self):
+        manager = _ManagerStub()
+        manager.frame_scale = 2.0
+        scene = DepthGrabScene(manager)
+        scene._start_game()
+        initial_phase = scene._depth_phase
+        scene.update()
+        self.assertAlmostEqual(scene._depth_phase, initial_phase + 0.1)

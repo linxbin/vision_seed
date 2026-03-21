@@ -41,6 +41,7 @@ class _ManagerStub:
         self.data_manager = _DataManagerStub()
         self.sound_manager = _SoundManagerStub()
         self.last_scene = None
+        self.frame_scale = 1.0
 
     def t(self, key, **kwargs):
         if kwargs:
@@ -127,6 +128,15 @@ class PrecisionAimSceneTests(unittest.TestCase):
         current_mode = scene.background_mode
         scene.update()
         self.assertNotEqual(scene.background_mode, current_mode)
+
+    def test_frame_scale_keeps_background_phase_consistent(self):
+        manager = _ManagerStub()
+        manager.frame_scale = 2.0
+        scene = PrecisionAimScene(manager)
+        scene._start_game()
+        initial_phase = scene.background_phase
+        scene.update()
+        self.assertAlmostEqual(scene.background_phase, initial_phase + 0.09)
 
     def test_board_service_avoids_repeating_anchor_location(self):
         service = PrecisionAimBoardService()

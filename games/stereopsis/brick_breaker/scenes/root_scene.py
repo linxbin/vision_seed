@@ -365,13 +365,14 @@ class BrickBreakerScene(BaseScene):
     def update(self):
         now = time.time()
         if self.state == self.STATE_PLAY:
+            frame_scale = self.frame_scale()
             self.session.tick(now)
             if self.session.is_complete():
                 self._finish_game()
                 return
             attack_ball = self.round_data.get("attack_ball")
             if attack_ball:
-                attack_ball["y"] -= attack_ball["speed"]
+                attack_ball["y"] -= attack_ball["speed"] * frame_scale
                 for brick in list(self.round_data["bricks"]):
                     rect = pygame.Rect(brick["rect"])
                     if rect.collidepoint(attack_ball["x"], attack_ball["y"]):

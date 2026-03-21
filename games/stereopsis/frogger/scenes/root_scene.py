@@ -332,13 +332,14 @@ class FroggerScene(BaseScene):
     def update(self):
         now = time.time()
         if self.state == self.STATE_PLAY:
+            frame_scale = self.frame_scale()
             self.session.tick(now)
             if self.session.is_complete():
                 self._finish_game()
                 return
             for lane in self.round_data["lanes"]:
                 for car in lane["cars"]:
-                    car[0] += lane["direction"] * 4
+                    car[0] += lane["direction"] * 4 * frame_scale
                     if car[0] < self.play_area.left - 40:
                         car[0] = self.play_area.right + 40
                     elif car[0] > self.play_area.right + 40:

@@ -148,8 +148,9 @@ class CatchFruitMechanic(BaseArcadeMechanic):
                 self.move_dir = 0
 
     def update(self, now):
+        frame_scale = self.scene.frame_scale()
         self._move_basket()
-        self.fruit_y += self.fruit_speed
+        self.fruit_y += self.fruit_speed * frame_scale
         self.space_prompt = self.fruit_y >= self.catch_window_top
         if self.fruit_y >= self.scene.play_area.bottom - 46:
             success = abs(self.fruit_x - self.basket_x) <= 70 and self._clarity() >= 0.55
@@ -158,7 +159,7 @@ class CatchFruitMechanic(BaseArcadeMechanic):
     def _move_basket(self):
         if self.move_dir == 0:
             return
-        self.basket_x += self.move_dir * self.move_speed
+        self.basket_x += self.move_dir * self.move_speed * self.scene.frame_scale()
         self.basket_x = max(self.scene.play_area.left + 60, min(self.scene.play_area.right - 60, self.basket_x))
 
     def _attempt_catch(self):

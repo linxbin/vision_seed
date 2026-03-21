@@ -1,4 +1,5 @@
 import os
+import time
 import unittest
 from unittest.mock import patch
 
@@ -25,6 +26,7 @@ class _ManagerStub:
         self.active_category = "simultaneous"
         self.last_scene = None
         self.data_manager = _DataManagerStub()
+        self.frame_scale = 1.0
 
     def t(self, key, **kwargs):
         if kwargs:
@@ -89,6 +91,17 @@ class PongSceneTests(unittest.TestCase):
         self.assertGreater(scene.current_rally, 0)
         self.assertGreater(scene.ball_vx, 5.0)
         self.assertEqual(scene.player_hits, 1)
+
+    def test_frame_scale_keeps_paddle_motion_consistent(self):
+        manager = _ManagerStub()
+        manager.frame_scale = 2.0
+        scene = PongScene(manager)
+        scene._start_match()
+        scene.serve_until = time.time() + 5
+        initial_y = scene.player_y
+        scene.player_move = 1
+        scene.update()
+        self.assertAlmostEqual(scene.player_y - initial_y, 14.0)
 
     def test_match_starts_with_serve_delay(self):
         manager = _ManagerStub()

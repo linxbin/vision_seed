@@ -41,6 +41,7 @@ class _ManagerStub:
         self.data_manager = _DataManagerStub()
         self.sound_manager = _SoundManagerStub()
         self.last_scene = None
+        self.frame_scale = 1.0
 
     def t(self, key, **kwargs):
         if kwargs:
@@ -183,6 +184,23 @@ class BrickBreakerSceneTests(unittest.TestCase):
         scene.draw(surface)
         sample = surface.get_at((scene.play_area.left + 20, scene.play_area.top + 24))[:3]
         self.assertEqual(sample, (255, 0, 255))
+
+    def test_frame_scale_keeps_attack_ball_speed_consistent(self):
+        manager = _ManagerStub()
+        manager.frame_scale = 2.0
+        scene = BrickBreakerScene(manager)
+        scene._start_game()
+        scene.round_data["bricks"] = []
+        scene.round_data["attack_ball"] = {
+            "x": scene.play_area.centerx,
+            "y": scene.play_area.bottom - 80,
+            "radius": 13,
+            "speed": 11,
+            "depth": scene.round_data["attack_depth"],
+        }
+        initial_y = scene.round_data["attack_ball"]["y"]
+        scene.update()
+        self.assertAlmostEqual(scene.round_data["attack_ball"]["y"], initial_y - 22.0)
 
     def test_finish_saves_result(self):
         manager = _ManagerStub()

@@ -1,4 +1,4 @@
-from config import DEFAULT_TOTAL_QUESTIONS, DEFAULT_START_LEVEL, DEFAULT_SESSION_MINUTES, E_SIZE_LEVELS
+from config import DEFAULT_TOTAL_QUESTIONS, DEFAULT_START_LEVEL, DEFAULT_SESSION_MINUTES, E_SIZE_LEVELS, FPS
 from .sound_manager import SoundManager
 from .data_manager import DataManager
 from .preferences_manager import PreferencesManager
@@ -15,6 +15,9 @@ class SceneManager:
         self.screen_size = None
         self.active_category = None
         self.active_game_id = None
+        self.target_frame_seconds = 1.0 / max(1, FPS)
+        self.delta_seconds = self.target_frame_seconds
+        self.frame_scale = 1.0
 
         self.settings = {
             "total_questions": DEFAULT_TOTAL_QUESTIONS,
@@ -51,6 +54,13 @@ class SceneManager:
         self.license_manager = LicenseManager()
         self.adaptive_manager = AdaptiveManager()
         self.game_registry = GameRegistry()
+
+    def update_frame_timing(self, dt_ms):
+        dt_seconds = max(0.0, float(dt_ms) / 1000.0)
+        if dt_seconds <= 0:
+            dt_seconds = self.target_frame_seconds
+        self.delta_seconds = min(0.05, dt_seconds)
+        self.frame_scale = self.delta_seconds / self.target_frame_seconds if self.target_frame_seconds > 0 else 1.0
 
     def apply_sound_preference(self):
         """将当前偏好中的音效开关应用到音效管理器。"""

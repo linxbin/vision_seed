@@ -60,7 +60,7 @@ def main():
 
     running = True
     while running:
-        clock.tick(FPS)
+        manager.update_frame_timing(clock.tick(FPS))
 
         events = pygame.event.get()
         for event in events:

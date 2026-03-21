@@ -365,14 +365,15 @@ class PongScene(BaseScene):
             if elapsed >= self._session_seconds() or self.player_score >= 11 or self.ai_score >= 11:
                 self._finish_match()
                 return
-            self.player_y = max(self.play_rect.top, min(self.play_rect.bottom - 96, self.player_y + self.player_move * 7))
+            frame_scale = self.frame_scale()
+            self.player_y = max(self.play_rect.top, min(self.play_rect.bottom - 96, self.player_y + self.player_move * 7 * frame_scale))
             target_ai = self.ball_y - 48
-            self.ai_y += max(-5, min(5, target_ai - self.ai_y))
+            self.ai_y += max(-5 * frame_scale, min(5 * frame_scale, target_ai - self.ai_y))
             self.ai_y = max(self.play_rect.top, min(self.play_rect.bottom - 96, self.ai_y))
             if self.serve_until > now:
                 return
-            self.ball_x += self.ball_vx
-            self.ball_y += self.ball_vy
+            self.ball_x += self.ball_vx * frame_scale
+            self.ball_y += self.ball_vy * frame_scale
             if self.ball_y <= self.play_rect.top + 10 or self.ball_y >= self.play_rect.bottom - 10:
                 self.ball_vy *= -1
             if self._ball_rect().colliderect(self._player_paddle_rect()) and self.ball_vx < 0:

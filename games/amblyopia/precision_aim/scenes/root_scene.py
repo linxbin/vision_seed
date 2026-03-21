@@ -438,7 +438,7 @@ class PrecisionAimScene(BaseScene):
         now = time.time()
         if self.state == self.STATE_PLAY:
             self.session.tick(now)
-            self.background_phase += 0.045
+            self.background_phase += 0.045 * self.frame_scale()
             if now - self.background_switched_at >= 6.0:
                 self.background_mode = "stripe" if self.background_mode == "checker" else "checker"
                 self.background_switched_at = now
