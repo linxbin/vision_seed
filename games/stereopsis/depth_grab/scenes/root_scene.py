@@ -6,7 +6,7 @@ import pygame
 
 from core.asset_loader import load_image_if_exists, project_path
 from core.base_scene import BaseScene
-from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER, apply_filter, blend_filtered_patterns
+from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER, SUBTRACTIVE_BACKGROUND, apply_filter, blend_filtered_patterns
 from ..services import DepthGrabBoardService, DepthGrabScoringService, DepthGrabSessionService
 
 
@@ -209,7 +209,7 @@ class DepthGrabScene(BaseScene):
 
     def _draw_background(self, screen):
         if self.state == self.STATE_PLAY and self.mode == self.MODE_GLASSES:
-            screen.fill(GLASSES_BACKGROUND[:3])
+            screen.fill(SUBTRACTIVE_BACKGROUND[:3])
             return
         top = (230, 243, 255)
         bottom = (215, 236, 252)
@@ -390,13 +390,20 @@ class DepthGrabScene(BaseScene):
         hud_alert = (132, 18, 32) if is_glasses_mode else (222, 74, 74)
         mode_text = self.manager.t("depth_grab.mode.glasses")
         remaining = max(0, int(self.session.session_seconds - self.session.session_elapsed))
+        left_lines = [
+            self.manager.t(self.board_service.stage_label_key(self.round_data["stage_index"])),
+            self.manager.t(self.board_service.goal_label_key(self.round_data["stage_index"])),
+        ]
         right_lines = []
         if is_glasses_mode:
             direction_key = "depth_grab.filter.lr" if self.filter_direction == self.FILTER_LR else "depth_grab.filter.rl"
-            right_lines = [
+            left_lines = [
                 self.manager.t("depth_grab.glasses_tip"),
                 self.manager.t(direction_key),
+                self.manager.t(self.board_service.stage_label_key(self.round_data["stage_index"])),
+                self.manager.t(self.board_service.goal_label_key(self.round_data["stage_index"])),
             ]
+            right_lines = []
         self.draw_session_hud(
             screen,
             top_font=self.body_font,
@@ -404,10 +411,7 @@ class DepthGrabScene(BaseScene):
             left_title=mode_text,
             timer_text=self.manager.t("depth_grab.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"),
             center_text=self.manager.t("depth_grab.score", score=self.scoring.score),
-            left_lines=(
-                self.manager.t(self.board_service.stage_label_key(self.round_data["stage_index"])),
-                self.manager.t(self.board_service.goal_label_key(self.round_data["stage_index"])),
-            ),
+            left_lines=tuple(left_lines),
             right_lines=tuple(right_lines),
             play_area=self.play_area,
             timer_color=hud_alert if remaining <= 30 else hud_primary,

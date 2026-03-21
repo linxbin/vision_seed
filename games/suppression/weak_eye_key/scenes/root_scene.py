@@ -430,11 +430,12 @@ class WeakEyeKeyScene(BaseScene):
         mode_text = self.manager.t("weak_eye_key.mode.glasses")
         remaining = max(0, int(self.session.session_seconds - self.session.session_elapsed))
         right_lines = ()
+        left_lines = (self.manager.t(self.board_service.stage_label_key(self.round_data["stage_index"])),)
         if is_glasses_mode:
             filter_text_key = "weak_eye_key.filter.lr" if self.filter_direction == self.FILTER_LR else "weak_eye_key.filter.rl"
-            right_lines = (
-                self.manager.t("weak_eye_key.mode.glasses"),
+            left_lines = (
                 self.manager.t(filter_text_key),
+                self.manager.t(self.board_service.stage_label_key(self.round_data["stage_index"])),
             )
         self.draw_session_hud(
             screen,
@@ -443,7 +444,7 @@ class WeakEyeKeyScene(BaseScene):
             left_title=mode_text,
             timer_text=self.manager.t("weak_eye_key.time", sec=f"{remaining // 60:02d}:{remaining % 60:02d}"),
             center_text=self.manager.t("weak_eye_key.score", score=self.scoring.score),
-            left_lines=(self.manager.t(self.board_service.stage_label_key(self.round_data["stage_index"])),),
+            left_lines=left_lines,
             right_lines=right_lines,
             play_area=self.play_area,
             timer_color=hud_alert if remaining <= 30 else hud_primary,
@@ -453,14 +454,14 @@ class WeakEyeKeyScene(BaseScene):
             meta_start_y=50,
         )
         board_label = self.small_font.render(self.manager.t("weak_eye_key.play.guide"), True, hud_secondary)
-        screen.blit(board_label, (self.play_area.centerx - board_label.get_width() // 2, max(100, self.play_area.y - 28)))
+        screen.blit(board_label, (self.play_area.centerx - board_label.get_width() // 2, self.play_area.y + 6))
 
         self._draw_clue(screen)
         self._draw_board(screen)
 
         if self.feedback_text and time.time() <= self.feedback_until:
             feedback = self.body_font.render(self.feedback_text, True, self.feedback_color)
-            screen.blit(feedback, (self.width // 2 - feedback.get_width() // 2, self.play_area.bottom + 18))
+            screen.blit(feedback, (self.width // 2 - feedback.get_width() // 2, self.play_area.bottom - 12))
 
         self._draw_button(screen, self.btn_confirm, self.manager.t("weak_eye_key.confirm"), confirm_color, icon_name="check")
         self._draw_button(screen, self.btn_home, self.manager.t("common.back"), back_color, icon_name="back_arrow")

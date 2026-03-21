@@ -4,7 +4,7 @@ from datetime import datetime
 import pygame
 
 from core.base_scene import BaseScene
-from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER, apply_filter, blend_filtered_patterns
+from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER, SUBTRACTIVE_BACKGROUND, apply_filter, blend_filtered_patterns
 from ..services import BrickBreakerBoardService, BrickBreakerScoringService, BrickBreakerSessionService
 
 
@@ -114,7 +114,7 @@ class BrickBreakerScene(BaseScene):
 
     def _draw_background(self, screen):
         if self.state == self.STATE_PLAY and self.mode == self.MODE_GLASSES:
-            screen.fill(GLASSES_BACKGROUND[:3])
+            screen.fill(SUBTRACTIVE_BACKGROUND[:3])
             return
         top = (236, 244, 255)
         bottom = (221, 235, 250)

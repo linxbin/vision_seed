@@ -56,7 +56,7 @@ package_secure.bat
 ### 方式二：直接执行 spec
 
 ```cmd
-pyinstaller visionseed.spec
+python -m PyInstaller visionseed.spec --distpath dist --workpath build --noconfirm
 ```
 
 ## 产物结构

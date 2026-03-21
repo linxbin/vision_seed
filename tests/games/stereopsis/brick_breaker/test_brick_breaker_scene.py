@@ -182,7 +182,7 @@ class BrickBreakerSceneTests(unittest.TestCase):
         surface = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
         scene.draw(surface)
         sample = surface.get_at((scene.play_area.left + 20, scene.play_area.top + 24))[:3]
-        self.assertEqual(sample, (255, 19, 255))
+        self.assertEqual(sample, (255, 0, 255))
 
     def test_finish_saves_result(self):
         manager = _ManagerStub()

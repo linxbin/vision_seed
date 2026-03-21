@@ -4,7 +4,7 @@ from datetime import datetime
 import pygame
 
 from core.base_scene import BaseScene
-from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BACKGROUND, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER
+from games.common.anaglyph import BLUE_FILTER, FILTER_LR, FILTER_RL, GLASSES_BUTTON_COLOR, MODE_GLASSES, RED_FILTER, SUBTRACTIVE_BACKGROUND, apply_filter, blend_filtered_patterns
 from ..services import FroggerBoardService, FroggerScoringService, FroggerSessionService
 
 
@@ -15,6 +15,11 @@ class FroggerScene(BaseScene):
     STATE_RESULT = "result"
     MODE_GLASSES = MODE_GLASSES
     GLASSES_FROG_OFFSET = 9
+    GLASSES_CAR_SHIFT = {
+        0: 16,
+        1: 13,
+        2: 10,
+    }
 
     def __init__(self, manager):
         super().__init__(manager)
@@ -108,16 +113,15 @@ class FroggerScene(BaseScene):
             screen.blit(surf, (x, current_y))
 
     def _draw_background(self, screen):
+        if self.state == self.STATE_PLAY and self.mode == self.MODE_GLASSES:
+            screen.fill(SUBTRACTIVE_BACKGROUND[:3])
+            return
         top = (236, 244, 255)
         bottom = (221, 235, 250)
         for y in range(self.height):
             t = y / max(1, self.height - 1)
             color = (int(top[0] * (1 - t) + bottom[0] * t), int(top[1] * (1 - t) + bottom[1] * t), int(top[2] * (1 - t) + bottom[2] * t))
             pygame.draw.line(screen, color, (0, y), (self.width, y))
-        if self.state == self.STATE_PLAY and self.mode == self.MODE_GLASSES:
-            overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            overlay.fill(GLASSES_BACKGROUND)
-            screen.blit(overlay, (0, 0))
 
     def _new_round(self):
         self.round_data = self.board_service.create_round(self.play_area)
@@ -170,20 +174,23 @@ class FroggerScene(BaseScene):
         return BLUE_FILTER[:3], RED_FILTER[:3]
 
     def _draw_glasses_play_content(self, screen):
-        left_color, right_color = self._glasses_colors()
-        safe_zone = pygame.Rect(self.play_area.left, self.play_area.top, self.play_area.width, 44)
-        pygame.draw.rect(screen, (212, 220, 232), safe_zone)
+        local_left = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        local_right = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         for lane_index, lane in enumerate(self.round_data["lanes"]):
-            pygame.draw.rect(screen, (228, 232, 242), pygame.Rect(self.play_area.left, lane["y"] - 26, self.play_area.width, 52))
-            shift = max(6, 16 - lane_index * 3)
+            shift = self.GLASSES_CAR_SHIFT.get(lane_index, 8)
             for car in lane["cars"]:
                 left_rect = pygame.Rect(car[0] - 28 - shift // 2, lane["y"] - 18, 56, 36)
                 right_rect = pygame.Rect(car[0] - 28 + shift // 2, lane["y"] - 18, 56, 36)
-                pygame.draw.rect(screen, left_color, left_rect, border_radius=8)
-                pygame.draw.rect(screen, right_color, right_rect, border_radius=8)
+                pygame.draw.rect(local_left, (255, 255, 255, 255), left_rect, border_radius=8)
+                pygame.draw.rect(local_right, (255, 255, 255, 255), right_rect, border_radius=8)
         frog = self.round_data["frog"]
-        pygame.draw.circle(screen, left_color, (int(frog[0] - self.GLASSES_FROG_OFFSET), int(frog[1])), 18)
-        pygame.draw.circle(screen, right_color, (int(frog[0] + self.GLASSES_FROG_OFFSET), int(frog[1])), 18)
+        pygame.draw.circle(local_left, (255, 255, 255, 255), (int(frog[0] - self.GLASSES_FROG_OFFSET), int(frog[1])), 18)
+        pygame.draw.circle(local_right, (255, 255, 255, 255), (int(frog[0] + self.GLASSES_FROG_OFFSET), int(frog[1])), 18)
+        left_filtered = apply_filter(local_left, self.mode, self.filter_direction, "left")
+        right_filtered = apply_filter(local_right, self.mode, self.filter_direction, "right")
+        crop_border = max(self.GLASSES_FROG_OFFSET, max(self.GLASSES_CAR_SHIFT.values()) // 2)
+        blended = blend_filtered_patterns((self.width, self.height), left_filtered, (0, 0), right_filtered, (0, 0), crop_border=crop_border)
+        screen.blit(blended, (0, 0))
 
     def _draw_filter_picker(self, screen):
         overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)

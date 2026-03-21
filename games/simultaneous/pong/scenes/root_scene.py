@@ -504,8 +504,8 @@ class PongScene(BaseScene):
             left_lines=(
                 self.manager.t("pong.rally", n=self.current_rally),
                 self.manager.t("pong.best_rally", n=self.best_rally),
-            ),
-            right_lines=((self.manager.t("pong.serve", n=self._serve_countdown()),) if self.serve_until > time.time() else ()),
+            ) + ((self.manager.t("pong.serve", n=self._serve_countdown()),) if self.serve_until > time.time() else ()),
+            right_lines=(),
             play_area=self.play_rect,
             timer_color=(56, 68, 94),
             center_color=(44, 60, 88),

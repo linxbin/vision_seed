@@ -259,10 +259,10 @@ class RedBlueCatchScene(BaseScene):
         combo_text = self.body_font.render(self.manager.t("red_blue_catch.combo", combo=self.scoring.best_combo), True, (92, 102, 120))
         mode_text = self.body_font.render(self.manager.t("red_blue_catch.mode.glasses"), True, (44, 60, 88))
         guide = self.small_font.render(self.manager.t("red_blue_catch.play.guide"), True, (54, 70, 96))
-        screen.blit(mode_text, (self.width - mode_text.get_width() - 126, 18))
+        screen.blit(mode_text, (84, 18))
         screen.blit(timer, (self.width // 2 - timer.get_width() // 2, 18))
-        screen.blit(score_text, (84, 22))
-        screen.blit(combo_text, (84, 58))
+        screen.blit(score_text, (84, 50))
+        screen.blit(combo_text, (84, 84))
         screen.blit(guide, (self.width // 2 - guide.get_width() // 2, 98))
         if self.mode == self.MODE_GLASSES:
             self._draw_glasses_play_content(screen)

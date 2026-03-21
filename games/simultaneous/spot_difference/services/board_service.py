@@ -24,7 +24,7 @@ class SpotDifferenceBoardService:
     DIFF_SHAPE = "shape"
     DIFF_COLOR = "color"
     DIFF_SIZE = "size"
-    DIFF_TYPES = (DIFF_SHAPE, DIFF_COLOR, DIFF_SIZE)
+    DIFF_TYPES = (DIFF_SHAPE,)
 
     def create_round(self, board_rect: pygame.Rect, diff_count: int = 2) -> dict:
         columns = 3

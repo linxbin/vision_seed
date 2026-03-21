@@ -99,6 +99,15 @@ class FroggerSceneTests(unittest.TestCase):
         scene.draw(surface)
         self.assertEqual(scene.state, scene.STATE_PLAY)
 
+    def test_glasses_mode_uses_pure_magenta_background(self):
+        scene = FroggerScene(_ManagerStub())
+        scene._start_game()
+        scene.mode = scene.MODE_GLASSES
+        surface = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
+        scene.draw(surface)
+        sample = surface.get_at((scene.play_area.left + 6, scene.play_area.top + 6))[:3]
+        self.assertEqual(sample, (255, 0, 255))
+
     def test_finish_saves_result(self):
         manager = _ManagerStub()
         scene = FroggerScene(manager)

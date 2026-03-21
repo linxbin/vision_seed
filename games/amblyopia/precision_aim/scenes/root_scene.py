@@ -318,7 +318,7 @@ class PrecisionAimScene(BaseScene):
                 self.manager.t(self.board_service.stage_label_key(self.round_data["stage_index"])),
                 self.manager.t(self.board_service.goal_label_key(self.round_data["stage_index"])),
             ),
-            right_lines=(self.manager.t("precision_aim.round_time", sec=round_left),),
+            right_lines=(),
             play_area=self.play_area,
             timer_color=hud_alert if remaining <= 30 else hud_primary,
             center_color=hud_primary,
@@ -326,6 +326,8 @@ class PrecisionAimScene(BaseScene):
             meta_color=hud_secondary,
             meta_start_y=50,
         )
+        round_surface = self.small_font.render(self.manager.t("precision_aim.round_time", sec=round_left), True, hud_secondary)
+        screen.blit(round_surface, (self.width // 2 - round_surface.get_width() // 2, 74))
         guide_y = max(100, self.play_area.y - 30)
         screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, guide_y))
         self._draw_target(screen)

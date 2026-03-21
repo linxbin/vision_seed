@@ -2,21 +2,25 @@
 
 import os
 
+from PyInstaller.utils.hooks import collect_dynamic_libs, collect_submodules
+
 # 获取项目根目录
 block_cipher = None
+cv2_binaries = collect_dynamic_libs('cv2')
+cv2_hiddenimports = collect_submodules('cv2')
 
 # 主要分析选项
 a = Analysis(
     ['main.py'],
     pathex=[os.path.abspath('.')],
-    binaries=[],
+    binaries=cv2_binaries,
     datas=[
         # 包含必要的资源目录
         ('assets', 'assets'),
         ('config/user_preferences.example.json', 'config'),
         # 注意：不包含 data 目录，保护用户隐私！
     ],
-    hiddenimports=[],
+    hiddenimports=cv2_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

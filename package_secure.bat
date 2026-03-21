@@ -1,4 +1,5 @@
 @echo off
+setlocal
 echo VisionSeed Secure Packaging
 echo =========================
 
@@ -8,13 +9,22 @@ if not exist "visionseed.spec" (
     exit /b 1
 )
 
+where python >nul 2>nul
+if %errorlevel% neq 0 (
+    echo Error: python not found in PATH
+    pause
+    exit /b 1
+)
+
 echo Cleaning build directories...
 if exist "build" rmdir /s /q "build"
 if exist "dist\VisionSeed" rmdir /s /q "dist\VisionSeed"
 if exist "__pycache__" rmdir /s /q "__pycache__"
+if exist "build_smoke2" rmdir /s /q "build_smoke2"
+if exist "dist_smoke2" rmdir /s /q "dist_smoke2"
 
 echo Running PyInstaller...
-pyinstaller visionseed.spec
+python -m PyInstaller visionseed.spec --distpath dist --workpath build --noconfirm
 
 if %errorlevel% neq 0 (
     echo Error: Packaging failed
@@ -54,5 +64,10 @@ if %errorlevel% neq 0 (
 echo Success: Zip package created
 dir "%ZIP_PATH%"
 
+echo Cleaning temporary build directories...
+if exist "build" rmdir /s /q "build"
+if exist "__pycache__" rmdir /s /q "__pycache__"
+
 echo Packaging completed!
 pause
+endlocal

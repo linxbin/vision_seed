@@ -112,16 +112,12 @@ class SpotDifferenceSceneTests(unittest.TestCase):
         round_data = service.create_round(board, diff_count=4)
         self.assertEqual(len(round_data["diff_indices"]), 4)
         self.assertEqual(len(round_data["diff_details"]), 4)
+        self.assertTrue(all(detail["type"] == service.DIFF_SHAPE for detail in round_data["diff_details"]))
         for item in round_data["left"]:
             self.assertGreaterEqual(item["center"][0], 0)
             self.assertLessEqual(item["center"][0], board.width)
             self.assertGreaterEqual(item["center"][1], 0)
             self.assertLessEqual(item["center"][1], board.height)
-        size_details = [detail for detail in round_data["diff_details"] if detail["type"] == service.DIFF_SIZE]
-        for detail in size_details:
-            left_size = round_data["left"][detail["index"]]["size"]
-            right_size = round_data["right"][detail["index"]]["size"]
-            self.assertGreaterEqual(abs(left_size - right_size), 14)
 
     def test_board_service_can_draw_extended_shapes(self):
         service = SpotDifferenceBoardService()

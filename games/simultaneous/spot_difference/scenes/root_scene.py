@@ -443,7 +443,6 @@ class SpotDifferenceScene(BaseScene):
             True,
             (92, 102, 120),
         )
-        screen.blit(combo_text, (self.width - 124 - combo_text.get_width(), 26))
         remaining = len(self.round_data["diff_indices"]) - len(self.found_indices)
         target_text = self.body_font.render(
             self.manager.t("spot_difference.target", remaining=remaining),
@@ -451,6 +450,7 @@ class SpotDifferenceScene(BaseScene):
             (88, 72, 32),
         )
         screen.blit(target_text, (84, 58))
+        screen.blit(combo_text, (84, 92))
         tip = self.small_font.render(self.manager.t("spot_difference.play.guide"), True, (54, 70, 96))
         screen.blit(tip, (self.width // 2 - tip.get_width() // 2, 98))
         self._draw_button(screen, self.btn_home, self.manager.t("common.back"), (86, 116, 170), icon_name="back_arrow")

@@ -412,10 +412,10 @@ class EyeFindPatternsScene(BaseScene):
         mode_text = self.manager.t("eye_find.mode.glasses")
         remaining = max(0, self._session_seconds() - self.session_elapsed)
         attempt_left = max(0, int(self.ATTEMPT_SECONDS - self.attempt_elapsed))
-        right_lines = (self.manager.t("eye_find.attempt_time", sec=attempt_left),)
+        left_lines = (self.manager.t("eye_find.attempt_time", sec=attempt_left),)
         if is_glasses_mode:
             filter_text_key = "eye_find.filter.lr" if self.filter_direction == self.FILTER_LR else "eye_find.filter.rl"
-            right_lines = (
+            left_lines = (
                 self.manager.t("eye_find.glasses_tip"),
                 self.manager.t(filter_text_key),
                 self.manager.t("eye_find.attempt_time", sec=attempt_left),
@@ -427,8 +427,8 @@ class EyeFindPatternsScene(BaseScene):
             left_title=mode_text,
             timer_text=self.manager.t("eye_find.time", sec=self._format_time(remaining)),
             center_text=self.manager.t("eye_find.score", score=self.scoring.score),
-            left_lines=(),
-            right_lines=right_lines,
+            left_lines=left_lines,
+            right_lines=(),
             play_area=self.play_area,
             timer_color=hud_alert if remaining <= 30 else hud_primary,
             center_color=hud_primary,
