@@ -39,8 +39,6 @@ METRIC_LABEL_KEYS = {
     "best_center_streak": "metric.best_center_streak",
     "foods_eaten": "snake_focus.metric.foods",
     "color_match_accuracy": "red_blue_catch.metric.accuracy",
-    "brick_clear_count": "brick_breaker.metric.cleared",
-    "safe_crosses": "frogger.metric.crosses",
     "fall_count": "metric.fall_count",
     "successful_passes": "ring_flight.metric.label",
     "wrong_depth_count": "ring_flight.metric.wrong_depth",

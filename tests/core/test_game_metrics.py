@@ -27,10 +27,6 @@ class _ManagerStub:
             return "Catch accuracy"
         if key == "metric.best_length":
             return "Best length"
-        if key == "brick_breaker.metric.cleared":
-            return "Bricks Cleared"
-        if key == "frogger.metric.crosses":
-            return "Safe Crosses"
         if key == "fusion_tetris.metric.lines":
             return "Lines Cleared"
         if key == "path_fusion.metric.accuracy":

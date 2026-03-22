@@ -1,4 +1,4 @@
-# v1.1 Content Backlog
+﻿# v1.1 Content Backlog
 
 Goal: ship a more complete VisionSeed release with at least 3 games per category, while preserving current product quality, UI consistency, bilingual support, data recording, and regression safety.
 
@@ -104,19 +104,6 @@ Tasks:
   - `miss_count`
   - `best_combo`
 
-### 5. stereopsis.brick_breaker
-
-Template:
-- `games/stereopsis/depth_grab`
-- `games/simultaneous/pong`
-
-Tasks:
-- Build paddle-ball-brick collision loop
-- Express depth through layered brick placement, not size-only cues
-- Add stereopsis metrics:
-  - `brick_clear_count`
-  - `front_back_confusion_count`
-  - `avg_reaction_time`
 
 ### 6. amblyopia.fruit_slice
 
@@ -133,20 +120,8 @@ Tasks:
 
 ## Batch C
 
-### 7. stereopsis.frogger
 
-Template:
-- `games/stereopsis/depth_grab`
-
-Tasks:
-- Build lane/platform movement with layered distance cues
-- Reuse red/blue mode UX from depth category
-- Add metrics:
-  - `safe_crosses`
-  - `fall_count`
-  - `depth_accuracy`
-
-### 8. fusion.tetris
+### 7. fusion.tetris
 
 Template:
 - `games/fusion/push_box`
@@ -159,7 +134,7 @@ Tasks:
   - `max_speed_level`
   - `fusion_accuracy`
 
-### 9. fusion.path_fusion
+### 8. fusion.path_fusion
 
 Template:
 - `games/fusion/push_box`
@@ -181,3 +156,4 @@ After each batch:
   - `tests.core.test_scene_flow_integration`
 - Re-check menu/category summaries for new metric labels
 - Verify new i18n keys appear in both languages
+

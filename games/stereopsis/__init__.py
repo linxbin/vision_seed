@@ -1,4 +1,2 @@
 from .depth_grab import build_descriptor as build_depth_grab_descriptor
-from .brick_breaker import build_descriptor as build_brick_breaker_descriptor
-from .frogger import build_descriptor as build_frogger_descriptor
 from .ring_flight import build_descriptor as build_ring_flight_descriptor

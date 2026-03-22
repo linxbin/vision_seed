@@ -10,8 +10,7 @@ from games.amblyopia.fruit_slice.scenes.root_scene import FruitSliceScene
 from games.amblyopia.whack_a_mole.scenes.root_scene import WhackAMoleScene
 from games.fusion.path_fusion.scenes.root_scene import PathFusionScene
 from games.fusion.tetris.scenes.root_scene import FusionTetrisScene
-from games.stereopsis.brick_breaker.scenes.root_scene import BrickBreakerScene
-from games.stereopsis.frogger.scenes.root_scene import FroggerScene
+from games.stereopsis.ring_flight.scenes.root_scene import RingFlightScene
 from games.suppression.find_same.scenes.root_scene import FindSameScene
 from games.suppression.red_blue_catch.scenes.root_scene import RedBlueCatchScene
 
@@ -49,8 +48,7 @@ class NewGameResizeTests(unittest.TestCase):
             SnakeFocusScene,
             FindSameScene,
             RedBlueCatchScene,
-            BrickBreakerScene,
-            FroggerScene,
+            RingFlightScene,
             WhackAMoleScene,
             FruitSliceScene,
             FusionTetrisScene,
