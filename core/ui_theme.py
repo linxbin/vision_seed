@@ -22,10 +22,6 @@ class PlatformTheme:
     CHIP_TEXT_MUTED = (136, 98, 54)
 
 
-def _load_ui_skin(name, size):
-    return load_image_if_exists(project_path("assets", "ui", name), size)
-
-
 def _load_ui_icon(icon_name, size, light=False):
     suffix = "light" if light else "dark"
     return load_image_if_exists(project_path("assets", "ui", f"{icon_name}_{suffix}.png"), size)
@@ -59,13 +55,10 @@ def draw_card(screen, rect, hovered=False, alt=False, radius=16):
 
 
 def draw_chip(screen, rect, hovered=False, radius=12):
-    skin_name = "kenney_button_hover.png" if hovered else "kenney_button_flat.png"
-    skin = _load_ui_skin(skin_name, (rect.width, rect.height))
-    if skin is not None:
-        screen.blit(skin, rect)
-        return
     fill = PlatformTheme.ACCENT if hovered else PlatformTheme.ACCENT_SOFT
     border = PlatformTheme.ACCENT_DARK if hovered else PlatformTheme.BORDER
+    shadow = pygame.Rect(rect.x, rect.y + 2, rect.width, rect.height)
+    pygame.draw.rect(screen, (*PlatformTheme.SHADOW, 160), shadow, border_radius=radius)
     pygame.draw.rect(screen, fill, rect, border_radius=radius)
     pygame.draw.rect(screen, border, rect, 2, border_radius=radius)
 
