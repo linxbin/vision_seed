@@ -10,6 +10,10 @@ E_TRAINING_GAME_ID = "accommodation.e_orientation"
 
 
 class ETrainingMenuScene(BaseScene):
+    TITLE_Y = 110
+    SUBTITLE_Y = 168
+    MENU_TOP_GAP = 14
+
     def __init__(self, manager):
         super().__init__(manager)
         self._refresh_fonts()
@@ -29,11 +33,8 @@ class ETrainingMenuScene(BaseScene):
         card_w = min(620, self.width - 100)
         card_h = 58
         gap = 14
-        total_h = card_h * 4 + gap * 3
-        available_top = 190
-        available_bottom = self.height - 90
-        available_h = max(total_h, available_bottom - available_top)
-        start_y = available_top + max(0, (available_h - total_h) // 2)
+        subtitle_height = self.subtitle_font.get_height()
+        start_y = self.SUBTITLE_Y + subtitle_height + self.MENU_TOP_GAP
         x = self.width // 2 - card_w // 2
         labels = [
             (self.manager.t("e_menu.start"), "training"),
@@ -99,8 +100,8 @@ class ETrainingMenuScene(BaseScene):
         draw_platform_background(screen, self.width, self.height)
         title = self.title_font.render(self.manager.t("e_menu.title"), True, PlatformTheme.TEXT_PRIMARY)
         subtitle = self.subtitle_font.render(self.manager.t("e_menu.subtitle"), True, PlatformTheme.TEXT_MUTED)
-        screen.blit(title, (self.width // 2 - title.get_width() // 2, 110))
-        screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 168))
+        screen.blit(title, (self.width // 2 - title.get_width() // 2, self.TITLE_Y))
+        screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, self.SUBTITLE_Y))
 
         mouse_pos = pygame.mouse.get_pos()
         for index, item in enumerate(self.items, start=1):
