@@ -17,6 +17,12 @@ class _ManagerStub:
             return "Average click deviation"
         if key == "depth_grab.metric.confusion":
             return "Front/back confusions"
+        if key == "pop_nearest.metric.label":
+            return "Depth order accuracy"
+        if key == "pop_nearest.metric.avg_pop_time":
+            return "Average pop time"
+        if key == "pop_nearest.metric.groups":
+            return "Groups cleared"
         if key == "snake_focus.metric.label":
             return "Best length"
         if key == "snake_focus.metric.foods":
@@ -27,12 +33,16 @@ class _ManagerStub:
             return "Catch accuracy"
         if key == "metric.best_length":
             return "Best length"
+        if key == "metric.correct_pops":
+            return "Correct pops"
         if key == "fusion_tetris.metric.lines":
             return "Lines Cleared"
         if key == "path_fusion.metric.accuracy":
             return "Fusion path accuracy"
         if key == "fruit_slice.metric.accuracy":
             return "Slice accuracy"
+        if key == "metric.wrong_pops":
+            return "Wrong pops"
         if key == "category.latest_summary":
             return f"Latest: {kwargs['accuracy']}% / {kwargs['duration']}s"
         if key == "category.latest_metric":
@@ -119,6 +129,15 @@ class GameMetricsTests(unittest.TestCase):
             "training_metrics": {"best_length": 9},
         })
         self.assertEqual(line2, "Best length: 9")
+
+    def test_summarize_session_uses_pop_nearest_metric_label(self):
+        manager = _ManagerStub()
+        _line1, line2 = summarize_session(manager, {
+            "accuracy_rate": 89.0,
+            "duration_seconds": 24.0,
+            "training_metrics": {"depth_order_accuracy": 89.0},
+        })
+        self.assertEqual(line2, "Depth order accuracy: 89.0")
 
 
 if __name__ == "__main__":

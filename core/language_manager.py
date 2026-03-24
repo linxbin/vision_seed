@@ -14,6 +14,7 @@ from games.simultaneous.eye_find_patterns.i18n import TRANSLATIONS as EYE_FIND_T
 from games.simultaneous.pong.i18n import TRANSLATIONS as PONG_TRANSLATIONS
 from games.simultaneous.spot_difference.i18n import TRANSLATIONS as SPOT_DIFFERENCE_TRANSLATIONS
 from games.stereopsis.depth_grab.i18n import TRANSLATIONS as DEPTH_GRAB_TRANSLATIONS
+from games.stereopsis.pop_nearest.i18n import TRANSLATIONS as POP_NEAREST_TRANSLATIONS
 from games.stereopsis.ring_flight.i18n import TRANSLATIONS as RING_FLIGHT_TRANSLATIONS
 from games.suppression.find_same.i18n import TRANSLATIONS as FIND_SAME_TRANSLATIONS
 from games.suppression.red_blue_catch.i18n import TRANSLATIONS as RED_BLUE_CATCH_TRANSLATIONS
@@ -227,6 +228,7 @@ class LanguageManager:
         WEAK_EYE_KEY_TRANSLATIONS,
         METRIC_TRANSLATIONS,
         DEPTH_GRAB_TRANSLATIONS,
+        POP_NEAREST_TRANSLATIONS,
         RING_FLIGHT_TRANSLATIONS,
         PRECISION_AIM_TRANSLATIONS,
         FRUIT_SLICE_TRANSLATIONS,

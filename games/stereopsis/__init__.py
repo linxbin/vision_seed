@@ -1,2 +1,3 @@
 from .depth_grab import build_descriptor as build_depth_grab_descriptor
+from .pop_nearest import build_descriptor as build_pop_nearest_descriptor
 from .ring_flight import build_descriptor as build_ring_flight_descriptor
