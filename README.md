@@ -124,12 +124,12 @@ python tests/run_ui_tests.py
 
 ## 文档
 
-分类与设计约束文档见：
+当前项目只保留 `README.md` 作为主文档入口。
 
-- [docs/视觉训练小游戏分类指南.md](/C:/workspace/python/vision_seed/docs/%E8%A7%86%E8%A7%89%E8%AE%AD%E7%BB%83%E5%B0%8F%E6%B8%B8%E6%88%8F%E5%88%86%E7%B1%BB%E6%8C%87%E5%8D%97.md)
+如果实现状态发生变化，应优先同步注册表、测试和本文件，避免说明与代码状态脱节。
 
-内容规划与对齐文档见：
+本文件负责记录：
 
-- [docs/v1_1_content_backlog.md](/C:/workspace/python/vision_seed/docs/v1_1_content_backlog.md)
-
-如果实现状态发生变化，应优先同步注册表、测试和文档，避免文档与代码状态脱节。
+- 当前分类与已接入游戏
+- 当前项目结构与运行方式
+- 与实现直接相关的稳定基线信息

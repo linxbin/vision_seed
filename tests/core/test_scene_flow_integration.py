@@ -47,7 +47,7 @@ class SceneFlowIntegrationTests(unittest.TestCase):
         self.assertEqual(SceneManager.decide_initial_scene(True, False), "onboarding")
         self.assertEqual(SceneManager.decide_initial_scene(True, True), "menu")
 
-    def test_set_scene_training_calls_reset_only(self):
+    def test_set_scene_calls_on_enter_for_registered_scene(self):
         manager = SceneManager.__new__(SceneManager)
         training = _DummyScene()
         manager.scenes = {"training": training}
@@ -57,8 +57,8 @@ class SceneFlowIntegrationTests(unittest.TestCase):
         SceneManager.set_scene(manager, "training")
 
         self.assertEqual(training.on_resize_calls, 1)
-        self.assertEqual(training.reset_calls, 1)
-        self.assertEqual(training.on_enter_calls, 0)
+        self.assertEqual(training.on_enter_calls, 1)
+        self.assertEqual(training.reset_calls, 0)
 
     def test_set_scene_non_training_calls_on_enter(self):
         manager = SceneManager.__new__(SceneManager)

@@ -1,21 +1,21 @@
 # AGENTS.md
 
-## Project
+## 项目概述
 
-VisionSeed is a Python + Pygame multi-game visual training application.
+VisionSeed 是一个基于 Python + Pygame 的多游戏视觉训练应用，而不是单一小游戏。
 
-The current architecture is:
+当前总体架构为：
 
-- `core/`: platform infrastructure
-- `scenes/`: global pages only
-- `games/`: game-specific modules
-- `tests/`: unit and UI-oriented regression tests
+- `core/`：平台基础设施
+- `scenes/`：全局公共页面
+- `games/`：各训练游戏模块
+- `tests/`：单元测试与 UI 回归测试
 
-The project is Windows-first and currently targets desktop usage.
+项目目前以 Windows 桌面端为主。
 
-## Current training categories
+## 当前训练分类
 
-Keep these six top-level categories stable unless the user explicitly asks to change product taxonomy:
+除非用户明确要求调整产品分类，否则保持以下六个顶层分类稳定：
 
 1. `accommodation`
 2. `simultaneous`
@@ -24,49 +24,56 @@ Keep these six top-level categories stable unless the user explicitly asks to ch
 5. `stereopsis`
 6. `amblyopia`
 
-`fusion` is currently a retained category with no active games. Do not remove the category unless explicitly requested.
+## 当前已注册游戏
 
-## Current registered games
-
-As of the current codebase, built-in games are registered through:
+内置游戏统一通过以下入口注册：
 
 - `core/game_registry.py`
 
-Current active games include:
+当前代码库中的内置游戏为：
 
 - `accommodation.e_orientation`
 - `accommodation.catch_fruit`
+- `accommodation.snake`
 - `simultaneous.eye_find_patterns`
 - `simultaneous.spot_difference`
 - `simultaneous.pong`
+- `fusion.push_box`
+- `fusion.tetris`
+- `fusion.path_fusion`
 - `suppression.weak_eye_key`
+- `suppression.find_same`
+- `suppression.red_blue_catch`
 - `stereopsis.depth_grab`
+- `stereopsis.ring_flight`
 - `amblyopia.precision_aim`
+- `amblyopia.whack_a_mole`
+- `amblyopia.fruit_slice`
 
-When adding or removing games, update registry, i18n, metrics labels, and tests together.
+新增或移除游戏时，必须同步更新注册表、i18n、指标标签与测试。
 
-## Architecture rules
+## 架构规则
 
-### 1. Global scenes vs game scenes
+### 1. 全局场景与游戏场景边界
 
-`scenes/` must only contain global platform pages, such as:
+`scenes/` 只放平台级全局页面，例如：
 
-- main menu
-- category page
-- system settings
-- onboarding
-- license
-- game host
+- 主菜单
+- 分类页
+- 系统设置
+- 首次引导
+- 授权页
+- 游戏宿主页
 
-Do not place game-private pages in `scenes/`.
+不要把游戏私有页面放进 `scenes/`。
 
-Game-private pages belong under:
+游戏私有页面应放在：
 
 - `games/<category>/<game>/scenes/`
 
-### 2. Game module structure
+### 2. 游戏模块结构
 
-New games should follow this structure:
+新游戏应尽量遵循以下结构：
 
 ```text
 games/<category>/<game>/
@@ -77,195 +84,191 @@ games/<category>/<game>/
 └─ assets/
 ```
 
-Use the existing game modules as reference instead of inventing new patterns.
+优先复用现有模块模式，不要另起一套新结构。
 
-### 3. Entry contract
+### 3. 接入契约
 
-Games are integrated through `GameDescriptor`.
+游戏通过 `GameDescriptor` 接入。
 
-Do not bypass:
+不要绕过以下基础设施：
 
 - `core/game_contract.py`
 - `core/game_registry.py`
 - `scenes/game_host_scene.py`
 
-If a game has multiple internal pages, route them inside the game module, usually with a root scene.
+如果一个游戏内部包含多个页面，应在游戏模块内部自行路由，通常返回一个 `root_scene.py` 作为入口。
 
-### 4. Data and records
+### 4. 数据与记录
 
-Training data is namespaced by `game_id`.
+训练数据必须按 `game_id` 隔离。
 
-When saving or reading records:
+保存和读取记录时要遵守：
 
-- preserve `game_id`
-- do not mix per-game history with global history
-- prefer game-local services over direct scene-level record logic
+- 保留 `game_id`
+- 不把单游戏历史与全局历史混用
+- 优先把记录逻辑放在游戏私有 `services/` 中，而不是直接堆在页面层
 
-Relevant infrastructure:
+相关基础设施：
 
 - `core/data_manager.py`
 - `core/scene_manager.py`
 
-### 5. i18n
+### 5. 国际化
 
-Global text belongs in:
+全局文案放在：
 
 - `core/language_manager.py`
 
-Game-private text belongs in:
+游戏私有文案放在：
 
 - `games/<category>/<game>/i18n.py`
 
-Do not keep growing global language tables with game-specific keys when a game-local i18n module already exists.
+如果游戏已有本地 `i18n.py`，不要继续把游戏私有文案塞回全局语言表。
 
-## UI and UX rules
+## UI 与 UX 规则
 
-### 1. Platform style
+### 1. 平台页面风格
 
-Platform pages use the shared bright theme from:
+平台页面使用共享亮色主题：
 
 - `core/ui_theme.py`
 
-Keep these pages visually consistent:
+以下页面应保持统一视觉语言：
 
 - `menu_scene.py`
 - `category_scene.py`
 - `system_settings_scene.py`
-- onboarding and license pages
+- onboarding 与 license 页面
 
-Do not reintroduce dark full-screen platform pages unless explicitly requested.
+除非用户明确要求，不要重新引入深色全屏平台页。
 
-### 2. Training HUD
+### 2. 训练 HUD
 
-Training pages should avoid clutter.
+训练页面应避免拥挤。
 
-Prefer:
+建议布局：
 
-- top-left: progress or game-specific counters
-- top-center: countdown or primary session info
-- top-right: return / secondary status
+- 左上：进度或游戏计数
+- 上中：倒计时或主要会话信息
+- 右上：返回或次级状态
 
-Avoid overlapping chips, labels, and helper text.
+避免标签、按钮、提示文本互相遮挡。
 
-### 3. Child-friendly interaction
+### 3. 儿童友好交互
 
-For children, keyboard-first interaction is preferred.
+游戏交互主要围绕鼠标点击，键盘上/下/左/右方向键，空格键进行交互。
 
-Default mapping:
+默认键位：
 
-- arrows: move / navigate
-- `Space`: primary action
-- `Enter`: continue / confirm
-- `Esc`: back
+- 方向键：移动 / 导航
+- `Space`：主要动作
+- `Enter`：继续 / 确认
+- `Esc`：返回
 
-Mouse can remain as compatibility input, but should not be the only viable input path for core gameplay.
+### 4. 红蓝眼镜模式
 
-### 4. Anaglyph mode
-
-If a game uses red-blue glasses mode, reuse the existing implementation approach from:
+涉及红蓝眼镜训练时，复用现有实现方式：
 
 - `games/simultaneous/eye_find_patterns`
 - `games/common/anaglyph.py`
 
-Do not invent a separate red-blue system per game.
+不要为每个游戏单独再造一套红蓝系统。
 
-Use the current project baseline:
+当前基线模式包括：
 
 - normal mode
 - glasses mode
 - `left_red_right_blue`
 - `left_blue_right_red`
 
-Prefer:
+设计上优先：
 
-- strong red/blue only for training-critical elements
-- neutral or weaker colors for helpers/backgrounds
-- mixed overlap behavior consistent with current implementation
+- 强红/强蓝只用于训练关键元素
+- 辅助元素与背景尽量使用中性或弱化颜色
+- 游戏布局参考现有训练模式，必须避免元素重叠，元素布局要合理美观
 
-## Gameplay rules
+## 玩法规则
 
-### 1. Training goal first
+### 1. 训练目标优先
 
-Do not port classic games literally.
+不要机械照搬传统小游戏。
 
-Convert them into training shells where:
+应把玩法改造成训练壳层，使其满足：
 
-- the visual task is primary
-- the game loop motivates repetition
-- interaction remains simple enough for children
+- 视觉训练任务是主目标
+- 游戏循环负责提供重复动机
+- 交互足够简单，儿童也能稳定完成
 
-### 2. One main training goal per game
+### 2. 每个游戏只聚焦一个主训练目标
 
-Avoid mixing multiple training targets into one game unless explicitly requested.
+除非用户明确要求，不要把多个训练目标硬塞进同一个游戏。
 
-Examples:
+例如：
 
-- `catch_fruit`: accommodation
-- `spot_difference` / `pong`: simultaneous vision
-- `precision_aim`: amblyopia
+- `catch_fruit`：调节训练
+- `spot_difference` / `pong`：同时视训练
+- `precision_aim`：弱视训练
 
-### 3. Short sessions, clear feedback
+### 3. 短时长与清反馈
 
-Games should provide:
+游戏应具备：
 
-- short rounds or short-session pacing
-- immediate feedback
-- simple success/failure logic
-- clear next-step guidance
+- 短回合或短时长节奏
+- 即时反馈
+- 简单明确的成功 / 失败判定
+- 清晰的下一步引导
 
-## Testing rules
+## 测试规则
 
-Always run regression tests after meaningful code changes.
+只要有实质性改动，就运行回归测试。
 
-Minimum expected commands:
+最低要求命令：
 
 ```bash
 python -m unittest discover -s tests -p "test_*.py"
 python tests/run_ui_tests.py
 ```
 
-Use targeted test runs first when iterating on one module, then run the full suite.
+迭代单模块时先跑定向测试，收尾再跑全量回归。
 
-If a fix changes gameplay, update or add tests alongside the code change.
+如果修复涉及玩法或交互，代码和测试要同步更新。
 
-## Editing rules
+## 编辑规则
 
-- Prefer small, local changes over broad rewrites.
-- Use existing helpers, services, and scene patterns before creating new abstractions.
-- Do not delete user-facing categories, games, or product flows without explicit approval.
-- Do not revert unrelated work in the repository.
-- Preserve current Windows compatibility.
+- 优先做小而局部的改动，不做无必要的大重写。
+- 先复用现有 helper、service、scene 模式，再考虑抽新抽象。
+- 未经明确批准，不要删除面向用户的分类、游戏或产品流程。
+- 不要回退仓库里与当前任务无关的现有改动。
+- 保持 Windows 兼容性。
 
-## Documentation rules
+## 文档规则
 
-When behavior changes, update the relevant docs if they are clearly affected, especially:
+行为变化后，如果相关文档受影响，就同步更新，尤其是：
 
 - `README.md`
-- `docs/视觉训练小游戏分类指南.md`
-- game-specific design docs in `docs/`
 
-Keep planning documents and actual code status aligned. If something is only planned and not implemented, say so clearly in docs.
+规划文档必须和真实实现保持对齐；如果某项还只是计划，文档里要明确写清楚。
 
-## Preferred implementation order
+## 推荐实施顺序
 
-When expanding the project, prefer this sequence:
+扩展项目时，优先遵循以下顺序：
 
-1. confirm category and training goal
-2. create or update game module
-3. register game
-4. wire i18n
-5. add or update tests
-6. run full regression
-7. update docs if needed
+1. 确认分类与训练目标
+2. 创建或更新游戏模块
+3. 注册游戏
+4. 接入 i18n
+5. 增补测试
+6. 运行全量回归
+7. 如有需要更新文档
 
-## Good reference modules
+## 推荐参考模块
 
-Use these modules as practical references:
+优先参考以下模块：
 
 - `games/accommodation/e_orientation`
 - `games/simultaneous/eye_find_patterns`
 - `games/simultaneous/spot_difference`
 - `games/simultaneous/pong`
-- `games/common/arcade_training/scene.py`
+- `games/common/training_runtime/arcade_scene.py`
 
-These reflect the current project direction better than older or removed experiments.
+这些模块比旧实验代码更能代表当前项目方向。

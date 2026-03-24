@@ -116,13 +116,14 @@ class MenuScene(BaseScene):
         return item.get("name", "")
 
     def _sync_legacy_ui_shape(self):
+        # Keep the older test-facing shape in sync with the current category-first menu.
         exit_item = next((item for item in self.control_items if item.get("kind") == "exit"), None)
         system_item = next((item for item in self.control_items if item.get("scene") == "system_settings"), None)
         first_category = next((item for item in self._items if item.get("kind") == "category"), None)
 
         if first_category and exit_item and system_item:
             self.menu_options = [
-                {"rect": first_category["rect"], "key": "menu.start_training", "scene": "training"},
+                {"rect": first_category["rect"], "key": "menu.start_training", "scene": "category"},
                 {"rect": system_item["rect"], "key": "menu.system_settings", "scene": "system_settings"},
                 {"rect": exit_item["rect"], "key": "menu.exit", "scene": "exit"},
             ]

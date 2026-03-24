@@ -22,7 +22,7 @@ class TestMenuSceneUI(UITestCase):
         self.assertLessEqual(len(self.scene.recommendations), 3)
         first_option = self.scene.menu_options[0]
         self.assertEqual(first_option["key"], "menu.start_training")
-        self.assertEqual(first_option["scene"], "training")
+        self.assertEqual(first_option["scene"], "category")
 
     def test_menu_rendering_basic(self):
         frame = self.capture_frame(self.scene)
@@ -72,7 +72,7 @@ class TestMenuSceneUI(UITestCase):
     def test_menu_click_navigation(self):
         first_option = None
         for option in self.scene.menu_options:
-            if option["scene"] == "training":
+            if option["scene"] == "category":
                 first_option = option
                 break
         self.assertIsNotNone(first_option)

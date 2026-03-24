@@ -145,11 +145,6 @@ class SceneManager:
             if callable(on_resize):
                 on_resize(*self.screen_size)
 
-        # 每次进入训练必须重置
-        if name == "training":
-            self.scene.reset()
-            return
-
         # 场景进入回调（可选）
         on_enter = getattr(self.scene, "on_enter", None)
         if callable(on_enter):

@@ -16,14 +16,15 @@ sys.path.insert(0, str(ROOT))
 
 
 UI_TEST_FILES = [
-    "games/accommodation/e_orientation/test_training_scene_ui.py",
-    "games/accommodation/e_orientation/test_config_scene_ui.py",
+    "scenes/test_category_scene_ui.py",
     "scenes/test_menu_scene_ui.py",
     "scenes/test_system_settings_scene.py",
-    "games/accommodation/e_orientation/test_report_scene_ui.py",
-    "games/accommodation/e_orientation/test_history_scene_ui.py",
     "scenes/test_onboarding_scene_ui.py",
     "scenes/test_license_scene_ui.py",
+    "games/accommodation/e_orientation/test_training_scene_ui.py",
+    "games/accommodation/e_orientation/test_config_scene_ui.py",
+    "games/accommodation/e_orientation/test_report_scene_ui.py",
+    "games/accommodation/e_orientation/test_history_scene_ui.py",
 ]
 
 
