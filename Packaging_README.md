@@ -65,7 +65,7 @@ python -m PyInstaller visionseed.spec --distpath dist --workpath build --noconfi
 项目根目录/
 ├── dist/
 │   └── VisionSeed/
-│       ├── VisionSeed.exe
+│       ├── 视芽.exe
 │       ├── assets/
 │       └── config/
 └── build/
@@ -90,7 +90,7 @@ python -m PyInstaller visionseed.spec --distpath dist --workpath build --noconfi
 - 训练记录属于用户本地数据，不包含在仓库分发内容中
 - 每个新用户首次运行时会初始化自己的本地配置和记录
 - 建议发布前对产物做基础安全扫描（杀软/EDR）
-- 建议对 `VisionSeed.exe` 做代码签名，减少系统拦截风险
+- 建议对 `视芽.exe` 做代码签名，减少系统拦截风险
 
 ## 常见问题
 

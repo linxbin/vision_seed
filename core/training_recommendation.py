@@ -1,5 +1,9 @@
 from datetime import datetime
-from unittest.mock import Mock
+
+
+def _is_mock_object(value):
+    module_name = getattr(type(value), "__module__", "")
+    return isinstance(module_name, str) and module_name.startswith("unittest.mock")
 
 
 def _parse_timestamp(value):
@@ -19,7 +23,7 @@ def _is_same_day(dt, target):
 
 
 def _safe_sequence(value):
-    if value is None or isinstance(value, (str, bytes, Mock)):
+    if value is None or isinstance(value, (str, bytes)) or _is_mock_object(value):
         return []
     if isinstance(value, list):
         return value

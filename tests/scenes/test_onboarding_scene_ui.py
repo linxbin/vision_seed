@@ -31,7 +31,7 @@ class TestOnboardingSceneUI(UITestCase):
         # 验证面板位置居中
         self.assertEqual(
             self.scene.panel_rect.centerx,
-            self.test_surface.get_width() // 2
+            self.scene.width // 2
         )
     
     def test_onboarding_rendering_basic(self):

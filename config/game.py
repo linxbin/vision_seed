@@ -3,7 +3,7 @@
 游戏相关配置
 """
 
-TITLE = "VisionSeed (视芽)"
+TITLE = "视芽 - 视功能训练系统"
 
 DEFAULT_TOTAL_QUESTIONS = 30  # 根据项目概览调整为30-200范围
 DEFAULT_START_LEVEL = 3       # 默认等级为3

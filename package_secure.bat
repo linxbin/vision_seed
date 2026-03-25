@@ -1,5 +1,7 @@
 @echo off
 setlocal
+chcp 65001 >nul
+set "APP_DIST_DIR=dist\VisionSeed"
 echo VisionSeed Secure Packaging
 echo =========================
 
@@ -18,7 +20,7 @@ if %errorlevel% neq 0 (
 
 echo Cleaning build directories...
 if exist "build" rmdir /s /q "build"
-if exist "dist\VisionSeed" rmdir /s /q "dist\VisionSeed"
+if exist "%APP_DIST_DIR%" rmdir /s /q "%APP_DIST_DIR%"
 if exist "__pycache__" rmdir /s /q "__pycache__"
 if exist "build_smoke2" rmdir /s /q "build_smoke2"
 if exist "dist_smoke2" rmdir /s /q "dist_smoke2"
@@ -32,15 +34,20 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-if exist "dist\VisionSeed\VisionSeed.exe" (
-    echo Success: VisionSeed.exe created successfully (one-folder^)
-    dir "dist\VisionSeed\VisionSeed.exe"
+set "APP_EXE_PATH="
+for %%F in ("%APP_DIST_DIR%\*.exe") do if not defined APP_EXE_PATH set "APP_EXE_PATH=%%~fF"
+
+if defined APP_EXE_PATH (
+    echo(
+    echo [OK] Executable created successfully ^(one-folder^)
+    dir "%APP_EXE_PATH%"
 ) else (
     echo Error: Executable not found
     pause
     exit /b 1
 )
 
+echo(
 echo Creating zip package in dist directory...
 set "VERSION=v0.0.0"
 for /f "delims=" %%i in ('git describe --tags --abbrev^=0 2^>nul') do set "VERSION=%%i"
@@ -50,7 +57,7 @@ if /I "%ARCH%"=="AMD64" set "ARCH=x64"
 if /I "%ARCH%"=="X86" set "ARCH=x86"
 if /I "%ARCH%"=="ARM64" set "ARCH=arm64"
 
-set "ZIP_NAME=VisionSeed-%VERSION%-windows-%ARCH%.zip"
+set "ZIP_NAME=shiya-%VERSION%-windows-%ARCH%.zip"
 set "ZIP_PATH=dist\%ZIP_NAME%"
 if exist "%ZIP_PATH%" del /f /q "%ZIP_PATH%"
 powershell -NoProfile -Command "Compress-Archive -Path 'dist\\VisionSeed\\*' -DestinationPath '%ZIP_PATH%' -Force"
@@ -61,13 +68,15 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo Success: Zip package created
+echo(
+echo [OK] Zip package created
 dir "%ZIP_PATH%"
 
 echo Cleaning temporary build directories...
 if exist "build" rmdir /s /q "build"
 if exist "__pycache__" rmdir /s /q "__pycache__"
 
+echo(
 echo Packaging completed!
 pause
 endlocal

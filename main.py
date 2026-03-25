@@ -1,5 +1,6 @@
 import pygame
 from config import SCREEN_WIDTH, SCREEN_HEIGHT, MIN_SCREEN_WIDTH, MIN_SCREEN_HEIGHT, FPS, TITLE
+from core.app_paths import get_resource_path
 from core.scene_manager import SceneManager
 from core.startup_health import run_startup_health_check, safe_init_audio
 from scenes.menu_scene import MenuScene
@@ -12,6 +13,15 @@ from scenes.system_settings_scene import SystemSettingsScene
 
 def main():
     pygame.init()
+
+    icon_path = get_resource_path("assets", "branding", "shiya_app_icon_256.png")
+    try:
+        window_icon = pygame.image.load(icon_path)
+        if pygame.display.get_surface() is not None:
+            window_icon = window_icon.convert_alpha()
+        pygame.display.set_icon(window_icon)
+    except (pygame.error, FileNotFoundError):
+        pass
 
     run_startup_health_check()
     audio_ok = safe_init_audio()

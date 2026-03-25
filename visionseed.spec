@@ -27,19 +27,9 @@ a = Analysis(
     excludes=[
         # 排除不必要的模块以减小体积
         'tkinter',
-        'unittest',
-        'email',
-        'http',
-        'urllib',
-        'xml',
         'pydoc',
         'doctest',
-        'argparse',
-        'calendar',
         'pdb',
-        'pickle',
-        'multiprocessing',
-        'concurrent',
         'distutils',
         'setuptools',
         'pkg_resources',
@@ -60,7 +50,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='VisionSeed',
+    name='视芽',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -73,7 +63,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    # icon='assets/icon.ico'  # 移除图标引用，因为不存在
+    icon='assets/branding/shiya_app_icon.ico'
 )
 
 coll = COLLECT(
