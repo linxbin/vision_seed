@@ -22,6 +22,8 @@ class MenuScene(BaseScene):
         self.recent_completions = []
         self.recommend_panel = pygame.Rect(0, 0, 1, 1)
         self._recent_row_y = 0
+        self._disclaimer_y = 0
+        self._hint_y = 0
         self.control_items = []
         self._recommendation_lines = 3
         self._compact_recommendation = False
@@ -73,9 +75,9 @@ class MenuScene(BaseScene):
             })
 
         rec_x = margin
-        rec_y = self.height - 224
+        rec_y = self.height - 236
         rec_w = max(260, control_x - gutter - rec_x)
-        rec_h = 170
+        rec_h = 150
         self.recommend_panel = pygame.Rect(rec_x, rec_y, rec_w, rec_h)
         self._compact_recommendation = self.width < 760 or self.height < 620
         self._recommendation_lines = 1 if self.width < 720 or self.height < 600 else (2 if self.width < 840 or self.height < 660 else 3)
@@ -84,6 +86,8 @@ class MenuScene(BaseScene):
         self.recommendation_hint = build_daily_suggestion(self.manager, self.recommendations)
         self.recent_completions = build_recent_completions(self.manager, limit=2)
         self._recent_row_y = self.recommend_panel.bottom - 38
+        self._disclaimer_y = max(self.recommend_panel.bottom + 10, self.height - 68)
+        self._hint_y = self._disclaimer_y + 34
         self._sync_legacy_ui_shape()
         if self._all_items():
             self.focused_index = max(0, min(previous_focus, len(self._all_items()) - 1))
@@ -290,11 +294,11 @@ class MenuScene(BaseScene):
             self.meta_font,
             self.manager.t("menu.disclaimer"),
             PlatformTheme.TEXT_MUTED,
-            (44, self.height - 68),
+            (44, self._disclaimer_y),
             self.width - 320,
             line_gap=2,
             max_lines=2,
             ellipsis=True,
         )
         hint = self.hint_font.render(self.manager.t("menu.hint"), True, PlatformTheme.TEXT_MUTED)
-        screen.blit(hint, (44, self.height - 34))
+        screen.blit(hint, (44, self._hint_y))

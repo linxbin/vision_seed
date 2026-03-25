@@ -130,6 +130,11 @@ class TestMenuSceneUI(UITestCase):
         panel_color = self.get_surface_average_color(frame, (30, 400, 500, 170))
         self.assertGreater(sum(panel_color[:3]), 30)
 
+    def test_disclaimer_stays_below_recommend_panel(self):
+        self.scene.on_resize(960, 720)
+        self.assertGreaterEqual(self.scene._disclaimer_y, self.scene.recommend_panel.bottom + 10)
+        self.assertGreater(self.scene._hint_y, self.scene._disclaimer_y)
+
 
 if __name__ == '__main__':
     unittest.main()
