@@ -92,9 +92,8 @@ class EyeFindPatternsTests(unittest.TestCase):
     def test_glasses_mode_can_start(self):
         manager = _ManagerStub()
         scene = EyeFindPatternsScene(manager)
-        scene.show_filter_picker = True
-        x = scene.filter_start.centerx
-        y = scene.filter_start.centery
+        x = scene.filter_lr.centerx
+        y = scene.filter_lr.centery
         event = pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=(x, y))
         with patch("pygame.mouse.get_pos", return_value=(x, y)):
             scene.handle_events([event])
@@ -104,7 +103,7 @@ class EyeFindPatternsTests(unittest.TestCase):
         manager = _ManagerStub()
         scene = EyeFindPatternsScene(manager)
         scene.state = scene.STATE_HOME
-        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_2)])
+        scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_h)])
         self.assertEqual(scene.state, scene.STATE_HELP)
         x = scene.help_ok.centerx
         y = scene.help_ok.centery

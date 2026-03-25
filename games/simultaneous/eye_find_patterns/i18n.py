@@ -2,7 +2,8 @@ TRANSLATIONS = {
     "en-US": {
         "game.simultaneous.eye_find_patterns": "Eye Find Patterns",
         "eye_find.title": "Eye Find Patterns",
-        "eye_find.home.start": "Start Glasses Training",
+        "eye_find.subtitle": "Use both eyes to make the two patterns clear and overlapped.",
+        "eye_find.home.start": "Select Filter Direction",
         "eye_find.home.help": "Help Guide",
         "eye_find.help.tip": "Make both patterns clear and overlapped, then tap Confirm.",
         "eye_find.help.title": "How To Play?",
@@ -37,7 +38,8 @@ TRANSLATIONS = {
     "zh-CN": {
         "game.simultaneous.eye_find_patterns": "双眼找图案",
         "eye_find.title": "双眼找图案",
-        "eye_find.home.start": "开始红蓝训练",
+        "eye_find.subtitle": "同时看清左右图案，再把它们慢慢对到重合。",
+        "eye_find.home.start": "选择滤镜方向",
         "eye_find.home.help": "帮助指南",
         "eye_find.help.tip": "让两个图案都看清并重合后，再点击确认。",
         "eye_find.help.title": "怎么玩？",

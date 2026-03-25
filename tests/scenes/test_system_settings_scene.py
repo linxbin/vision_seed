@@ -53,8 +53,21 @@ class SystemSettingsSceneTests(unittest.TestCase):
         scene.handle_events([pygame.event.Event(pygame.KEYDOWN, key=pygame.K_3)])
         self.assertFalse(manager.settings["sound_enabled"])
         self.assertEqual(manager.settings["language"], "zh-CN")
-        self.assertEqual(manager.settings["session_duration_minutes"], 6)
+        self.assertEqual(manager.settings["session_duration_minutes"], 10)
         self.assertEqual(manager.saved, 3)
+
+    def test_duration_cycles_only_supported_presets(self):
+        manager = _ManagerStub()
+        manager.settings["session_duration_minutes"] = 1
+        scene = SystemSettingsScene(manager)
+        scene._cycle_session_duration()
+        self.assertEqual(manager.settings["session_duration_minutes"], 3)
+        scene._cycle_session_duration()
+        self.assertEqual(manager.settings["session_duration_minutes"], 5)
+        scene._cycle_session_duration()
+        self.assertEqual(manager.settings["session_duration_minutes"], 10)
+        scene._cycle_session_duration()
+        self.assertEqual(manager.settings["session_duration_minutes"], 1)
 
     def test_escape_returns_menu(self):
         manager = _ManagerStub()

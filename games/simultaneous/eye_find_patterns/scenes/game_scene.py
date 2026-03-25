@@ -19,6 +19,7 @@ class EyeFindPatternsScene(BaseScene):
 
     FILTER_LR = "left_red_right_blue"
     FILTER_RL = "left_blue_right_red"
+    HOME_VERTICAL_UNIT = 14
 
     ATTEMPT_SECONDS = 30
     OVERLAP_TOLERANCE = 8
@@ -69,9 +70,12 @@ class EyeFindPatternsScene(BaseScene):
         card_w = min(560, self.width - 120)
         card_h = 62
         start_x = self.width // 2 - card_w // 2
-        start_y = 210
+        start_y = 232 + self.HOME_VERTICAL_UNIT * 3
         gap = 16
-        self.btn_start = pygame.Rect(start_x, start_y, card_w, card_h)
+        choice_w = (card_w - gap) // 2
+        self.btn_start = pygame.Rect(start_x, start_y, choice_w, card_h)
+        self.filter_lr = self.btn_start.copy()
+        self.filter_rl = pygame.Rect(self.btn_start.right + gap, start_y, choice_w, card_h)
         self.btn_help = pygame.Rect(start_x, start_y + card_h + gap, card_w, card_h)
         self.btn_back = pygame.Rect(self.width - 108, 18, 88, 36)
 
@@ -81,8 +85,6 @@ class EyeFindPatternsScene(BaseScene):
         self.btn_home = pygame.Rect(self.width - 110, 16, 88, 36)
 
         self.filter_modal = pygame.Rect(self.width // 2 - 250, self.height // 2 - 128, 500, 220)
-        self.filter_lr = pygame.Rect(self.filter_modal.x + 24, self.filter_modal.y + 68, 210, 46)
-        self.filter_rl = pygame.Rect(self.filter_modal.x + 266, self.filter_modal.y + 68, 210, 46)
         self.filter_start = pygame.Rect(self.filter_modal.centerx - 90, self.filter_modal.y + 150, 180, 44)
 
         self.help_ok = pygame.Rect(self.width // 2 - 90, self.height - 90, 180, 54)
@@ -279,30 +281,28 @@ class EyeFindPatternsScene(BaseScene):
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         self.manager.set_scene("category")
-                    elif event.key == pygame.K_1:
-                        self.show_filter_picker = True
-                    elif event.key == pygame.K_2:
-                        self.state = self.STATE_HELP
-                    elif event.key == pygame.K_RETURN and self.show_filter_picker:
-                        self.show_filter_picker = False
+                    elif event.key in (pygame.K_LEFT, pygame.K_UP):
+                        self.filter_direction = self.FILTER_LR
+                        self._refresh_pattern_cache()
+                    elif event.key in (pygame.K_RIGHT, pygame.K_DOWN):
+                        self.filter_direction = self.FILTER_RL
+                        self._refresh_pattern_cache()
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                         self._start_game()
+                    elif event.key == pygame.K_h:
+                        self.state = self.STATE_HELP
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
-                    if self.show_filter_picker:
-                        if self.filter_lr.collidepoint(pos):
-                            self.filter_direction = self.FILTER_LR
-                            self._refresh_pattern_cache()
-                        elif self.filter_rl.collidepoint(pos):
-                            self.filter_direction = self.FILTER_RL
-                            self._refresh_pattern_cache()
-                        elif self.filter_start.collidepoint(pos):
-                            self.show_filter_picker = False
-                            self._start_game()
-                        continue
                     if self.btn_back.collidepoint(pos):
                         self.manager.set_scene("category")
-                    elif self.btn_start.collidepoint(pos):
-                        self.show_filter_picker = True
+                    elif self.filter_lr.collidepoint(pos):
+                        self.filter_direction = self.FILTER_LR
+                        self._refresh_pattern_cache()
+                        self._start_game()
+                    elif self.filter_rl.collidepoint(pos):
+                        self.filter_direction = self.FILTER_RL
+                        self._refresh_pattern_cache()
+                        self._start_game()
                     elif self.btn_help.collidepoint(pos):
                         self.state = self.STATE_HELP
 
@@ -382,35 +382,15 @@ class EyeFindPatternsScene(BaseScene):
 
     def _draw_home(self, screen):
         title = self.title_font.render(self.manager.t("eye_find.title"), True, (38, 66, 108))
+        subtitle = self.sub_font.render(self.manager.t("eye_find.subtitle"), True, (96, 114, 142))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 86))
-        self._draw_button(screen, self.btn_start, self.manager.t("eye_find.home.start"), GLASSES_BUTTON_COLOR, icon_name="target")
+        screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 140))
+        hint = self.body_font.render(self.manager.t("eye_find.home.start"), True, (52, 76, 110))
+        screen.blit(hint, (self.width // 2 - hint.get_width() // 2, 184 + self.HOME_VERTICAL_UNIT * 3))
+        self._draw_filter_option(screen, self.filter_lr, self.manager.t("eye_find.filter.lr"), RED_FILTER[:3], BLUE_FILTER[:3], self.filter_direction == self.FILTER_LR)
+        self._draw_filter_option(screen, self.filter_rl, self.manager.t("eye_find.filter.rl"), BLUE_FILTER[:3], RED_FILTER[:3], self.filter_direction == self.FILTER_RL)
         self._draw_button(screen, self.btn_help, self.manager.t("eye_find.home.help"), (126, 142, 174), icon_name="question")
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (88, 116, 168), icon_name="back_arrow")
-
-        if self.show_filter_picker:
-            modal = pygame.Surface((self.filter_modal.width, self.filter_modal.height), pygame.SRCALPHA)
-            modal.fill((248, 253, 255, 238))
-            screen.blit(modal, self.filter_modal.topleft)
-            pygame.draw.rect(screen, (116, 148, 196), self.filter_modal, 2, border_radius=12)
-            msg = self.body_font.render(self.manager.t("eye_find.filter.pick"), True, (52, 76, 110))
-            screen.blit(msg, (self.filter_modal.centerx - msg.get_width() // 2, self.filter_modal.y + 24))
-            self._draw_filter_option(
-                screen,
-                self.filter_lr,
-                self.manager.t("eye_find.filter.lr"),
-                RED_FILTER[:3],
-                BLUE_FILTER[:3],
-                self.filter_direction == self.FILTER_LR,
-            )
-            self._draw_filter_option(
-                screen,
-                self.filter_rl,
-                self.manager.t("eye_find.filter.rl"),
-                BLUE_FILTER[:3],
-                RED_FILTER[:3],
-                self.filter_direction == self.FILTER_RL,
-            )
-            self._draw_button(screen, self.filter_start, self.manager.t("eye_find.filter.start"), (86, 150, 108), icon_name="check")
 
     def _draw_help(self, screen):
         title = self.title_font.render(self.manager.t("eye_find.help.title"), True, (42, 70, 110))

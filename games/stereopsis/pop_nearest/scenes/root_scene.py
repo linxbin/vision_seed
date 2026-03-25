@@ -27,6 +27,7 @@ class PopNearestScene(BaseScene):
     MODE_GLASSES = MODE_GLASSES
     SHOT_DURATION = 0.22
     IMPACT_DURATION = 0.32
+    HOME_VERTICAL_UNIT = 14
 
     def __init__(self, manager):
         super().__init__(manager)
@@ -63,15 +64,18 @@ class PopNearestScene(BaseScene):
     def _build_ui(self):
         card_w = min(560, self.width - 120)
         start_x = self.width // 2 - card_w // 2
-        self.btn_start = pygame.Rect(start_x, 208, card_w, 58)
-        self.btn_help = pygame.Rect(start_x, 282, card_w, 58)
+        choice_gap = 16
+        choice_w = (card_w - choice_gap) // 2
+        button_y = 232 + self.HOME_VERTICAL_UNIT * 3
+        self.btn_start = pygame.Rect(start_x, button_y, choice_w, 58)
+        self.filter_lr = self.btn_start.copy()
+        self.filter_rl = pygame.Rect(self.btn_start.right + choice_gap, button_y, choice_w, 58)
+        self.btn_help = pygame.Rect(start_x, button_y + 74, card_w, 58)
         self.btn_back = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_continue = pygame.Rect(self.width // 2 - 210, self.height - 100, 180, 48)
         self.btn_exit = pygame.Rect(self.width // 2 + 30, self.height - 100, 180, 48)
         self.help_ok = pygame.Rect(self.width // 2 - 90, self.height - 90, 180, 54)
         self.filter_modal = pygame.Rect(self.width // 2 - 250, self.height // 2 - 128, 500, 220)
-        self.filter_lr = pygame.Rect(self.filter_modal.x + 24, self.filter_modal.y + 68, 210, 46)
-        self.filter_rl = pygame.Rect(self.filter_modal.x + 266, self.filter_modal.y + 68, 210, 46)
         self.filter_start = pygame.Rect(self.filter_modal.centerx - 90, self.filter_modal.y + 150, 180, 44)
         self.play_area = pygame.Rect(70, 130, self.width - 140, self.height - 250)
         self.feedback_anchor_y = self.height - 118
@@ -203,6 +207,7 @@ class PopNearestScene(BaseScene):
         self.pending_finish = False
 
     def _start_game(self):
+        self.show_filter_picker = False
         self.state = self.STATE_PLAY
         self.scoring.reset()
         self.session.session_seconds = self._session_seconds()
@@ -500,8 +505,11 @@ class PopNearestScene(BaseScene):
         title = self.title_font.render(self.manager.t("pop_nearest.title"), True, (34, 60, 96))
         subtitle = self.sub_font.render(self.manager.t("pop_nearest.goal"), True, (96, 114, 142))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 82))
-        screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 138))
-        self._draw_button(screen, self.btn_start, self.manager.t("pop_nearest.home.start"), GLASSES_BUTTON_COLOR)
+        screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 140))
+        hint = self.body_font.render(self.manager.t("pop_nearest.home.start"), True, (52, 70, 100))
+        screen.blit(hint, (self.width // 2 - hint.get_width() // 2, 184 + self.HOME_VERTICAL_UNIT * 3))
+        self._draw_button(screen, self.filter_lr, self.manager.t("pop_nearest.filter.lr"), GLASSES_BUTTON_COLOR, selected=self.filter_direction == FILTER_LR)
+        self._draw_button(screen, self.filter_rl, self.manager.t("pop_nearest.filter.rl"), (132, 140, 176), selected=self.filter_direction == FILTER_RL)
         self._draw_button(screen, self.btn_help, self.manager.t("pop_nearest.home.help"), (124, 140, 168))
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170))
 
@@ -557,8 +565,12 @@ class PopNearestScene(BaseScene):
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.state == self.STATE_HOME:
-                    if self.btn_start.collidepoint(event.pos):
-                        self.show_filter_picker = True
+                    if self.filter_lr.collidepoint(event.pos):
+                        self.filter_direction = FILTER_LR
+                        self._start_game()
+                    elif self.filter_rl.collidepoint(event.pos):
+                        self.filter_direction = FILTER_RL
+                        self._start_game()
                     elif self.btn_help.collidepoint(event.pos):
                         self.state = self.STATE_HELP
                     elif self.btn_back.collidepoint(event.pos):
@@ -594,8 +606,13 @@ class PopNearestScene(BaseScene):
                 else:
                     self.manager.set_scene("category")
                 continue
-            if self.state == self.STATE_HOME and event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                self.show_filter_picker = True
+            if self.state == self.STATE_HOME:
+                if event.key in (pygame.K_LEFT, pygame.K_UP):
+                    self.filter_direction = FILTER_LR
+                elif event.key in (pygame.K_RIGHT, pygame.K_DOWN):
+                    self.filter_direction = FILTER_RL
+                elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                    self._start_game()
             elif self.state == self.STATE_HELP and event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 self.state = self.STATE_HOME
             elif self.state == self.STATE_PLAY:
@@ -643,3 +660,4 @@ class PopNearestScene(BaseScene):
             self._draw_result(screen)
         if self.show_filter_picker:
             self._draw_filter_picker(screen)
+

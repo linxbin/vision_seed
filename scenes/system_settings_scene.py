@@ -1,12 +1,14 @@
 import pygame
 
-from config import MAX_SESSION_MINUTES, MIN_SESSION_MINUTES, SCREEN_HEIGHT, SCREEN_WIDTH
+from config import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.base_scene import BaseScene
 from core.asset_loader import load_image_if_exists, project_path
 from core.ui_theme import PlatformTheme, draw_card, draw_chip_label, draw_platform_background
 
 
 class SystemSettingsScene(BaseScene):
+    SESSION_DURATION_OPTIONS = (1, 3, 5, 10)
+
     def __init__(self, manager):
         super().__init__(manager)
         self._refresh_fonts()
@@ -68,12 +70,20 @@ class SystemSettingsScene(BaseScene):
             self._go_back()
 
     def _cycle_session_duration(self):
-        current = int(self.manager.settings.get("session_duration_minutes", 5))
-        next_value = current + 1
-        if next_value > MAX_SESSION_MINUTES:
-            next_value = MIN_SESSION_MINUTES
+        current = self._normalized_session_duration()
+        current_index = self.SESSION_DURATION_OPTIONS.index(current)
+        next_value = self.SESSION_DURATION_OPTIONS[(current_index + 1) % len(self.SESSION_DURATION_OPTIONS)]
         self.manager.settings["session_duration_minutes"] = next_value
         self.manager.save_user_preferences()
+
+    def _normalized_session_duration(self):
+        try:
+            current = int(self.manager.settings.get("session_duration_minutes", 5))
+        except (TypeError, ValueError):
+            current = 5
+        if current in self.SESSION_DURATION_OPTIONS:
+            return current
+        return min(self.SESSION_DURATION_OPTIONS, key=lambda option: abs(option - current))
 
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
@@ -136,7 +146,7 @@ class SystemSettingsScene(BaseScene):
 
         sound_on = self.manager.t("config.on") if self.manager.settings.get("sound_enabled", True) else self.manager.t("config.off")
         lang_text = self.manager.t("config.lang_en") if self.manager.settings.get("language") == "en-US" else self.manager.t("config.lang_zh")
-        duration_text = self.manager.t("system.duration_value", n=int(self.manager.settings.get("session_duration_minutes", 5)))
+        duration_text = self.manager.t("system.duration_value", n=self._normalized_session_duration())
         self._draw_item(screen, self.sound_rect, self.manager.t("system.sound", value=sound_on), focused=self.focused_index == 0)
         self._draw_item(screen, self.language_rect, self.manager.t("system.language", value=lang_text), focused=self.focused_index == 1)
         self._draw_item(screen, self.duration_rect, self.manager.t("system.duration", value=duration_text), focused=self.focused_index == 2)

@@ -2,7 +2,8 @@ TRANSLATIONS = {
     "en-US": {
         "game.fusion.tetris": "Fusion Tetris",
         "fusion_tetris.title": "Fusion Tetris",
-        "fusion_tetris.home.start": "Start Red/Blue Training",
+        "fusion_tetris.subtitle": "Fuse the falling blocks before stacking them into full rows.",
+        "fusion_tetris.home.start": "Select Filter Direction",
         "fusion_tetris.home.help": "Help Guide",
         "fusion_tetris.help.title": "How To Play?",
         "fusion_tetris.help.step1": "Put on the red/blue glasses first, then choose the filter direction.",
@@ -33,7 +34,8 @@ TRANSLATIONS = {
     "zh-CN": {
         "game.fusion.tetris": "融合俄罗斯方块",
         "fusion_tetris.title": "融合俄罗斯方块",
-        "fusion_tetris.home.start": "开始红蓝训练",
+        "fusion_tetris.subtitle": "先把下落方块融合稳定，再拼成完整的一行。",
+        "fusion_tetris.home.start": "选择滤镜方向",
         "fusion_tetris.home.help": "帮助指南",
         "fusion_tetris.help.title": "怎么玩？",
         "fusion_tetris.help.step1": "先佩戴红蓝眼镜，再选择滤镜方向开始训练。",

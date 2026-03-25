@@ -2,7 +2,8 @@ TRANSLATIONS = {
     "en-US": {
         "game.fusion.path_fusion": "Path Fusion",
         "path_fusion.title": "Path Fusion",
-        "path_fusion.home.start": "Start Red/Blue Training",
+        "path_fusion.subtitle": "Fuse the route pieces and choose the path that reaches the target.",
+        "path_fusion.home.start": "Select Filter Direction",
         "path_fusion.home.help": "Help Guide",
         "path_fusion.help.title": "How To Play?",
         "path_fusion.help.step1": "Put on the red/blue glasses first, then choose the filter direction.",
@@ -32,7 +33,8 @@ TRANSLATIONS = {
     "zh-CN": {
         "game.fusion.path_fusion": "融合路径",
         "path_fusion.title": "融合路径",
-        "path_fusion.home.start": "开始红蓝训练",
+        "path_fusion.subtitle": "把左右路径融合起来，选出能到达目标点的路线。",
+        "path_fusion.home.start": "选择滤镜方向",
         "path_fusion.home.help": "帮助指南",
         "path_fusion.help.title": "怎么玩？",
         "path_fusion.help.step1": "先佩戴红蓝眼镜，再选择滤镜方向开始训练。",

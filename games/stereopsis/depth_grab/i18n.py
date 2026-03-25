@@ -2,7 +2,8 @@ TRANSLATIONS = {
     "en-US": {
         "game.stereopsis.depth_grab": "Depth Grab Stars",
         "depth_grab.title": "Depth Grab Stars",
-        "depth_grab.home.start": "Start Glasses Training",
+        "depth_grab.subtitle": "Compare depth layers and pick the star that feels closest.",
+        "depth_grab.home.start": "Select Filter Direction",
         "depth_grab.home.help": "Help Guide",
         "depth_grab.help.title": "How To Play?",
         "depth_grab.help.step1": "Wear red/blue glasses first, then choose the filter direction.",
@@ -46,7 +47,8 @@ TRANSLATIONS = {
     "zh-CN": {
         "game.stereopsis.depth_grab": "立体抓星星",
         "depth_grab.title": "立体抓星星",
-        "depth_grab.home.start": "开始红蓝训练",
+        "depth_grab.subtitle": "比较前后深度层，抓住看起来最近的星星。",
+        "depth_grab.home.start": "选择滤镜方向",
         "depth_grab.home.help": "帮助指南",
         "depth_grab.help.title": "怎么玩？",
         "depth_grab.help.step1": "先佩戴红蓝眼镜，再选择滤镜方向。",

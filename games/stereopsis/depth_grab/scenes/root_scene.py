@@ -18,6 +18,7 @@ class DepthGrabScene(BaseScene):
     MODE_GLASSES = MODE_GLASSES
     FILTER_LR = FILTER_LR
     FILTER_RL = FILTER_RL
+    HOME_VERTICAL_UNIT = 14
 
     def __init__(self, manager):
         super().__init__(manager)
@@ -49,16 +50,19 @@ class DepthGrabScene(BaseScene):
     def _build_ui(self):
         card_w = min(560, self.width - 120)
         start_x = self.width // 2 - card_w // 2
-        self.btn_start = pygame.Rect(start_x, 208, card_w, 58)
-        self.btn_help = pygame.Rect(start_x, 282, card_w, 58)
+        choice_gap = 16
+        choice_w = (card_w - choice_gap) // 2
+        button_y = 232 + self.HOME_VERTICAL_UNIT * 3
+        self.btn_start = pygame.Rect(start_x, button_y, choice_w, 58)
+        self.filter_lr = self.btn_start.copy()
+        self.filter_rl = pygame.Rect(self.btn_start.right + choice_gap, button_y, choice_w, 58)
+        self.btn_help = pygame.Rect(start_x, button_y + 74, card_w, 58)
         self.btn_back = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_home = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_continue = pygame.Rect(self.width // 2 - 210, self.height - 100, 180, 48)
         self.btn_exit = pygame.Rect(self.width // 2 + 30, self.height - 100, 180, 48)
         self.help_ok = pygame.Rect(self.width // 2 - 90, self.height - 90, 180, 54)
         self.filter_modal = pygame.Rect(self.width // 2 - 250, self.height // 2 - 128, 500, 220)
-        self.filter_lr = pygame.Rect(self.filter_modal.x + 24, self.filter_modal.y + 68, 210, 46)
-        self.filter_rl = pygame.Rect(self.filter_modal.x + 266, self.filter_modal.y + 68, 210, 46)
         self.filter_start = pygame.Rect(self.filter_modal.centerx - 90, self.filter_modal.y + 150, 180, 44)
         self.play_area = pygame.Rect(60, 128, self.width - 120, self.height - 250)
 
@@ -151,6 +155,7 @@ class DepthGrabScene(BaseScene):
         self.session.restart_round(time.time())
 
     def _start_game(self):
+        self.show_filter_picker = False
         self.state = self.STATE_PLAY
         self.scoring.reset()
         self.session.session_seconds = self._session_seconds()
@@ -335,20 +340,15 @@ class DepthGrabScene(BaseScene):
 
     def _draw_home(self, screen):
         title = self.title_font.render(self.manager.t("depth_grab.title"), True, (38, 66, 108))
+        subtitle = self.sub_font.render(self.manager.t("depth_grab.subtitle"), True, (96, 114, 142))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 86))
-        self._draw_button(screen, self.btn_start, self.manager.t("depth_grab.home.start"), GLASSES_BUTTON_COLOR, icon_name="target")
+        screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 140))
+        hint = self.body_font.render(self.manager.t("depth_grab.home.start"), True, (52, 76, 110))
+        screen.blit(hint, (self.width // 2 - hint.get_width() // 2, 184 + self.HOME_VERTICAL_UNIT * 3))
+        self._draw_filter_option(screen, self.filter_lr, self.manager.t("depth_grab.filter.lr"), RED_FILTER[:3], BLUE_FILTER[:3], self.filter_direction == self.FILTER_LR)
+        self._draw_filter_option(screen, self.filter_rl, self.manager.t("depth_grab.filter.rl"), BLUE_FILTER[:3], RED_FILTER[:3], self.filter_direction == self.FILTER_RL)
         self._draw_button(screen, self.btn_help, self.manager.t("depth_grab.home.help"), (126, 142, 174), icon_name="question")
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (88, 116, 168), icon_name="back_arrow")
-        if self.show_filter_picker:
-            modal = pygame.Surface((self.filter_modal.width, self.filter_modal.height), pygame.SRCALPHA)
-            modal.fill((248, 253, 255, 238))
-            screen.blit(modal, self.filter_modal.topleft)
-            pygame.draw.rect(screen, (116, 148, 196), self.filter_modal, 2, border_radius=12)
-            msg = self.body_font.render(self.manager.t("depth_grab.filter.pick"), True, (52, 76, 110))
-            screen.blit(msg, (self.filter_modal.centerx - msg.get_width() // 2, self.filter_modal.y + 24))
-            self._draw_filter_option(screen, self.filter_lr, self.manager.t("depth_grab.filter.lr"), RED_FILTER[:3], BLUE_FILTER[:3], self.filter_direction == self.FILTER_LR)
-            self._draw_filter_option(screen, self.filter_rl, self.manager.t("depth_grab.filter.rl"), BLUE_FILTER[:3], RED_FILTER[:3], self.filter_direction == self.FILTER_RL)
-            self._draw_button(screen, self.filter_start, self.manager.t("depth_grab.filter.start"), (86, 150, 108), icon_name="check")
 
     def _draw_help_step(self, screen, idx, y, text):
         pygame.draw.circle(screen, (255, 208, 124) if idx == 1 else (136, 198, 255) if idx == 2 else (162, 225, 162), (132, y + 18), 14)
@@ -485,18 +485,27 @@ class DepthGrabScene(BaseScene):
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         self._go_category()
+                    elif event.key in (pygame.K_LEFT, pygame.K_UP):
+                        self.filter_direction = self.FILTER_LR
+                    elif event.key in (pygame.K_RIGHT, pygame.K_DOWN):
+                        self.filter_direction = self.FILTER_RL
                     elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                         self.mode = self.MODE_GLASSES
-                        self.show_filter_picker = True
+                        self._start_game()
                     elif event.key == pygame.K_h:
                         self.state = self.STATE_HELP
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
                     if self.btn_back.collidepoint(pos):
                         self._go_category()
-                    elif self.btn_start.collidepoint(pos):
+                    elif self.filter_lr.collidepoint(pos):
                         self.mode = self.MODE_GLASSES
-                        self.show_filter_picker = True
+                        self.filter_direction = self.FILTER_LR
+                        self._start_game()
+                    elif self.filter_rl.collidepoint(pos):
+                        self.mode = self.MODE_GLASSES
+                        self.filter_direction = self.FILTER_RL
+                        self._start_game()
                     elif self.btn_help.collidepoint(pos):
                         self.state = self.STATE_HELP
             elif self.state == self.STATE_HELP:
@@ -548,3 +557,4 @@ class DepthGrabScene(BaseScene):
             self._draw_play(screen)
         else:
             self._draw_result(screen)
+

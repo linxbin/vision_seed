@@ -2,7 +2,7 @@ TRANSLATIONS = {
     "en-US": {
         "game.stereopsis.ring_flight": "Stereo Ring Flight",
         "ring_flight.title": "Stereo Ring Flight",
-        "ring_flight.home.start": "Start Glasses Training",
+        "ring_flight.home.start": "Select Filter Direction",
         "ring_flight.home.help": "Help Guide",
         "ring_flight.help.title": "How To Play?",
         "ring_flight.help.step1": "Wear red/blue glasses, then choose the filter direction.",
@@ -50,7 +50,7 @@ TRANSLATIONS = {
     "zh-CN": {
         "game.stereopsis.ring_flight": "立体穿环",
         "ring_flight.title": "立体穿环",
-        "ring_flight.home.start": "开始红蓝训练",
+        "ring_flight.home.start": "选择滤镜方向",
         "ring_flight.home.help": "帮助指南",
         "ring_flight.help.title": "怎么玩？",
         "ring_flight.help.step1": "先佩戴红蓝眼镜，再选择滤镜方向。",

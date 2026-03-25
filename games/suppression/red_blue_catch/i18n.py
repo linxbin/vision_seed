@@ -2,7 +2,8 @@ TRANSLATIONS = {
     "en-US": {
         "game.suppression.red_blue_catch": "Red Blue Catch",
         "red_blue_catch.title": "Red Blue Catch",
-        "red_blue_catch.home.start": "Start Glasses Training",
+        "red_blue_catch.subtitle": "Track the basket and catch only the target color ball.",
+        "red_blue_catch.home.start": "Select Filter Direction",
         "red_blue_catch.home.help": "Help Guide",
         "red_blue_catch.help.title": "How To Play?",
         "red_blue_catch.help.step1": "Wear red/blue glasses first, then choose the filter direction.",
@@ -38,7 +39,8 @@ TRANSLATIONS = {
     "zh-CN": {
         "game.suppression.red_blue_catch": "红蓝接球",
         "red_blue_catch.title": "红蓝接球",
-        "red_blue_catch.home.start": "开始红蓝训练",
+        "red_blue_catch.subtitle": "同时看清接球区和小球，只接住目标颜色。",
+        "red_blue_catch.home.start": "选择滤镜方向",
         "red_blue_catch.home.help": "帮助指南",
         "red_blue_catch.help.title": "怎么玩？",
         "red_blue_catch.help.step1": "先佩戴红蓝眼镜，再选择滤镜方向。",

@@ -285,5 +285,16 @@ class MenuScene(BaseScene):
             )
 
         self._draw_recommendations(screen)
+        self.draw_text_block(
+            screen,
+            self.meta_font,
+            self.manager.t("menu.disclaimer"),
+            PlatformTheme.TEXT_MUTED,
+            (44, self.height - 68),
+            self.width - 320,
+            line_gap=2,
+            max_lines=2,
+            ellipsis=True,
+        )
         hint = self.hint_font.render(self.manager.t("menu.hint"), True, PlatformTheme.TEXT_MUTED)
         screen.blit(hint, (44, self.height - 34))

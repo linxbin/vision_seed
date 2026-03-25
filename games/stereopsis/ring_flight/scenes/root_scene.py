@@ -30,6 +30,7 @@ class RingFlightScene(BaseScene):
     SELECT_PROGRESS = 0.62
     PLANE_DISPARITY = 18
     FLY_THROUGH_DURATION = 0.32
+    HOME_VERTICAL_UNIT = 14
 
     def __init__(self, manager):
         super().__init__(manager)
@@ -65,16 +66,19 @@ class RingFlightScene(BaseScene):
     def _build_ui(self):
         card_w = min(560, self.width - 120)
         start_x = self.width // 2 - card_w // 2
-        self.btn_start = pygame.Rect(start_x, 208, card_w, 58)
-        self.btn_help = pygame.Rect(start_x, 282, card_w, 58)
+        choice_gap = 16
+        choice_w = (card_w - choice_gap) // 2
+        button_y = 232 + self.HOME_VERTICAL_UNIT * 3
+        self.btn_start = pygame.Rect(start_x, button_y, choice_w, 58)
+        self.filter_lr = self.btn_start.copy()
+        self.filter_rl = pygame.Rect(self.btn_start.right + choice_gap, button_y, choice_w, 58)
+        self.btn_help = pygame.Rect(start_x, button_y + 74, card_w, 58)
         self.btn_back = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_home = pygame.Rect(self.width - 110, 18, 88, 36)
         self.btn_continue = pygame.Rect(self.width // 2 - 210, self.height - 100, 180, 48)
         self.btn_exit = pygame.Rect(self.width // 2 + 30, self.height - 100, 180, 48)
         self.help_ok = pygame.Rect(self.width // 2 - 90, self.height - 90, 180, 54)
         self.filter_modal = pygame.Rect(self.width // 2 - 250, self.height // 2 - 128, 500, 220)
-        self.filter_lr = pygame.Rect(self.filter_modal.x + 24, self.filter_modal.y + 68, 210, 46)
-        self.filter_rl = pygame.Rect(self.filter_modal.x + 266, self.filter_modal.y + 68, 210, 46)
         self.filter_start = pygame.Rect(self.filter_modal.centerx - 90, self.filter_modal.y + 150, 180, 44)
         self.play_area = pygame.Rect(70, 136, self.width - 140, self.height - 238)
         self.plane_x = self.play_area.centerx
@@ -140,6 +144,17 @@ class RingFlightScene(BaseScene):
         if selected:
             pygame.draw.circle(screen, (255, 250, 210), (rect.right - 18, rect.centery), 9)
             pygame.draw.circle(screen, (200, 84, 54), (rect.right - 18, rect.centery), 4)
+
+    def _draw_filter_option(self, screen, rect, text, left_color, right_color, selected):
+        self._draw_button(screen, rect, "", (244, 247, 255), text_color=(62, 72, 98), selected=selected)
+        preview_rect = pygame.Rect(rect.x + 16, rect.y + 10, 56, rect.height - 20)
+        left_rect = pygame.Rect(preview_rect.x, preview_rect.y, preview_rect.width // 2, preview_rect.height)
+        right_rect = pygame.Rect(left_rect.right, preview_rect.y, preview_rect.width - left_rect.width, preview_rect.height)
+        pygame.draw.rect(screen, left_color, left_rect, border_top_left_radius=8, border_bottom_left_radius=8)
+        pygame.draw.rect(screen, right_color, right_rect, border_top_right_radius=8, border_bottom_right_radius=8)
+        pygame.draw.rect(screen, (255, 255, 255), preview_rect, 2, border_radius=8)
+        label = self.small_font.render(text, True, (62, 72, 98))
+        screen.blit(label, (preview_rect.right + 16, rect.centery - label.get_height() // 2))
 
     def _draw_background(self, screen):
         if self.state == self.STATE_PLAY and self.mode == self.MODE_GLASSES:
@@ -325,9 +340,12 @@ class RingFlightScene(BaseScene):
     def _draw_home(self, screen):
         title = self.title_font.render(self.manager.t("ring_flight.title"), True, (34, 60, 96))
         subtitle = self.sub_font.render(self.manager.t("ring_flight.play.guide"), True, (96, 114, 142))
+        hint = self.body_font.render(self.manager.t("ring_flight.filter.pick"), True, (52, 76, 110))
         screen.blit(title, (self.width // 2 - title.get_width() // 2, 82))
-        screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 138))
-        self._draw_button(screen, self.btn_start, self.manager.t("ring_flight.home.start"), GLASSES_BUTTON_COLOR)
+        screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 140))
+        screen.blit(hint, (self.width // 2 - hint.get_width() // 2, 184 + self.HOME_VERTICAL_UNIT * 3))
+        self._draw_filter_option(screen, self.filter_lr, self.manager.t("ring_flight.filter.lr"), RED_FILTER[:3], BLUE_FILTER[:3], self.filter_direction == FILTER_LR)
+        self._draw_filter_option(screen, self.filter_rl, self.manager.t("ring_flight.filter.rl"), BLUE_FILTER[:3], RED_FILTER[:3], self.filter_direction == FILTER_RL)
         self._draw_button(screen, self.btn_help, self.manager.t("ring_flight.home.help"), (124, 140, 168))
         self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (86, 116, 170))
 
@@ -507,14 +525,25 @@ class RingFlightScene(BaseScene):
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         self.manager.set_scene("category")
+                    elif event.key in (pygame.K_LEFT, pygame.K_UP):
+                        self.filter_direction = FILTER_LR
+                    elif event.key in (pygame.K_RIGHT, pygame.K_DOWN):
+                        self.filter_direction = FILTER_RL
                     elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                        self.show_filter_picker = True
+                        self.mode = self.MODE_GLASSES
+                        self._start_game()
                     elif event.key == pygame.K_h:
                         self.state = self.STATE_HELP
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     pos = getattr(event, "pos", pygame.mouse.get_pos())
-                    if self.btn_start.collidepoint(pos):
-                        self.show_filter_picker = True
+                    if self.filter_lr.collidepoint(pos):
+                        self.mode = self.MODE_GLASSES
+                        self.filter_direction = FILTER_LR
+                        self._start_game()
+                    elif self.filter_rl.collidepoint(pos):
+                        self.mode = self.MODE_GLASSES
+                        self.filter_direction = FILTER_RL
+                        self._start_game()
                     elif self.btn_help.collidepoint(pos):
                         self.state = self.STATE_HELP
                     elif self.btn_back.collidepoint(pos):
@@ -594,3 +623,4 @@ class RingFlightScene(BaseScene):
             self._draw_result(screen)
         if self.show_filter_picker:
             self._draw_filter_picker(screen)
+

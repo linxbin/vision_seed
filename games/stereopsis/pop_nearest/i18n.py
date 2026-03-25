@@ -2,7 +2,7 @@ TRANSLATIONS = {
     "en-US": {
         "game.stereopsis.pop_nearest": "Stereo Balloon Pop",
         "pop_nearest.title": "Stereo Balloon Pop",
-        "pop_nearest.home.start": "Start Glasses Training",
+        "pop_nearest.home.start": "Select Filter Direction",
         "pop_nearest.home.help": "Help Guide",
         "pop_nearest.help.title": "How To Play?",
         "pop_nearest.help.step1": "Wear red/blue glasses, then choose the filter direction.",
@@ -44,7 +44,7 @@ TRANSLATIONS = {
     "zh-CN": {
         "game.stereopsis.pop_nearest": "立体打气球",
         "pop_nearest.title": "立体打气球",
-        "pop_nearest.home.start": "开始红蓝训练",
+        "pop_nearest.home.start": "选择滤镜方向",
         "pop_nearest.home.help": "帮助指南",
         "pop_nearest.help.title": "怎么玩？",
         "pop_nearest.help.step1": "先佩戴红蓝眼镜，再选择滤镜方向。",

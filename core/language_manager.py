@@ -42,8 +42,8 @@ class LanguageManager:
 
     CORE_TRANSLATIONS = {
         "en-US": {
-            "menu.title": "VisionSeed",
-            "menu.subtitle": "Visual Training System",
+            "menu.title": "ShiYa",
+            "menu.subtitle": "Visual Function Training System",
             "menu.start_training": "Start Training",
             "menu.system_settings": "System Settings",
             "menu.configuration": "Configuration",
@@ -59,7 +59,8 @@ class LanguageManager:
             "menu.recent.title": "Recent",
             "menu.recent.item": "{game} ({accuracy}%)",
             "menu.recent.none": "No session yet",
-            "menu.multigame_subtitle": "Multi-Game Training",
+            "menu.multigame_subtitle": "Visual Function Training System",
+            "menu.disclaimer": "For learning and training reference only, not medical diagnosis or treatment. Seek professional care at a licensed hospital.",
             "menu.template_title": "Quick Plans",
             "menu.template_child": "Child Plan",
             "menu.template_adult": "Adult Plan",
@@ -126,8 +127,8 @@ class LanguageManager:
             "category.latest_metric": "{label}: {value}",
         },
         "zh-CN": {
-            "menu.title": "视觉芽",
-            "menu.subtitle": "视觉训练系统",
+            "menu.title": "视芽",
+            "menu.subtitle": "视功能训练系统",
             "menu.start_training": "开始训练",
             "menu.system_settings": "系统设置",
             "menu.configuration": "参数配置",
@@ -143,7 +144,8 @@ class LanguageManager:
             "menu.recent.title": "最近完成",
             "menu.recent.item": "{game}（{accuracy}%）",
             "menu.recent.none": "还没有训练记录",
-            "menu.multigame_subtitle": "多游戏训练系统",
+            "menu.multigame_subtitle": "视功能训练系统",
+            "menu.disclaimer": "本软件仅供交流学习与训练参考，不作为医疗诊断或治疗依据；如需专业诊疗，请前往正规医院。",
             "menu.template_title": "快捷训练方案",
             "menu.template_child": "儿童方案",
             "menu.template_adult": "成人方案",
