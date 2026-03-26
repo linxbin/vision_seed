@@ -72,8 +72,13 @@ class FruitSliceSceneTests(unittest.TestCase):
         manager = _ManagerStub()
         scene = FruitSliceScene(manager)
         scene._start_game()
-        scene.round_data["is_bomb"] = False
-        center = scene.round_data["center"]
+        scene.round_data["items"] = [{
+            "is_bomb": False,
+            "center": (240, 220),
+            "radius": 36,
+            "color": (238, 120, 96),
+        }]
+        center = scene.round_data["items"][0]["center"]
         scene.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=center)])
         self.assertEqual(scene.scoring.success_count, 1)
         self.assertEqual(manager.sound_manager.correct_calls, 1)
@@ -82,10 +87,30 @@ class FruitSliceSceneTests(unittest.TestCase):
         manager = _ManagerStub()
         scene = FruitSliceScene(manager)
         scene._start_game()
-        scene.round_data["is_bomb"] = True
-        center = scene.round_data["center"]
+        scene.round_data["items"] = [
+            {
+                "is_bomb": False,
+                "center": (220, 220),
+                "radius": 34,
+                "color": (238, 120, 96),
+            },
+            {
+                "is_bomb": True,
+                "center": (360, 220),
+                "radius": 34,
+                "color": (58, 58, 58),
+            },
+        ]
+        center = scene.round_data["items"][1]["center"]
         scene.handle_events([pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=center)])
         self.assertEqual(manager.sound_manager.wrong_calls, 1)
+
+    def test_new_round_always_contains_a_fruit_target(self):
+        scene = FruitSliceScene(_ManagerStub())
+        for _ in range(30):
+            scene._new_round()
+            self.assertTrue(scene.round_data["items"])
+            self.assertTrue(any(not item["is_bomb"] for item in scene.round_data["items"]))
 
     def test_finish_saves_result(self):
         manager = _ManagerStub()

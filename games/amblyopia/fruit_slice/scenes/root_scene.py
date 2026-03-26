@@ -171,13 +171,14 @@ class FruitSliceScene(BaseScene):
         screen.blit(timer, (self.width // 2 - timer.get_width() // 2, 14))
         screen.blit(score, (self.width // 2 - score.get_width() // 2, 44))
         screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, self.play_area.y - 44))
-        cx, cy = self.round_data["center"]
-        if self.round_data["is_bomb"]:
-            pygame.draw.circle(screen, (48, 48, 48), (cx, cy), self.round_data["radius"])
-            pygame.draw.line(screen, (250, 210, 120), (cx, cy - self.round_data["radius"]), (cx + 10, cy - self.round_data["radius"] - 16), 4)
-        else:
-            pygame.draw.circle(screen, self.round_data["color"], (cx, cy), self.round_data["radius"])
-            pygame.draw.arc(screen, (255, 255, 255), pygame.Rect(cx - self.round_data["radius"] // 2, cy - 8, self.round_data["radius"], self.round_data["radius"] // 2), math.pi, math.pi * 2, 3)
+        for item in self.round_data.get("items", ()):
+            cx, cy = item["center"]
+            if item["is_bomb"]:
+                pygame.draw.circle(screen, (48, 48, 48), (cx, cy), item["radius"])
+                pygame.draw.line(screen, (250, 210, 120), (cx, cy - item["radius"]), (cx + 10, cy - item["radius"] - 16), 4)
+            else:
+                pygame.draw.circle(screen, item["color"], (cx, cy), item["radius"])
+                pygame.draw.arc(screen, (255, 255, 255), pygame.Rect(cx - item["radius"] // 2, cy - 8, item["radius"], item["radius"] // 2), math.pi, math.pi * 2, 3)
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.body_font.render(self.feedback_text, True, self.feedback_color)
             screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 20))
@@ -231,9 +232,14 @@ class FruitSliceScene(BaseScene):
                     if self.btn_home.collidepoint(pos):
                         self.manager.set_scene("category")
                     else:
-                        distance = math.hypot(pos[0] - self.round_data["center"][0], pos[1] - self.round_data["center"][1])
-                        if distance <= self.round_data["radius"]:
-                            if self.round_data["is_bomb"]:
+                        clicked_item = None
+                        for item in self.round_data.get("items", ()):
+                            distance = math.hypot(pos[0] - item["center"][0], pos[1] - item["center"][1])
+                            if distance <= item["radius"]:
+                                clicked_item = item
+                                break
+                        if clicked_item:
+                            if clicked_item["is_bomb"]:
                                 self.scoring.on_failure()
                                 self.play_wrong_sound()
                                 self._set_feedback("fruit_slice.feedback.bomb", (214, 96, 96))
