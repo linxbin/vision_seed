@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 import os
+from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_dynamic_libs, collect_submodules
 
@@ -8,6 +9,16 @@ from PyInstaller.utils.hooks import collect_dynamic_libs, collect_submodules
 block_cipher = None
 cv2_binaries = collect_dynamic_libs('cv2')
 cv2_hiddenimports = collect_submodules('cv2')
+project_root = Path(os.path.abspath('.'))
+
+
+def collect_game_asset_datas():
+    datas = []
+    for asset_dir in project_root.glob('games/*/*/assets'):
+        if asset_dir.is_dir():
+            target = asset_dir.relative_to(project_root).as_posix()
+            datas.append((str(asset_dir), target))
+    return datas
 
 # 主要分析选项
 a = Analysis(
@@ -19,7 +30,7 @@ a = Analysis(
         ('assets', 'assets'),
         ('config/user_preferences.example.json', 'config'),
         # 注意：不包含 data 目录，保护用户隐私！
-    ],
+    ] + collect_game_asset_datas(),
     hiddenimports=cv2_hiddenimports,
     hookspath=[],
     hooksconfig={},
