@@ -4,7 +4,7 @@
 
 本文档说明如何将 VisionSeed 打包为 Windows 可分发版本，并确保运行时数据与用户隐私不随安装包分发。
 
-当前基线版本：`v2.0.0`
+当前基线版本：`v2.1.0`
 
 ## 打包前检查
 
@@ -122,7 +122,7 @@ https://aka.ms/vs/17/release/vc_redist.x64.exe
 ## 发布建议（GitHub）
 
 1. 推送主分支：`git push origin main`
-2. 打版本标签：`git tag -a v2.0.0 -m "VisionSeed v2.0.0"` 后 `git push origin v2.0.0`
+2. 打版本标签：`git tag -a v2.1.0 -m "VisionSeed v2.1.0"` 后 `git push origin v2.1.0`
 3. 在 GitHub Release 页面发布版本说明
 
 ---

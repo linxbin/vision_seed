@@ -304,8 +304,7 @@ class TangramFusionScene(BaseScene):
         pygame.draw.polygon(surface, outline, polygon, outline_width)
 
     def _draw_hint_polygon(self, surface, polygon, alpha):
-        pygame.draw.polygon(surface, (86, 94, 110, alpha), polygon)
-        pygame.draw.polygon(surface, (255, 255, 255, max(28, alpha)), polygon, 2)
+        pygame.draw.polygon(surface, (255, 255, 255, max(40, alpha)), polygon, 2)
 
     def _missing_color(self):
         missing_side = self.round_data["slot_sides"][self.round_data["missing_index"]]
@@ -399,7 +398,7 @@ class TangramFusionScene(BaseScene):
         for index, rect in enumerate(self.option_rects):
             selected = index == self.selected_option
             self._draw_option_piece(screen, rect, self.round_data["options"][index], selected=selected)
-        screen.blit(tip, (self.width // 2 - tip.get_width() // 2, self.option_rects[0].bottom + 12))
+        screen.blit(tip, (self.width // 2 - tip.get_width() // 2, self.option_rects[0].bottom + 28))
         if self.feedback_text and time.time() <= self.feedback_until:
             fb = self.body_font.render(self.feedback_text, True, self.feedback_color)
             screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.height - 36))

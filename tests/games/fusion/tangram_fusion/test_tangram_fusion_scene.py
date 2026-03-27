@@ -130,3 +130,14 @@ class TangramFusionSceneTests(unittest.TestCase):
         surface = pygame.Surface((scene.width, scene.height), pygame.SRCALPHA)
         scene.draw(surface)
         self.assertEqual(surface.get_at((4, 4))[:3], GLASSES_BACKGROUND[:3])
+
+    def test_missing_piece_hint_uses_outline_only(self):
+        scene = TangramFusionScene(_ManagerStub())
+        polygon = [(40, 40), (80, 40), (80, 80)]
+        surface = pygame.Surface((120, 120), pygame.SRCALPHA)
+        scene._draw_hint_polygon(surface, polygon, 120)
+        self.assertEqual(surface.get_at((60, 50))[3], 0)
+
+    def test_play_tip_sits_below_option_area(self):
+        scene = TangramFusionScene(_ManagerStub())
+        self.assertGreater(scene.option_rects[0].bottom + 28, scene.option_rects[0].bottom + 12)
