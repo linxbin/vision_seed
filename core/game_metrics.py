@@ -53,6 +53,8 @@ METRIC_LABEL_KEYS = {
     "max_speed_level": "metric.max_speed_level",
     "fusion_accuracy": "metric.fusion_accuracy",
     "fusion_path_accuracy": "path_fusion.metric.accuracy",
+    "tangram_completion_accuracy": "tangram_fusion.metric.label",
+    "completed_shapes": "tangram_fusion.result.success",
     "slice_accuracy": "fruit_slice.metric.accuracy",
 }
 

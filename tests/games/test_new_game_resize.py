@@ -9,6 +9,7 @@ from games.accommodation.snake.scenes.root_scene import SnakeFocusScene
 from games.amblyopia.fruit_slice.scenes.root_scene import FruitSliceScene
 from games.amblyopia.whack_a_mole.scenes.root_scene import WhackAMoleScene
 from games.fusion.path_fusion.scenes.root_scene import PathFusionScene
+from games.fusion.tangram_fusion.scenes.root_scene import TangramFusionScene
 from games.fusion.tetris.scenes.root_scene import FusionTetrisScene
 from games.stereopsis.ring_flight.scenes.root_scene import RingFlightScene
 from games.suppression.find_same.scenes.root_scene import FindSameScene
@@ -53,6 +54,7 @@ class NewGameResizeTests(unittest.TestCase):
             FruitSliceScene,
             FusionTetrisScene,
             PathFusionScene,
+            TangramFusionScene,
         )
         for scene_type in scene_types:
             with self.subTest(scene=scene_type.__name__):

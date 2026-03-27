@@ -2,7 +2,7 @@ from typing import Dict, List, Optional
 
 from games.accommodation import build_catch_fruit_descriptor, build_descriptor as build_accommodation_descriptor, build_snake_descriptor
 from games.amblyopia import build_fruit_slice_descriptor, build_precision_aim_descriptor, build_whack_a_mole_descriptor
-from games.fusion import build_path_fusion_descriptor, build_push_box_descriptor, build_tetris_descriptor
+from games.fusion import build_path_fusion_descriptor, build_push_box_descriptor, build_tangram_fusion_descriptor, build_tetris_descriptor
 from games.simultaneous import build_eye_find_patterns_descriptor, build_pong_descriptor, build_spot_difference_descriptor
 from games.stereopsis import build_depth_grab_descriptor, build_pop_nearest_descriptor, build_ring_flight_descriptor
 from games.suppression import build_find_same_descriptor, build_red_blue_catch_descriptor, build_weak_eye_key_descriptor
@@ -35,6 +35,7 @@ class GameRegistry:
         self.register(build_push_box_descriptor())
         self.register(build_tetris_descriptor())
         self.register(build_path_fusion_descriptor())
+        self.register(build_tangram_fusion_descriptor())
         self.register(build_weak_eye_key_descriptor())
         self.register(build_find_same_descriptor())
         self.register(build_red_blue_catch_descriptor())

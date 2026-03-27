@@ -9,6 +9,7 @@ from games.amblyopia.whack_a_mole.i18n import TRANSLATIONS as WHACK_A_MOLE_TRANS
 from games.common.training_runtime.i18n import TRANSLATIONS as ARCADE_TRANSLATIONS
 from games.fusion.push_box.i18n import TRANSLATIONS as FUSION_PUSH_BOX_TRANSLATIONS
 from games.fusion.path_fusion.i18n import TRANSLATIONS as PATH_FUSION_TRANSLATIONS
+from games.fusion.tangram_fusion.i18n import TRANSLATIONS as TANGRAM_FUSION_TRANSLATIONS
 from games.fusion.tetris.i18n import TRANSLATIONS as TETRIS_TRANSLATIONS
 from games.simultaneous.eye_find_patterns.i18n import TRANSLATIONS as EYE_FIND_TRANSLATIONS
 from games.simultaneous.pong.i18n import TRANSLATIONS as PONG_TRANSLATIONS
@@ -221,6 +222,7 @@ class LanguageManager:
         SNAKE_TRANSLATIONS,
         TETRIS_TRANSLATIONS,
         PATH_FUSION_TRANSLATIONS,
+        TANGRAM_FUSION_TRANSLATIONS,
         FUSION_PUSH_BOX_TRANSLATIONS,
         EYE_FIND_TRANSLATIONS,
         PONG_TRANSLATIONS,
