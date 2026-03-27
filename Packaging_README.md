@@ -4,7 +4,7 @@
 
 本文档说明如何将 VisionSeed 打包为 Windows 可分发版本，并确保运行时数据与用户隐私不随安装包分发。
 
-当前基线版本：`v1.0.0`
+当前基线版本：`v2.0.0`
 
 ## 打包前检查
 
@@ -56,7 +56,7 @@ package_secure.bat
 ### 方式二：直接执行 spec
 
 ```cmd
-pyinstaller visionseed.spec
+python -m PyInstaller visionseed.spec --distpath dist --workpath build --noconfirm
 ```
 
 ## 产物结构
@@ -65,7 +65,7 @@ pyinstaller visionseed.spec
 项目根目录/
 ├── dist/
 │   └── VisionSeed/
-│       ├── VisionSeed.exe
+│       ├── 视芽.exe
 │       ├── assets/
 │       └── config/
 └── build/
@@ -90,7 +90,7 @@ pyinstaller visionseed.spec
 - 训练记录属于用户本地数据，不包含在仓库分发内容中
 - 每个新用户首次运行时会初始化自己的本地配置和记录
 - 建议发布前对产物做基础安全扫描（杀软/EDR）
-- 建议对 `VisionSeed.exe` 做代码签名，减少系统拦截风险
+- 建议对 `视芽.exe` 做代码签名，减少系统拦截风险
 
 ## 常见问题
 
@@ -122,8 +122,8 @@ https://aka.ms/vs/17/release/vc_redist.x64.exe
 ## 发布建议（GitHub）
 
 1. 推送主分支：`git push origin main`
-2. 打版本标签：`git tag -a v1.0.0 -m "VisionSeed v1.0.0"` 后 `git push origin v1.0.0`
+2. 打版本标签：`git tag -a v2.0.0 -m "VisionSeed v2.0.0"` 后 `git push origin v2.0.0`
 3. 在 GitHub Release 页面发布版本说明
 
 ---
-最后更新：2026-02-28
+最后更新：2026-03-27

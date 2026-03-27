@@ -2,40 +2,34 @@
 
 import os
 
+from PyInstaller.utils.hooks import collect_dynamic_libs, collect_submodules
+
 # 获取项目根目录
 block_cipher = None
+cv2_binaries = collect_dynamic_libs('cv2')
+cv2_hiddenimports = collect_submodules('cv2')
 
 # 主要分析选项
 a = Analysis(
     ['main.py'],
     pathex=[os.path.abspath('.')],
-    binaries=[],
+    binaries=cv2_binaries,
     datas=[
         # 包含必要的资源目录
         ('assets', 'assets'),
         ('config/user_preferences.example.json', 'config'),
         # 注意：不包含 data 目录，保护用户隐私！
     ],
-    hiddenimports=[],
+    hiddenimports=cv2_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
         # 排除不必要的模块以减小体积
         'tkinter',
-        'unittest',
-        'email',
-        'http',
-        'urllib',
-        'xml',
         'pydoc',
         'doctest',
-        'argparse',
-        'calendar',
         'pdb',
-        'pickle',
-        'multiprocessing',
-        'concurrent',
         'distutils',
         'setuptools',
         'pkg_resources',
@@ -56,7 +50,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='VisionSeed',
+    name='视芽',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -69,7 +63,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    # icon='assets/icon.ico'  # 移除图标引用，因为不存在
+    icon='assets/branding/shiya_app_icon.ico'
 )
 
 coll = COLLECT(

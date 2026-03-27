@@ -1,0 +1,60 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="156" y1="140" x2="868" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EAF4FF"/>
+      <stop offset="0.52" stop-color="#D6ECFF"/>
+      <stop offset="1" stop-color="#DDF7EF"/>
+    </linearGradient>
+    <linearGradient id="panelGlow" x1="256" y1="220" x2="796" y2="796" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#F5FBFF" stop-opacity="0.74"/>
+    </linearGradient>
+    <linearGradient id="eyeStroke" x1="248" y1="540" x2="776" y2="540" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4C86F7"/>
+      <stop offset="1" stop-color="#61C5BC"/>
+    </linearGradient>
+    <linearGradient id="sproutFill" x1="512" y1="344" x2="512" y2="684" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB54C"/>
+      <stop offset="1" stop-color="#FF7F60"/>
+    </linearGradient>
+    <linearGradient id="iris" x1="512" y1="414" x2="512" y2="666" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F87F8"/>
+      <stop offset="1" stop-color="#2B58C0"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="84" y="84" width="856" height="856" rx="220" fill="url(#bg)"/>
+  <rect x="126" y="126" width="772" height="772" rx="192" fill="url(#panelGlow)"/>
+
+  <circle cx="762" cy="246" r="44" fill="#FFF2D4" fill-opacity="0.9"/>
+  <circle cx="282" cy="796" r="28" fill="#D2F4EE" fill-opacity="0.9"/>
+  <circle cx="794" cy="738" r="18" fill="#CFE2FF" fill-opacity="0.92"/>
+
+  <path
+    d="M266 540C326 444 417 388 512 388C607 388 698 444 758 540C698 636 607 692 512 692C417 692 326 636 266 540Z"
+    stroke="url(#eyeStroke)"
+    stroke-width="44"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <circle cx="512" cy="540" r="128" fill="#F6FBFF"/>
+  <circle cx="512" cy="540" r="98" fill="url(#iris)"/>
+  <circle cx="512" cy="540" r="38" fill="#123178"/>
+  <circle cx="478" cy="504" r="20" fill="#F4F9FF" fill-opacity="0.94"/>
+
+  <path
+    d="M512 620C512 568 512 528 512 476"
+    stroke="url(#sproutFill)"
+    stroke-width="24"
+    stroke-linecap="round"
+  />
+  <path
+    d="M514 488C568 480 604 444 614 396C554 396 520 424 514 488Z"
+    fill="url(#sproutFill)"
+  />
+  <path
+    d="M510 488C456 480 420 444 410 396C470 396 504 424 510 488Z"
+    fill="url(#sproutFill)"
+  />
+</svg>

@@ -1,10 +1,11 @@
-from config import DEFAULT_TOTAL_QUESTIONS, DEFAULT_START_LEVEL, E_SIZE_LEVELS
+from config import DEFAULT_TOTAL_QUESTIONS, DEFAULT_START_LEVEL, DEFAULT_SESSION_MINUTES, E_SIZE_LEVELS, FPS
 from .sound_manager import SoundManager
 from .data_manager import DataManager
 from .preferences_manager import PreferencesManager
 from .language_manager import LanguageManager
 from .license_manager import LicenseManager
 from .adaptive_manager import AdaptiveManager
+from .game_registry import GameRegistry
 
 
 class SceneManager:
@@ -12,10 +13,17 @@ class SceneManager:
         self.scene = None
         self.scenes = {}
         self.screen_size = None
+        self.active_category = None
+        self.active_game_id = None
+        self.target_frame_seconds = 1.0 / max(1, FPS)
+        self.delta_seconds = self.target_frame_seconds
+        self.frame_scale = 1.0
 
         self.settings = {
             "total_questions": DEFAULT_TOTAL_QUESTIONS,
             "start_level": DEFAULT_START_LEVEL,
+            "session_duration_minutes": DEFAULT_SESSION_MINUTES,
+            "e_training_mode": "time",
             "sound_enabled": True,
             "language": "en-US",
             "fullscreen": False,
@@ -33,7 +41,8 @@ class SceneManager:
         # ⭐ 当前训练结果统一存储
         self.current_result = {
             "correct": 0,
-            "total": 0
+            "total": 0,
+            "game_id": "legacy_training",
         }
         
         # 音效管理器
@@ -44,6 +53,14 @@ class SceneManager:
         self.data_manager = DataManager()
         self.license_manager = LicenseManager()
         self.adaptive_manager = AdaptiveManager()
+        self.game_registry = GameRegistry()
+
+    def update_frame_timing(self, dt_ms):
+        dt_seconds = max(0.0, float(dt_ms) / 1000.0)
+        if dt_seconds <= 0:
+            dt_seconds = self.target_frame_seconds
+        self.delta_seconds = min(0.05, dt_seconds)
+        self.frame_scale = self.delta_seconds / self.target_frame_seconds if self.target_frame_seconds > 0 else 1.0
 
     def apply_sound_preference(self):
         """将当前偏好中的音效开关应用到音效管理器。"""
@@ -65,6 +82,8 @@ class SceneManager:
         payload = {
             "start_level": self.settings["start_level"],
             "total_questions": self.settings["total_questions"],
+            "session_duration_minutes": self.settings.get("session_duration_minutes", DEFAULT_SESSION_MINUTES),
+            "e_training_mode": self.settings.get("e_training_mode", "time"),
             "sound_enabled": self.settings.get("sound_enabled", True),
             "language": self.settings.get("language", "en-US"),
             "fullscreen": self.settings.get("fullscreen", False),
@@ -88,7 +107,8 @@ class SceneManager:
         self.save_user_preferences()
 
     def evaluate_adaptive_level(self):
-        sessions = self.data_manager.get_all_sessions()
+        game_id = getattr(self, "active_game_id", None)
+        sessions = self.data_manager.get_sessions_by_game(game_id) if game_id else self.data_manager.get_all_sessions()
         result = self.adaptive_manager.evaluate(
             sessions=sessions,
             current_level=int(self.settings.get("start_level", 1)),
@@ -124,11 +144,6 @@ class SceneManager:
             on_resize = getattr(self.scene, "on_resize", None)
             if callable(on_resize):
                 on_resize(*self.screen_size)
-
-        # 每次进入训练必须重置
-        if name == "training":
-            self.scene.reset()
-            return
 
         # 场景进入回调（可选）
         on_enter = getattr(self.scene, "on_enter", None)

@@ -1,191 +1,304 @@
 import pygame
 import sys
+
+from config import SCREEN_HEIGHT, SCREEN_WIDTH
+from core.asset_loader import load_image_if_exists, project_path
 from core.base_scene import BaseScene
-from config import SCREEN_WIDTH, SCREEN_HEIGHT
+from core.training_recommendation import build_daily_plan, build_daily_suggestion, build_recent_completions
+from core.ui_theme import PlatformTheme, draw_card, draw_chip_label, draw_platform_background
 
 
 class MenuScene(BaseScene):
-
     def __init__(self, manager):
         super().__init__(manager)
         self._refresh_fonts()
-
         self.width = SCREEN_WIDTH
         self.height = SCREEN_HEIGHT
-
-        # 菜单卡片布局
-        self.menu_width = 420
-        self.menu_height = 58
-        self.menu_gap = 18
-        self._reflow_layout()
+        self._items = []
+        self.menu_options = []
+        self.templates = []
+        self.recommendations = []
+        self.recommendation_hint = ""
+        self.recent_completions = []
+        self.recommend_panel = pygame.Rect(0, 0, 1, 1)
+        self._recent_row_y = 0
+        self._disclaimer_y = 0
+        self._hint_y = 0
+        self.control_items = []
+        self._recommendation_lines = 3
+        self._compact_recommendation = False
+        self.focused_index = 0
+        self._build_items()
 
     def _refresh_fonts(self):
-        self.title_font = self.create_font(62)
+        self.title_font = self.create_font(58)
         self.subtitle_font = self.create_font(24)
-        self.option_font = self.create_font(30)
-        self.hint_font = self.create_font(20)
-        self.template_font = self.create_font(19)
+        self.option_font = self.create_font(28)
+        self.hint_font = self.create_font(19)
+        self.meta_font = self.create_font(17)
+        self.badge_font = self.create_font(16)
 
-    def _reflow_layout(self):
-        self.top_offset = max(0, (self.height - SCREEN_HEIGHT) // 2)
-        start_y = 220 + self.top_offset
-        start_x = self.width // 2 - self.menu_width // 2
-
-        self.menu_options = [
-            {"rect": pygame.Rect(start_x, start_y + 0 * (self.menu_height + self.menu_gap), self.menu_width, self.menu_height), "key": "menu.start_training", "scene": "training"},
-            {"rect": pygame.Rect(start_x, start_y + 1 * (self.menu_height + self.menu_gap), self.menu_width, self.menu_height), "key": "menu.configuration", "scene": "config"},
-            {"rect": pygame.Rect(start_x, start_y + 2 * (self.menu_height + self.menu_gap), self.menu_width, self.menu_height), "key": "menu.view_history", "scene": "history"},
-            {"rect": pygame.Rect(start_x, start_y + 3 * (self.menu_height + self.menu_gap), self.menu_width, self.menu_height), "key": "menu.exit", "scene": "exit"}
-        ]
-        template_y = start_y + 4 * (self.menu_height + self.menu_gap) + 36
-        template_w = 132
-        template_h = 70
-        template_gap = 12
-        template_start_x = self.width // 2 - (template_w * 3 + template_gap * 2) // 2
-        self.templates = [
-            {
-                "rect": pygame.Rect(template_start_x, template_y, template_w, template_h),
-                "key": "menu.template_child",
-                "template_id": "child",
-                "shortcut": pygame.K_5,
-            },
-            {
-                "rect": pygame.Rect(template_start_x + template_w + template_gap, template_y, template_w, template_h),
-                "key": "menu.template_adult",
-                "template_id": "adult",
-                "shortcut": pygame.K_6,
-            },
-            {
-                "rect": pygame.Rect(template_start_x + (template_w + template_gap) * 2, template_y, template_w, template_h),
-                "key": "menu.template_recovery",
-                "template_id": "recovery",
-                "shortcut": pygame.K_7,
-            },
+    def _build_items(self):
+        previous_focus = self.focused_index
+        categories = self._safe_categories()
+        margin = 32
+        gutter = 18
+        control_w = 180
+        control_h = 50
+        control_gap = 12
+        control_x = self.width - margin - control_w
+        exit_y = self.height - margin - control_h
+        system_y = exit_y - control_gap - control_h
+        self.control_items = [
+            {"index": len(categories) + 1, "rect": pygame.Rect(control_x, system_y, control_w, control_h), "kind": "scene", "scene": "system_settings", "label": self.manager.t("menu.system_settings"), "icon": "gear"},
+            {"index": len(categories) + 2, "rect": pygame.Rect(control_x, exit_y, control_w, control_h), "kind": "exit", "label": self.manager.t("menu.exit"), "icon": "power"},
         ]
 
-    def _start_with_template(self, template_id):
-        self.manager.apply_training_template(template_id)
-        self.manager.set_scene("training")
+        bottom_reserved = 236
+        start_y = 150
+        available_h = max(240, self.height - start_y - bottom_reserved)
+        card_gap = 10
+        card_h = max(42, min(54, (available_h - card_gap * max(0, len(categories) - 1)) // max(1, len(categories))))
+        card_w = min(620, self.width - 100)
+        start_x = self.width // 2 - card_w // 2
+
+        self._items = []
+        for index, category in enumerate(categories, start=1):
+            rect = pygame.Rect(start_x, start_y + (index - 1) * (card_h + card_gap), card_w, card_h)
+            label = self._resolve_label(category)
+            self._items.append({
+                "index": index,
+                "rect": rect,
+                "kind": "category",
+                "category_id": category["id"],
+                "label": label,
+            })
+
+        rec_x = margin
+        rec_y = self.height - 236
+        rec_w = max(260, control_x - gutter - rec_x)
+        rec_h = 150
+        self.recommend_panel = pygame.Rect(rec_x, rec_y, rec_w, rec_h)
+        self._compact_recommendation = self.width < 760 or self.height < 620
+        self._recommendation_lines = 1 if self.width < 720 or self.height < 600 else (2 if self.width < 840 or self.height < 660 else 3)
+
+        self.recommendations = build_daily_plan(self.manager, limit=3)
+        self.recommendation_hint = build_daily_suggestion(self.manager, self.recommendations)
+        self.recent_completions = build_recent_completions(self.manager, limit=2)
+        self._recent_row_y = self.recommend_panel.bottom - 38
+        self._disclaimer_y = max(self.recommend_panel.bottom + 10, self.height - 68)
+        self._hint_y = self._disclaimer_y + 34
+        self._sync_legacy_ui_shape()
+        if self._all_items():
+            self.focused_index = max(0, min(previous_focus, len(self._all_items()) - 1))
+
+    def _all_items(self):
+        return self._items + self.control_items
+
+    def _safe_categories(self):
+        categories = []
+        registry = getattr(self.manager, "game_registry", None)
+        if registry and hasattr(registry, "get_categories"):
+            data = registry.get_categories()
+            if isinstance(data, list):
+                categories = data
+        if categories:
+            return categories
+        return [
+            {"id": "accommodation", "name": self.manager.t("category.accommodation"), "name_key": "category.accommodation"},
+            {"id": "simultaneous", "name": self.manager.t("category.simultaneous"), "name_key": "category.simultaneous"},
+            {"id": "fusion", "name": self.manager.t("category.fusion"), "name_key": "category.fusion"},
+            {"id": "suppression", "name": self.manager.t("category.suppression"), "name_key": "category.suppression"},
+            {"id": "stereopsis", "name": self.manager.t("category.stereopsis"), "name_key": "category.stereopsis"},
+            {"id": "amblyopia", "name": self.manager.t("category.amblyopia"), "name_key": "category.amblyopia"},
+        ]
+
+    def _resolve_label(self, item):
+        name_key = item.get("name_key")
+        if isinstance(name_key, str) and name_key:
+            return self.manager.t(name_key)
+        return item.get("name", "")
+
+    def _sync_legacy_ui_shape(self):
+        # Keep the older test-facing shape in sync with the current category-first menu.
+        exit_item = next((item for item in self.control_items if item.get("kind") == "exit"), None)
+        system_item = next((item for item in self.control_items if item.get("scene") == "system_settings"), None)
+        first_category = next((item for item in self._items if item.get("kind") == "category"), None)
+
+        if first_category and exit_item and system_item:
+            self.menu_options = [
+                {"rect": first_category["rect"], "key": "menu.start_training", "scene": "category"},
+                {"rect": system_item["rect"], "key": "menu.system_settings", "scene": "system_settings"},
+                {"rect": exit_item["rect"], "key": "menu.exit", "scene": "exit"},
+            ]
+        else:
+            self.menu_options = []
+        self.templates = []
+
+    def on_enter(self):
+        self._build_items()
 
     def on_resize(self, width, height):
         self.width = width
         self.height = height
-        self._reflow_layout()
+        self._build_items()
 
-    def _draw_background(self, screen):
-        # 深色渐变背景
-        top = (17, 28, 48)
-        bottom = (9, 14, 28)
-        for y in range(self.height):
-            t = y / max(self.height - 1, 1)
-            color = (
-                int(top[0] * (1 - t) + bottom[0] * t),
-                int(top[1] * (1 - t) + bottom[1] * t),
-                int(top[2] * (1 - t) + bottom[2] * t),
-            )
-            pygame.draw.line(screen, color, (0, y), (self.width, y))
-
-        # 光晕层
-        glow = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        pygame.draw.circle(glow, (70, 110, 180, 70), (self.width // 2, 170 + self.top_offset), 220)
-        pygame.draw.circle(glow, (120, 160, 220, 35), (self.width // 2, 170 + self.top_offset), 150)
-        screen.blit(glow, (0, 0))
+    def _handle_item(self, item):
+        kind = item["kind"]
+        if kind == "category":
+            self.manager.active_category = item["category_id"]
+            self.manager.set_scene("category")
+            return
+        if kind == "scene":
+            self.manager.set_scene(item["scene"])
+            return
+        pygame.quit()
+        sys.exit()
 
     def handle_events(self, events):
         mouse_pos = pygame.mouse.get_pos()
-        
         for event in events:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_1:
-                    self.manager.set_scene("training")
-                elif event.key == pygame.K_2:
-                    self.manager.set_scene("config")
-                elif event.key == pygame.K_3:
-                    self.manager.set_scene("history")
-                elif event.key == pygame.K_4:
-                    pygame.quit()
-                    sys.exit()
-                elif event.key == pygame.K_5:
-                    self._start_with_template("child")
-                elif event.key == pygame.K_6:
-                    self._start_with_template("adult")
-                elif event.key == pygame.K_7:
-                    self._start_with_template("recovery")
-            
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # 左键点击
-                    for option in self.menu_options:
-                        if option["rect"].collidepoint(mouse_pos):
-                            if option["scene"] == "exit":
-                                pygame.quit()
-                                sys.exit()
-                            else:
-                                self.manager.set_scene(option["scene"])
-                    for template in self.templates:
-                        if template["rect"].collidepoint(mouse_pos):
-                            self._start_with_template(template["template_id"])
+                all_items = self._all_items()
+                if event.key in (pygame.K_UP, pygame.K_LEFT) and all_items:
+                    self.focused_index = (self.focused_index - 1) % len(all_items)
+                    continue
+                if event.key in (pygame.K_DOWN, pygame.K_RIGHT) and all_items:
+                    self.focused_index = (self.focused_index + 1) % len(all_items)
+                    continue
+                if event.key in (pygame.K_RETURN, pygame.K_SPACE) and all_items:
+                    self._handle_item(all_items[self.focused_index])
+                    continue
+                if pygame.K_1 <= event.key <= pygame.K_9:
+                    idx = event.key - pygame.K_0
+                    target = next((item for item in all_items if item["index"] == idx), None)
+                    if target:
+                        self._handle_item(target)
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                for idx, item in enumerate(self._all_items()):
+                    if item["rect"].collidepoint(mouse_pos):
+                        self.focused_index = idx
+                        self._handle_item(item)
+                        break
+
+    def _draw_recommendations(self, screen):
+        draw_card(screen, self.recommend_panel, alt=True, radius=18)
+        target_icon = load_image_if_exists(project_path("assets", "ui", "target_dark.png"), (18, 18))
+        title = self.option_font.render(self.manager.t("menu.recommend.title"), True, PlatformTheme.TEXT_PRIMARY)
+        title_x = self.recommend_panel.x + 16
+        if target_icon is not None:
+            screen.blit(target_icon, (title_x, self.recommend_panel.y + 16))
+            title_x += target_icon.get_width() + 8
+        screen.blit(title, (title_x, self.recommend_panel.y + 12))
+
+        if not self._compact_recommendation:
+            badge_rect = pygame.Rect(self.recommend_panel.right - 112, self.recommend_panel.y + 14, 96, 28)
+
+        text_left = self.recommend_panel.x + 16
+        text_width = self.recommend_panel.width - 32
+        hint_lines, hint_height = self.draw_text_block(
+            screen,
+            self.meta_font,
+            self.recommendation_hint,
+            PlatformTheme.TEXT_MUTED,
+            (text_left, self.recommend_panel.y + 48),
+            text_width,
+            line_gap=2,
+            max_lines=2,
+            ellipsis=True,
+        )
+        recommendation_start_y = self.recommend_panel.y + 54 + hint_height
+
+        for idx, item in enumerate(self.recommendations[: self._recommendation_lines], start=1):
+            reason = self.manager.t(item["reason_key"], accuracy=f"{item['accuracy']:.1f}")
+            line_text = self.fit_text_to_width(
+                self.meta_font,
+                f"{idx}. {item['game_name']}  ·  {reason}",
+                self.recommend_panel.width - 44,
+            )
+            line = self.meta_font.render(line_text, True, PlatformTheme.TEXT_PRIMARY)
+            line_y = recommendation_start_y + (idx - 1) * 18
+            bullet_icon = load_image_if_exists(project_path("assets", "ui", "star_dark.png"), (12, 12))
+            line_x = self.recommend_panel.x + 18
+            if bullet_icon is not None:
+                screen.blit(bullet_icon, (line_x, line_y + 3))
+                line_x += bullet_icon.get_width() + 6
+            screen.blit(line, (line_x, line_y))
+
+        recent_title = self.meta_font.render(self.manager.t("menu.recent.title"), True, PlatformTheme.TEXT_PRIMARY)
+        recent_y = max(self._recent_row_y + 4, recommendation_start_y + self._recommendation_lines * 18 + 8)
+        divider_y = recent_y - 12
+        pygame.draw.line(
+            screen,
+            PlatformTheme.BORDER,
+            (self.recommend_panel.x + 14, divider_y),
+            (self.recommend_panel.right - 14, divider_y),
+            1,
+        )
+        screen.blit(recent_title, (self.recommend_panel.x + 16, recent_y))
+        if self.recent_completions:
+            parts = []
+            for item in self.recent_completions[:2]:
+                parts.append(
+                    self.manager.t(
+                        "menu.recent.item",
+                        game=item["game_name"],
+                        accuracy=f"{item['accuracy']:.1f}",
+                    )
+                )
+            recent_text = self.meta_font.render(
+                self.fit_text_to_width(self.meta_font, "  |  ".join(parts), self.recommend_panel.width - 134),
+                True,
+                PlatformTheme.TEXT_MUTED,
+            )
+            screen.blit(recent_text, (self.recommend_panel.x + 118, recent_y))
+        else:
+            empty = self.meta_font.render(
+                self.fit_text_to_width(self.meta_font, self.manager.t("menu.recent.none"), self.recommend_panel.width - 134),
+                True,
+                PlatformTheme.TEXT_MUTED,
+            )
+            screen.blit(empty, (self.recommend_panel.x + 118, recent_y))
 
     def draw(self, screen):
         self.refresh_fonts_if_needed()
-        self._draw_background(screen)
-        
-        # 标题与副标题
-        title = self.title_font.render(self.manager.t("menu.title"), True, (255, 255, 255))
-        title_x = self.width // 2 - title.get_width() // 2
-        screen.blit(title, (title_x, 100 + self.top_offset))
+        draw_platform_background(screen, self.width, self.height)
 
-        subtitle = self.subtitle_font.render(self.manager.t("menu.subtitle"), True, (170, 195, 235))
-        screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 170 + self.top_offset))
-        
-        # 获取鼠标位置用于悬停检测
+        title = self.title_font.render(self.manager.t("menu.title"), True, PlatformTheme.TEXT_PRIMARY)
+        subtitle = self.subtitle_font.render(self.manager.t("menu.multigame_subtitle"), True, PlatformTheme.TEXT_MUTED)
+        screen.blit(title, (self.width // 2 - title.get_width() // 2, 42))
+        screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 100))
+
         mouse_pos = pygame.mouse.get_pos()
-        
-        # 绘制菜单项卡片
-        for index, option in enumerate(self.menu_options, start=1):
-            rect = option["rect"]
-            text = f"{index}. {self.manager.t(option['key'])}"
-            is_hovered = rect.collidepoint(mouse_pos)
-            
-            if is_hovered:
-                text_color = (255, 255, 255)
-                bg_color = (55, 84, 138)
-                border_color = (170, 205, 255)
-                accent_color = (140, 205, 255)
-            else:
-                text_color = (215, 225, 240)
-                bg_color = (36, 52, 84)
-                border_color = (92, 124, 180)
-                accent_color = (72, 102, 160)
+        all_items = self._all_items()
+        for idx, item in enumerate(self._items):
+            hovered = item["rect"].collidepoint(mouse_pos) or idx == self.focused_index
+            draw_card(screen, item["rect"], hovered=hovered)
+            label = self.option_font.render(f"{item['index']}. {item['label']}", True, PlatformTheme.TEXT_PRIMARY)
+            screen.blit(label, (item["rect"].x + 16, item["rect"].centery - label.get_height() // 2))
 
-            pygame.draw.rect(screen, bg_color, rect, border_radius=10)
-            pygame.draw.rect(screen, border_color, rect, 2, border_radius=10)
+        for offset, item in enumerate(self.control_items, start=len(self._items)):
+            hovered = item["rect"].collidepoint(mouse_pos) or offset == self.focused_index
+            draw_chip_label(
+                screen,
+                item["rect"],
+                self.option_font,
+                item["label"],
+                hovered=hovered,
+                icon_name=item.get("icon"),
+            )
 
-            # 左侧强调条
-            accent_rect = pygame.Rect(rect.x + 8, rect.y + 8, 6, rect.height - 16)
-            pygame.draw.rect(screen, accent_color, accent_rect, border_radius=4)
-            
-            # 绘制文字
-            text_surface = self.option_font.render(text, True, text_color)
-            text_x = rect.x + 28
-            text_y = rect.centery - text_surface.get_height() // 2
-            screen.blit(text_surface, (text_x, text_y))
-
-        # 底部快捷键提示
-        hint = self.hint_font.render(self.manager.t("menu.hint"), True, (150, 170, 205))
-        screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.height - 40))
-
-        template_title = self.hint_font.render(self.manager.t("menu.template_title"), True, (176, 200, 235))
-        template_title_y = self.templates[0]["rect"].y - 28
-        screen.blit(template_title, (self.width // 2 - template_title.get_width() // 2, template_title_y))
-
-        for idx, template in enumerate(self.templates, start=5):
-            rect = template["rect"]
-            is_hovered = rect.collidepoint(mouse_pos)
-            fill = (64, 103, 165) if is_hovered else (46, 77, 126)
-            border = (162, 198, 246) if is_hovered else (114, 152, 210)
-            pygame.draw.rect(screen, fill, rect, border_radius=10)
-            pygame.draw.rect(screen, border, rect, 2, border_radius=10)
-            label = self.template_font.render(f"{idx}. {self.manager.t(template['key'])}", True, (240, 246, 255))
-            label_x = rect.centerx - label.get_width() // 2
-            label_y = rect.centery - label.get_height() // 2
-            screen.blit(label, (label_x, label_y))
+        self._draw_recommendations(screen)
+        self.draw_text_block(
+            screen,
+            self.meta_font,
+            self.manager.t("menu.disclaimer"),
+            PlatformTheme.TEXT_MUTED,
+            (44, self._disclaimer_y),
+            self.width - 320,
+            line_gap=2,
+            max_lines=2,
+            ellipsis=True,
+        )
+        hint = self.hint_font.render(self.manager.t("menu.hint"), True, PlatformTheme.TEXT_MUTED)
+        screen.blit(hint, (44, self._hint_y))

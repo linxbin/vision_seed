@@ -12,12 +12,12 @@ from core.app_paths import get_user_license_dir
 
 
 class LicenseManager:
-    """本地授权管理（交易层）：设备绑定 + 授权码校验 + 本地授权文件。"""
+    """Local license manager for device binding, token validation, and local persistence."""
 
     TOKEN_PREFIX = "VS1"
     LOCAL_SCHEMA_VERSION = 1
-    # V1 使用 HMAC 实现最小可落地的本地验签。
-    # 注意：客户端内置密钥属于“提高门槛”，不等同强对抗安全。
+    # V1 uses HMAC as a minimal local signature layer.
+    # This embedded secret only raises the bar and is not strong client-side security.
     _SIGNING_SECRET = "visionseed-license-v1::change-this-before-release"
 
     def __init__(self):

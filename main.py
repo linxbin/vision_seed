@@ -1,21 +1,31 @@
 import pygame
 from config import SCREEN_WIDTH, SCREEN_HEIGHT, MIN_SCREEN_WIDTH, MIN_SCREEN_HEIGHT, FPS, TITLE
+from core.app_paths import get_resource_path
 from core.scene_manager import SceneManager
 from core.startup_health import run_startup_health_check, safe_init_audio
 from scenes.menu_scene import MenuScene
-from scenes.config_scene import ConfigScene
-from scenes.training_scene import TrainingScene
-from scenes.report_scene import ReportScene
-from scenes.history_scene import HistoryScene
 from scenes.license_scene import LicenseScene
 from scenes.onboarding_scene import OnboardingScene
+from scenes.category_scene import CategoryScene
+from scenes.game_host_scene import GameHostScene
+from scenes.system_settings_scene import SystemSettingsScene
+
 
 def main():
     pygame.init()
 
+    icon_path = get_resource_path("assets", "branding", "shiya_app_icon_256.png")
+    try:
+        window_icon = pygame.image.load(icon_path)
+        if pygame.display.get_surface() is not None:
+            window_icon = window_icon.convert_alpha()
+        pygame.display.set_icon(window_icon)
+    except (pygame.error, FileNotFoundError):
+        pass
+
     run_startup_health_check()
     audio_ok = safe_init_audio()
-    
+
     display_flags = pygame.RESIZABLE
 
     def clamp_window_size(size):
@@ -47,10 +57,9 @@ def main():
     manager.register("menu", MenuScene(manager))
     manager.register("license", LicenseScene(manager))
     manager.register("onboarding", OnboardingScene(manager))
-    manager.register("config", ConfigScene(manager))
-    manager.register("training", TrainingScene(manager))
-    manager.register("report", ReportScene(manager))
-    manager.register("history", HistoryScene(manager))
+    manager.register("category", CategoryScene(manager))
+    manager.register("game_host", GameHostScene(manager))
+    manager.register("system_settings", SystemSettingsScene(manager))
 
     has_license, _message = manager.license_manager.check_local_license()
     initial_scene = manager.decide_initial_scene(
@@ -61,7 +70,7 @@ def main():
 
     running = True
     while running:
-        clock.tick(FPS)
+        manager.update_frame_timing(clock.tick(FPS))
 
         events = pygame.event.get()
         for event in events:

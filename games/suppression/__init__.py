@@ -1,0 +1,3 @@
+from .weak_eye_key import build_descriptor as build_weak_eye_key_descriptor
+from .find_same import build_descriptor as build_find_same_descriptor
+from .red_blue_catch import build_descriptor as build_red_blue_catch_descriptor

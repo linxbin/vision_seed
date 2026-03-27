@@ -1,0 +1,7 @@
+interface:
+  display_name: "Pygame Architecture"
+  short_description: "VisionSeed architecture and routing guidance"
+  icon_small: "./assets/icon-small.svg"
+  icon_large: "./assets/icon-large.svg"
+  brand_color: "#2F6B5F"
+  default_prompt: "Use $pygame-architecture to plan or refactor VisionSeed architecture around core, scenes, games, and GameHostScene."

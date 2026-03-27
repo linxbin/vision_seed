@@ -1,6 +1,8 @@
 {
   "start_level": 3,
   "total_questions": 30,
+  "session_duration_minutes": 5,
+  "e_training_mode": "time",
   "sound_enabled": true,
   "language": "zh-CN",
   "fullscreen": false,

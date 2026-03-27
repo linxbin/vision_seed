@@ -1,0 +1,513 @@
+import math
+import time
+
+import pygame
+
+from core.asset_loader import load_image_if_exists, project_path
+from core.base_scene import BaseScene
+from games.common.anaglyph import BLUE_FILTER, GLASSES_BUTTON_COLOR, RED_FILTER
+from ..services import EyeFindPatternService, EyeFindScoringService, EyeFindSessionService
+
+
+class EyeFindPatternsScene(BaseScene):
+    STATE_HOME = "home"
+    STATE_HELP = "help"
+    STATE_PLAY = "play"
+    STATE_RESULT = "result"
+
+    MODE_GLASSES = "glasses"
+
+    FILTER_LR = "left_red_right_blue"
+    FILTER_RL = "left_blue_right_red"
+    HOME_VERTICAL_UNIT = 14
+
+    ATTEMPT_SECONDS = 30
+    OVERLAP_TOLERANCE = 8
+
+    def __init__(self, manager):
+        super().__init__(manager)
+        self._refresh_fonts()
+        self.width = 900
+        self.height = 700
+
+        self.state = self.STATE_HOME
+        self.mode = self.MODE_GLASSES
+        self.filter_direction = self.FILTER_LR
+        self.show_filter_picker = False
+
+        self.pattern_service = EyeFindPatternService()
+        self.scoring = EyeFindScoringService()
+        self.session = EyeFindSessionService(self._session_seconds(), self.ATTEMPT_SECONDS)
+        self.final_stats = {}
+
+        self.left_center = (0, 0)
+        self.right_center = (0, 0)
+        self.dragging_right = False
+        self.drag_offset = (0, 0)
+        self.pattern_surface = pygame.Surface((1, 1), pygame.SRCALPHA)
+        self.left_pattern_surface = pygame.Surface((1, 1), pygame.SRCALPHA)
+        self.right_pattern_surface = pygame.Surface((1, 1), pygame.SRCALPHA)
+        self.pattern_id = "star"
+        self.pattern_color = (255, 214, 140, 255)
+        self.session_elapsed = 0.0
+        self.attempt_elapsed = 0.0
+        self.feedback_text = ""
+        self.feedback_color = (255, 255, 255)
+        self.feedback_until = 0.0
+
+        self._build_ui_rects()
+        self._new_pattern(reset_position=True)
+
+    def _refresh_fonts(self):
+        self.title_font = self.create_font(56)
+        self.sub_font = self.create_font(26)
+        self.option_font = self.create_font(30)
+        self.body_font = self.create_font(22)
+        self.small_font = self.create_font(18)
+        self.tiny_font = self.create_font(16)
+
+    def _build_ui_rects(self):
+        card_w = min(560, self.width - 120)
+        card_h = 62
+        start_x = self.width // 2 - card_w // 2
+        start_y = 232 + self.HOME_VERTICAL_UNIT * 3
+        gap = 16
+        choice_w = (card_w - gap) // 2
+        self.btn_start = pygame.Rect(start_x, start_y, choice_w, card_h)
+        self.filter_lr = self.btn_start.copy()
+        self.filter_rl = pygame.Rect(self.btn_start.right + gap, start_y, choice_w, card_h)
+        self.btn_help = pygame.Rect(start_x, start_y + card_h + gap, card_w, card_h)
+        self.btn_back = pygame.Rect(self.width - 108, 18, 88, 36)
+
+        self.btn_confirm = pygame.Rect(self.width // 2 - 94, self.height - 58, 188, 44)
+        self.btn_continue = pygame.Rect(self.width // 2 - 210, self.height - 100, 180, 48)
+        self.btn_exit = pygame.Rect(self.width // 2 + 30, self.height - 100, 180, 48)
+        self.btn_home = pygame.Rect(self.width - 110, 16, 88, 36)
+
+        self.filter_modal = pygame.Rect(self.width // 2 - 250, self.height // 2 - 128, 500, 220)
+        self.filter_start = pygame.Rect(self.filter_modal.centerx - 90, self.filter_modal.y + 150, 180, 44)
+
+        self.help_ok = pygame.Rect(self.width // 2 - 90, self.height - 90, 180, 54)
+        self.play_area = pygame.Rect(80, 120, self.width - 160, self.height - 300)
+        self.left_center = (self.width // 2 - 140, self.height // 2 + 10)
+        self.right_center = (self.width // 2 + 140, self.height // 2 + 10)
+
+    def on_resize(self, width, height):
+        self.width = width
+        self.height = height
+        self._build_ui_rects()
+
+    def reset(self):
+        self.state = self.STATE_HOME
+        self.mode = self.MODE_GLASSES
+        self.filter_direction = self.FILTER_LR
+        self.show_filter_picker = False
+        self.feedback_text = ""
+        self.session_elapsed = 0.0
+        self.attempt_elapsed = 0.0
+        self.scoring.reset()
+        self.session.reset()
+        self._new_pattern(reset_position=True)
+
+    def _session_seconds(self):
+        try:
+            minutes = int(self.manager.settings.get("session_duration_minutes", 5))
+        except (TypeError, ValueError):
+            minutes = 5
+        return max(60, minutes * 60)
+
+    def _exit_to_main_menu(self):
+        self.manager.set_scene("menu")
+
+    def _start_game(self):
+        self.state = self.STATE_PLAY
+        self.scoring.reset()
+        self.session.session_seconds = self._session_seconds()
+        self.session.start()
+        self.session_elapsed = 0.0
+        self.attempt_elapsed = 0.0
+        self.feedback_text = ""
+        self._new_pattern(reset_position=True)
+
+    def _finish_game(self):
+        self.state = self.STATE_RESULT
+        self.final_stats = self.session.build_final_stats(self.scoring, self.mode, self.filter_direction)
+        self.play_completed_sound()
+        self.scoring.reset()
+
+    def _set_feedback(self, key, color):
+        self.feedback_text = self.manager.t(key)
+        self.feedback_color = color
+        self.feedback_until = time.time() + 1.2
+
+    def _new_pattern(self, reset_position):
+        pattern = self.pattern_service.next_pattern(size=140)
+        self.pattern_id = pattern["pattern_id"]
+        self.pattern_color = pattern["color"]
+        self.pattern_surface = pattern["surface"]
+        self._refresh_pattern_cache()
+        if reset_position:
+            self.left_center, self.right_center = self.pattern_service.reset_positions(self.width, self.height)
+
+    def _refresh_pattern_cache(self):
+        self.left_pattern_surface = self.pattern_service.apply_filter(
+            self.pattern_surface,
+            self.mode,
+            self.filter_direction,
+            "left",
+            self.MODE_GLASSES,
+            self.FILTER_LR,
+        )
+        self.right_pattern_surface = self.pattern_service.apply_filter(
+            self.pattern_surface,
+            self.mode,
+            self.filter_direction,
+            "right",
+            self.MODE_GLASSES,
+            self.FILTER_LR,
+        )
+
+    def _is_overlapped(self):
+        dx = self.left_center[0] - self.right_center[0]
+        dy = self.left_center[1] - self.right_center[1]
+        return math.hypot(dx, dy) <= self.OVERLAP_TOLERANCE
+
+    def _confirm_action(self):
+        if self._is_overlapped():
+            gained = self.scoring.on_success()
+            self.play_correct_sound()
+            self._set_feedback("eye_find.success", (90, 226, 132))
+            if gained > EyeFindScoringService.BASE_SCORE:
+                self.feedback_text = f"{self.feedback_text}  +{gained}"
+            self.session.restart_attempt()
+            self._new_pattern(reset_position=True)
+        else:
+            self.scoring.on_failure()
+            self.play_wrong_sound()
+            self._set_feedback("eye_find.fail", (238, 118, 118))
+
+    def _draw_gradient_bg(self, screen):
+        if self.state == self.STATE_PLAY and self.mode == self.MODE_GLASSES:
+            top = (230, 243, 255)
+            bottom = (215, 236, 252)
+            for y in range(self.height):
+                t = y / max(1, self.height - 1)
+                color = (
+                    int(top[0] * (1 - t) + bottom[0] * t),
+                    int(top[1] * (1 - t) + bottom[1] * t),
+                    int(top[2] * (1 - t) + bottom[2] * t),
+                )
+                pygame.draw.line(screen, color, (0, y), (self.width, y))
+            overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            overlay.fill(self.pattern_service.GLASSES_BACKGROUND)
+            screen.blit(overlay, (0, 0))
+            return
+        top = (230, 243, 255)
+        bottom = (215, 236, 252)
+        for y in range(self.height):
+            t = y / max(1, self.height - 1)
+            color = (
+                int(top[0] * (1 - t) + bottom[0] * t),
+                int(top[1] * (1 - t) + bottom[1] * t),
+                int(top[2] * (1 - t) + bottom[2] * t),
+            )
+            pygame.draw.line(screen, color, (0, y), (self.width, y))
+        now = time.time()
+        for i in range(4):
+            cx = int((self.width * (0.2 + i * 0.2) + math.sin(now * (0.15 + i * 0.03)) * 28))
+            cy = int(90 + i * 34 + math.cos(now * (0.2 + i * 0.05)) * 8)
+            pygame.draw.circle(screen, (245, 250, 255), (cx, cy), 26)
+            pygame.draw.circle(screen, (238, 246, 255), (cx + 22, cy + 8), 20)
+
+    def _load_ui_icon(self, icon_name, light=False, size=(18, 18)):
+        suffix = "light" if light else "dark"
+        return load_image_if_exists(project_path("assets", "ui", f"{icon_name}_{suffix}.png"), size)
+
+    def _draw_button(self, screen, rect, text, color, text_color=(255, 255, 255), icon_name=None, selected=False):
+        hovered = rect.collidepoint(pygame.mouse.get_pos())
+        fill = tuple(min(255, c + 18) for c in color) if hovered else color
+        border = (255, 255, 255) if hovered else (202, 223, 246)
+        if selected:
+            glow_rect = rect.inflate(10, 10)
+            pygame.draw.rect(screen, (255, 248, 196), glow_rect, border_radius=14)
+            fill = tuple(min(255, c + 24) for c in color)
+            border = (255, 244, 160)
+        pygame.draw.rect(screen, fill, rect, border_radius=10)
+        pygame.draw.rect(screen, border, rect, 3 if selected else 2, border_radius=10)
+        if text:
+            text_surface = self.option_font.render(text, True, text_color)
+            use_light_icon = sum(text_color) > 500
+            icon = self._load_ui_icon(icon_name, light=use_light_icon) if icon_name else None
+            gap = 8 if icon is not None else 0
+            content_width = text_surface.get_width() + (icon.get_width() + gap if icon is not None else 0)
+            start_x = rect.centerx - content_width // 2
+            if icon is not None:
+                screen.blit(icon, (start_x, rect.centery - icon.get_height() // 2))
+                start_x += icon.get_width() + gap
+            screen.blit(
+                text_surface,
+                (start_x, rect.centery - text_surface.get_height() // 2),
+            )
+        if selected:
+            pygame.draw.circle(screen, (255, 250, 210), (rect.right - 18, rect.centery), 9)
+            pygame.draw.circle(screen, (200, 84, 54), (rect.right - 18, rect.centery), 4)
+
+    def _draw_filter_option(self, screen, rect, text, left_color, right_color, selected):
+        self._draw_button(screen, rect, "", (244, 247, 255), text_color=(62, 72, 98), selected=selected)
+        preview_rect = pygame.Rect(rect.x + 16, rect.y + 10, 56, rect.height - 20)
+        left_rect = pygame.Rect(preview_rect.x, preview_rect.y, preview_rect.width // 2, preview_rect.height)
+        right_rect = pygame.Rect(left_rect.right, preview_rect.y, preview_rect.width - left_rect.width, preview_rect.height)
+        pygame.draw.rect(screen, left_color, left_rect, border_top_left_radius=8, border_bottom_left_radius=8)
+        pygame.draw.rect(screen, right_color, right_rect, border_top_right_radius=8, border_bottom_right_radius=8)
+        pygame.draw.rect(screen, (255, 255, 255), preview_rect, 2, border_radius=8)
+        text_surface = self.small_font.render(text, True, (62, 72, 98))
+        text_x = preview_rect.right + 16
+        text_y = rect.centery - text_surface.get_height() // 2
+        max_text_width = rect.right - 40 - text_x
+        if text_surface.get_width() > max_text_width:
+            text_surface = pygame.transform.smoothscale(
+                text_surface,
+                (max(1, max_text_width), text_surface.get_height()),
+            )
+        screen.blit(text_surface, (text_x, text_y))
+
+    def _format_time(self, sec):
+        s = max(0, int(sec))
+        return f"{s // 60:02d}:{s % 60:02d}"
+
+    def handle_events(self, events):
+        for event in events:
+            if self.state == self.STATE_HOME:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.manager.set_scene("category")
+                    elif event.key in (pygame.K_LEFT, pygame.K_UP):
+                        self.filter_direction = self.FILTER_LR
+                        self._refresh_pattern_cache()
+                    elif event.key in (pygame.K_RIGHT, pygame.K_DOWN):
+                        self.filter_direction = self.FILTER_RL
+                        self._refresh_pattern_cache()
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        self._start_game()
+                    elif event.key == pygame.K_h:
+                        self.state = self.STATE_HELP
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    pos = getattr(event, "pos", pygame.mouse.get_pos())
+                    if self.btn_back.collidepoint(pos):
+                        self.manager.set_scene("category")
+                    elif self.filter_lr.collidepoint(pos):
+                        self.filter_direction = self.FILTER_LR
+                        self._refresh_pattern_cache()
+                        self._start_game()
+                    elif self.filter_rl.collidepoint(pos):
+                        self.filter_direction = self.FILTER_RL
+                        self._refresh_pattern_cache()
+                        self._start_game()
+                    elif self.btn_help.collidepoint(pos):
+                        self.state = self.STATE_HELP
+
+            elif self.state == self.STATE_HELP:
+                if event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
+                    self.state = self.STATE_HOME
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    pos = getattr(event, "pos", pygame.mouse.get_pos())
+                    if self.help_ok.collidepoint(pos):
+                        self.state = self.STATE_HOME
+
+            elif self.state == self.STATE_PLAY:
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    self._exit_to_main_menu()
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    pos = getattr(event, "pos", pygame.mouse.get_pos())
+                    right_rect = self.pattern_surface.get_rect(center=self.right_center)
+                    if self.btn_home.collidepoint(pos):
+                        self._exit_to_main_menu()
+                    elif self.btn_confirm.collidepoint(pos):
+                        self._confirm_action()
+                    elif right_rect.collidepoint(pos):
+                        self.dragging_right = True
+                        self.drag_offset = (self.right_center[0] - pos[0], self.right_center[1] - pos[1])
+                elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                    self.dragging_right = False
+                elif event.type == pygame.MOUSEMOTION and self.dragging_right:
+                    pos = getattr(event, "pos", pygame.mouse.get_pos())
+                    self.right_center = (
+                        max(self.play_area.left + 40, min(self.play_area.right - 40, pos[0] + self.drag_offset[0])),
+                        max(self.play_area.top + 40, min(self.play_area.bottom - 40, pos[1] + self.drag_offset[1])),
+                    )
+
+            else:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        self.state = self.STATE_HOME
+                    elif event.key == pygame.K_ESCAPE:
+                        self._exit_to_main_menu()
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    pos = getattr(event, "pos", pygame.mouse.get_pos())
+                    if self.btn_continue.collidepoint(pos):
+                        self.state = self.STATE_HOME
+                    elif self.btn_exit.collidepoint(pos):
+                        self._exit_to_main_menu()
+
+    def update(self):
+        now = time.time()
+        if self.state == self.STATE_PLAY:
+            self.session_elapsed, self.attempt_elapsed = self.session.tick(now)
+            if self.session.is_session_complete():
+                self._finish_game()
+                return
+            if self.session.is_attempt_timed_out():
+                self.scoring.on_failure()
+                self.play_wrong_sound()
+                self._set_feedback("eye_find.fail", (238, 118, 118))
+                self.session.restart_attempt(now)
+        if self.feedback_text and now > self.feedback_until:
+            self.feedback_text = ""
+
+    def _draw_help_step(self, screen, idx, y, text):
+        x = 120
+        icon_center = (x + 20, y + 18)
+        if idx == 1:
+            pygame.draw.circle(screen, (255, 208, 124), icon_center, 14)
+            pygame.draw.circle(screen, (255, 168, 126), (icon_center[0] + 20, icon_center[1]), 10)
+        elif idx == 2:
+            pygame.draw.circle(screen, (136, 198, 255), icon_center, 14)
+            pygame.draw.circle(screen, (136, 198, 255), (icon_center[0] + 22, icon_center[1]), 14)
+            pygame.draw.rect(screen, (112, 134, 170), pygame.Rect(icon_center[0] + 8, icon_center[1] - 2, 6, 4))
+        else:
+            pygame.draw.circle(screen, (162, 225, 162), icon_center, 14)
+            pygame.draw.rect(screen, (255, 255, 255), pygame.Rect(icon_center[0] - 4, icon_center[1] - 8, 8, 16), border_radius=3)
+        step = self.small_font.render(f"{idx}. {text}", True, (58, 84, 118))
+        screen.blit(step, (x + 52, y + 6))
+
+    def _draw_home(self, screen):
+        title = self.title_font.render(self.manager.t("eye_find.title"), True, (38, 66, 108))
+        subtitle = self.sub_font.render(self.manager.t("eye_find.subtitle"), True, (96, 114, 142))
+        screen.blit(title, (self.width // 2 - title.get_width() // 2, 86))
+        screen.blit(subtitle, (self.width // 2 - subtitle.get_width() // 2, 140))
+        hint = self.body_font.render(self.manager.t("eye_find.home.start"), True, (52, 76, 110))
+        screen.blit(hint, (self.width // 2 - hint.get_width() // 2, 184 + self.HOME_VERTICAL_UNIT * 3))
+        self._draw_filter_option(screen, self.filter_lr, self.manager.t("eye_find.filter.lr"), RED_FILTER[:3], BLUE_FILTER[:3], self.filter_direction == self.FILTER_LR)
+        self._draw_filter_option(screen, self.filter_rl, self.manager.t("eye_find.filter.rl"), BLUE_FILTER[:3], RED_FILTER[:3], self.filter_direction == self.FILTER_RL)
+        self._draw_button(screen, self.btn_help, self.manager.t("eye_find.home.help"), (126, 142, 174), icon_name="question")
+        self._draw_button(screen, self.btn_back, self.manager.t("common.back"), (88, 116, 168), icon_name="back_arrow")
+
+    def _draw_help(self, screen):
+        title = self.title_font.render(self.manager.t("eye_find.help.title"), True, (42, 70, 110))
+        deco = self.sub_font.render("?", True, (106, 136, 192))
+        screen.blit(title, (self.width // 2 - title.get_width() // 2, 76))
+        screen.blit(deco, (self.width // 2 + title.get_width() // 2 + 8, 86))
+        screen.blit(deco, (self.width // 2 - title.get_width() // 2 - 22, 86))
+
+        self._draw_help_step(screen, 1, 190, self.manager.t("eye_find.help.step1"))
+        self._draw_help_step(screen, 2, 280, self.manager.t("eye_find.help.step2"))
+        self._draw_help_step(screen, 3, 370, self.manager.t("eye_find.help.step3"))
+
+        self._draw_button(screen, self.help_ok, self.manager.t("eye_find.help.ok"), (242, 214, 126), text_color=(104, 84, 42), icon_name="check")
+
+    def _draw_play(self, screen):
+        is_glasses_mode = self.mode == self.MODE_GLASSES
+        hud_primary = (42, 12, 72) if is_glasses_mode else (55, 82, 122)
+        hud_secondary = (88, 28, 92) if is_glasses_mode else (86, 104, 130)
+        hud_alert = (132, 18, 32) if is_glasses_mode else (222, 74, 74)
+        confirm_color = (52, 124, 82) if is_glasses_mode else (72, 148, 102)
+        back_color = (62, 52, 128) if is_glasses_mode else (86, 116, 170)
+
+        mode_text = self.manager.t("eye_find.mode.glasses")
+        remaining = max(0, self._session_seconds() - self.session_elapsed)
+        attempt_left = max(0, int(self.ATTEMPT_SECONDS - self.attempt_elapsed))
+        left_lines = (self.manager.t("eye_find.attempt_time", sec=attempt_left),)
+        if is_glasses_mode:
+            filter_text_key = "eye_find.filter.lr" if self.filter_direction == self.FILTER_LR else "eye_find.filter.rl"
+            left_lines = (
+                self.manager.t("eye_find.glasses_tip"),
+                self.manager.t(filter_text_key),
+                self.manager.t("eye_find.attempt_time", sec=attempt_left),
+            )
+        self.draw_session_hud(
+            screen,
+            top_font=self.body_font,
+            meta_font=self.small_font,
+            left_title=mode_text,
+            timer_text=self.manager.t("eye_find.time", sec=self._format_time(remaining)),
+            center_text=self.manager.t("eye_find.score", score=self.scoring.score),
+            left_lines=left_lines,
+            right_lines=(),
+            play_area=self.play_area,
+            timer_color=hud_alert if remaining <= 30 else hud_primary,
+            center_color=hud_primary,
+            left_title_color=hud_primary,
+            meta_color=hud_secondary,
+            meta_start_y=50,
+            meta_gap=22,
+        )
+
+        left_rect = self.left_pattern_surface.get_rect(center=self.left_center)
+        right_rect = self.right_pattern_surface.get_rect(center=self.right_center)
+        blend_bounds = left_rect.union(right_rect).clip(screen.get_rect())
+        if blend_bounds.width > 0 and blend_bounds.height > 0:
+            blend_layer = self.pattern_service.blend_filtered_patterns(
+                blend_bounds.size,
+                self.left_pattern_surface,
+                left_rect.move(-blend_bounds.x, -blend_bounds.y),
+                self.right_pattern_surface,
+                right_rect.move(-blend_bounds.x, -blend_bounds.y),
+                use_offset_crop=False,
+            )
+            screen.blit(blend_layer, blend_bounds.topleft)
+
+        guide = self.small_font.render(self.manager.t("eye_find.play.guide"), True, hud_secondary)
+        screen.blit(guide, (self.play_area.centerx - guide.get_width() // 2, self.play_area.bottom + 12))
+
+        self._draw_button(screen, self.btn_confirm, self.manager.t("eye_find.confirm"), confirm_color, icon_name="check")
+        self._draw_button(screen, self.btn_home, self.manager.t("common.back"), back_color, icon_name="back_arrow")
+
+        if self.feedback_text:
+            fb = self.body_font.render(self.feedback_text, True, self.feedback_color)
+            screen.blit(fb, (self.width // 2 - fb.get_width() // 2, self.play_area.bottom + 36))
+
+    def _draw_result(self, screen):
+        title = self.title_font.render(self.manager.t("eye_find.result.title"), True, (42, 70, 110))
+        screen.blit(title, (self.width // 2 - title.get_width() // 2, 100))
+
+        mode_text = self.manager.t("eye_find.mode.glasses")
+        filter_text = "-"
+        if self.final_stats.get("mode") == self.MODE_GLASSES:
+            filter_text = self.manager.t(
+                "eye_find.filter.lr" if self.final_stats.get("filter_direction") == self.FILTER_LR else "eye_find.filter.rl"
+            )
+        lines = [
+            (self.manager.t("eye_find.result.duration", sec=self.final_stats.get("duration", 0)), (58, 84, 118)),
+            (self.manager.t("eye_find.result.success", n=self.final_stats.get("success", 0)), (58, 84, 118)),
+            (self.manager.t("eye_find.result.score", n=self.final_stats.get("score", 0)), (58, 84, 118)),
+            (self.manager.t("eye_find.result.mode", mode=mode_text), (58, 84, 118)),
+            (self.manager.t("eye_find.result.filter", direction=filter_text), (58, 84, 118)),
+            (self.manager.t("eye_find.result.reset_tip"), (96, 114, 138)),
+            (self.manager.t("eye_find.result.eye_tip"), (96, 114, 138)),
+        ]
+        self.draw_two_column_stats(
+            screen,
+            font=self.body_font,
+            entries=lines,
+            top_y=184,
+            left_x=self.width // 2 - 320,
+            right_x=self.width // 2 + 24,
+            column_width=296,
+            rows_per_column=4,
+            row_gap=40,
+        )
+
+        self._draw_button(screen, self.btn_continue, self.manager.t("eye_find.result.continue"), (84, 148, 108), icon_name="check")
+        self._draw_button(screen, self.btn_exit, self.manager.t("eye_find.result.exit"), (120, 134, 168), icon_name="cross")
+
+    def draw(self, screen):
+        self.refresh_fonts_if_needed()
+        self._draw_gradient_bg(screen)
+        if self.state == self.STATE_HOME:
+            self._draw_home(screen)
+        elif self.state == self.STATE_HELP:
+            self._draw_help(screen)
+        elif self.state == self.STATE_PLAY:
+            self._draw_play(screen)
+        else:
+            self._draw_result(screen)

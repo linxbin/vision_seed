@@ -1,0 +1,409 @@
+import pygame
+import math
+import time
+from core.asset_loader import load_image_if_exists, project_path
+from core.base_scene import BaseScene
+from core.ui_theme import PlatformTheme, draw_platform_background
+from ..services import ETrainingRecordsService
+from config import E_SIZE_LEVELS
+
+
+class ReportScene(BaseScene):
+    ENTER_ANIMATION_SECONDS = 0.85
+    CARD_STAGGER_SECONDS = 0.08
+    BUTTON_HEIGHT = 44
+    BUTTON_MIN_WIDTH = 170
+    BUTTON_GROUP_GAP = 24
+    BUTTON_HORIZONTAL_PADDING = 18
+    BUTTON_ICON_SIZE = 18
+    BUTTON_ICON_GAP = 8
+
+    def __init__(self, manager):
+        super().__init__(manager)
+        self._refresh_fonts()
+        self.width = 900
+        self.height = 700
+        self.layout_offset_x = 0
+        self.layout_offset_y = 0
+        self._reflow_layout()
+        self.prev_session = None
+        self.adaptive_result = None
+        self.enter_started_at = 0.0
+        self.final_result = {"correct": 0, "wrong": 0, "total": 0, "duration": 0.0, "max_combo": 0}
+        self.records_service = ETrainingRecordsService(self.manager.data_manager)
+
+    def _refresh_fonts(self):
+        self.title_font = self.create_font(52)
+        self.game_font = self.create_font(20)
+        self.badge_font = self.create_font(30)
+        self.label_font = self.create_font(24)
+        self.value_font = self.create_font(36)
+        self.hint_font = self.create_font(20)
+        self.trend_font = self.create_font(20)
+        self.suggestion_font = self.create_font(22)
+        if hasattr(self, "width") and hasattr(self, "height"):
+            self._reflow_layout()
+
+    def _button_content_width(self, text, icon_name=None):
+        content_width = self.label_font.size(text)[0]
+        if icon_name:
+            content_width += self.BUTTON_ICON_SIZE
+            if text:
+                content_width += self.BUTTON_ICON_GAP
+        return content_width
+
+    def _button_width(self, text, icon_name=None):
+        return max(
+            self.BUTTON_MIN_WIDTH,
+            self._button_content_width(text, icon_name) + self.BUTTON_HORIZONTAL_PADDING * 2,
+        )
+
+    def _create_ui(self):
+        offset_x = self.layout_offset_x
+        offset_y = self.layout_offset_y
+        base_width = 900
+        card_w = 280
+        card_h = 82
+        left_x = offset_x + 130
+        right_x = offset_x + 490
+        self.cards = [
+            {"label_key": "report.total_questions", "field": "total", "x": left_x, "y": offset_y + 244, "w": card_w, "h": card_h},
+            {"label_key": "report.correct", "field": "correct", "x": right_x, "y": offset_y + 244, "w": card_w, "h": card_h},
+            {"label_key": "report.wrong", "field": "wrong", "x": left_x, "y": offset_y + 348, "w": card_w, "h": card_h},
+            {"label_key": "report.accuracy", "field": "accuracy", "x": right_x, "y": offset_y + 348, "w": card_w, "h": card_h},
+            {"label_key": "report.time_used", "field": "duration", "x": left_x, "y": offset_y + 452, "w": card_w, "h": card_h},
+            {"label_key": "report.max_combo", "field": "max_combo", "x": right_x, "y": offset_y + 452, "w": card_w, "h": card_h},
+        ]
+        retry_width = self._button_width(self.manager.t("report.retry"), "check")
+        menu_width = self._button_width(self.manager.t("report.back_menu"), "cross")
+        button_group_width = retry_width + menu_width + self.BUTTON_GROUP_GAP
+        button_start_x = offset_x + (base_width - button_group_width) // 2
+        button_y = offset_y + 610
+        self.retry_button_rect = pygame.Rect(button_start_x, button_y, retry_width, self.BUTTON_HEIGHT)
+        self.menu_button_rect = pygame.Rect(
+            self.retry_button_rect.right + self.BUTTON_GROUP_GAP,
+            button_y,
+            menu_width,
+            self.BUTTON_HEIGHT,
+        )
+
+    def _reflow_layout(self):
+        base_width = 900
+        base_height = 700
+        self.layout_offset_x = max(0, (self.width - base_width) // 2)
+        self.layout_offset_y = max(0, (self.height - base_height) // 2)
+        self._create_ui()
+
+    def on_resize(self, width, height):
+        self.width = width
+        self.height = height
+        self._reflow_layout()
+
+    def on_enter(self):
+        self.adaptive_result = self.manager.evaluate_adaptive_level()
+        self.prev_session = self.records_service.get_previous_session()
+        self.enter_started_at = time.time()
+        self.final_result = {
+            "correct": int(self.manager.current_result.get("correct", 0)),
+            "wrong": int(self.manager.current_result.get("wrong", 0)),
+            "total": int(self.manager.current_result.get("total", 0)),
+            "duration": float(self.manager.current_result.get("duration", 0.0)),
+            "max_combo": int(self.manager.current_result.get("max_combo", 0)),
+            "game_id": str(self.manager.current_result.get("game_id", "legacy_training")),
+        }
+
+    def _animation_progress(self, now=None):
+        if self.enter_started_at <= 0:
+            return 1.0
+        current = time.time() if now is None else float(now)
+        elapsed = max(0.0, current - self.enter_started_at)
+        return max(0.0, min(1.0, elapsed / self.ENTER_ANIMATION_SECONDS))
+
+    def _card_progress(self, index, base_progress):
+        start = self.CARD_STAGGER_SECONDS * index
+        if base_progress <= start:
+            return 0.0
+        span = max(0.01, 1.0 - start)
+        return max(0.0, min(1.0, (base_progress - start) / span))
+
+    @staticmethod
+    def _lerp_int(value, progress):
+        return int(round(max(0.0, value * progress)))
+
+    @staticmethod
+    def _lerp_float(value, progress):
+        return round(max(0.0, value * progress), 2)
+
+    def _accuracy_color(self, accuracy):
+        if accuracy >= 80:
+            return (100, 220, 140)
+        if accuracy >= 50:
+            return (235, 205, 90)
+        return (235, 110, 110)
+
+    def _result_text(self, accuracy):
+        if accuracy >= 80:
+            return self.manager.t("report.result_excellent")
+        if accuracy >= 50:
+            return self.manager.t("report.result_good")
+        return self.manager.t("report.result_keep_going")
+
+    def _draw_button(self, screen, rect, text, mouse_pos, base_color):
+        hovered = rect.collidepoint(mouse_pos)
+        fill = tuple(min(c + 25, 255) for c in base_color) if hovered else base_color
+        border = (255, 224, 177) if hovered else PlatformTheme.BORDER
+
+        pygame.draw.rect(screen, fill, rect, border_radius=8)
+        pygame.draw.rect(screen, border, rect, 2, border_radius=8)
+
+        light_foreground = base_color[0] <= 180
+        text_color = PlatformTheme.TEXT_PRIMARY if not light_foreground else (255, 255, 255)
+        icon_name = "check" if rect == self.retry_button_rect else "cross"
+        icon_suffix = "light" if light_foreground else "dark"
+        icon = load_image_if_exists(
+            project_path("assets", "ui", f"{icon_name}_{icon_suffix}.png"),
+            (self.BUTTON_ICON_SIZE, self.BUTTON_ICON_SIZE),
+        )
+        text_surface = self.label_font.render(text, True, text_color)
+        gap = self.BUTTON_ICON_GAP if icon is not None else 0
+        content_width = text_surface.get_width() + (icon.get_width() + gap if icon is not None else 0)
+        text_x = rect.centerx - content_width // 2
+        if icon is not None:
+            screen.blit(icon, (text_x, rect.centery - icon.get_height() // 2))
+            text_x += icon.get_width() + gap
+        text_y = rect.centery - text_surface.get_height() // 2
+        screen.blit(text_surface, (text_x, text_y))
+
+    def _fit_text(self, text, font, max_width):
+        if font.size(text)[0] <= max_width:
+            return text
+        ellipsis = "..."
+        trimmed = text
+        while trimmed and font.size(trimmed + ellipsis)[0] > max_width:
+            trimmed = trimmed[:-1]
+        return (trimmed + ellipsis) if trimmed else ellipsis
+
+    def _get_suggestion(self, accuracy):
+        level = self.manager.settings.get("start_level", 3)
+        max_level = len(E_SIZE_LEVELS)
+        if accuracy >= 85:
+            return self.manager.t("report.suggestion_raise", level=max(1, level - 1))
+        if accuracy < 60:
+            return self.manager.t("report.suggestion_lower", level=min(max_level, level + 1))
+        return self.manager.t("report.suggestion_keep", level=level)
+
+    def _get_next_plan(self, accuracy, duration, total):
+        current_level = self.manager.settings.get("start_level", 3)
+        max_level = len(E_SIZE_LEVELS)
+        current_questions = self.manager.settings.get("total_questions", 30)
+        avg_sec = (duration / total) if total > 0 else 2.0
+
+        if accuracy >= 88 and avg_sec <= 2.0:
+            next_level = max(1, current_level - 1)
+        elif accuracy < 65:
+            next_level = min(max_level, current_level + 1)
+        else:
+            next_level = current_level
+
+        if accuracy >= 85 and avg_sec <= 2.2:
+            next_questions = min(1000, current_questions + 10)
+        elif accuracy < 60:
+            next_questions = max(10, current_questions - 10)
+        else:
+            next_questions = current_questions
+
+        target_minutes = max(3, min(20, round((next_questions * 2.0) / 60)))
+        return self.manager.t(
+            "report.next_plan",
+            level=next_level,
+            questions=next_questions,
+            minutes=target_minutes,
+        )
+
+    def _adaptive_line(self):
+        result = self.adaptive_result or {}
+        code = str(result.get("reason_code", "DISABLED"))
+        old_level = int(result.get("old_level", self.manager.settings.get("start_level", 1)))
+        new_level = int(result.get("new_level", old_level))
+        cooldown = int(result.get("cooldown_left", 0))
+        avg_acc = result.get("avg_accuracy")
+        avg_sec = result.get("avg_seconds")
+
+        if code == "UP":
+            return self.manager.t("report.adaptive_up", old=old_level, new=new_level, acc=avg_acc, sec=avg_sec)
+        if code == "DOWN":
+            return self.manager.t("report.adaptive_down", old=old_level, new=new_level, acc=avg_acc, sec=avg_sec)
+        if code == "KEEP":
+            return self.manager.t("report.adaptive_keep", level=new_level, acc=avg_acc, sec=avg_sec)
+        if code == "COOLDOWN":
+            return self.manager.t("report.adaptive_cooldown", cooldown=cooldown, level=new_level)
+        if code == "INSUFFICIENT":
+            return self.manager.t("report.adaptive_insufficient")
+        return self.manager.t("report.adaptive_disabled")
+
+    def _retry_scene_name(self):
+        game_id = getattr(self.manager, "active_game_id", None)
+        if game_id == "accommodation.e_orientation":
+            return "training"
+        if isinstance(game_id, str) and game_id:
+            return "game_host"
+        return "training"
+
+    def _back_scene_name(self):
+        if getattr(self.manager, "active_game_id", None) == "accommodation.e_orientation":
+            return "game_host"
+        return "menu"
+
+    def _display_game_id(self):
+        game_id = self.final_result.get("game_id", "")
+        if not game_id:
+            game_id = "legacy_training"
+        return self.manager.t("report.game_id", game_id=game_id)
+
+    def handle_events(self, events):
+        mouse_pos = pygame.mouse.get_pos()
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    self.manager.set_scene(self._retry_scene_name())
+                elif event.key == pygame.K_ESCAPE:
+                    self.manager.set_scene(self._back_scene_name())
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.retry_button_rect.collidepoint(mouse_pos):
+                    self.manager.set_scene(self._retry_scene_name())
+                elif self.menu_button_rect.collidepoint(mouse_pos):
+                    self.manager.set_scene(self._back_scene_name())
+
+    def draw(self, screen):
+        self.refresh_fonts_if_needed()
+        draw_platform_background(screen, self.width, self.height)
+
+        progress = self._animation_progress()
+        correct = self._lerp_int(self.final_result.get("correct", 0), progress)
+        wrong = self._lerp_int(self.final_result.get("wrong", 0), progress)
+        total = self._lerp_int(self.final_result.get("total", 0), progress)
+        duration = self._lerp_float(self.final_result.get("duration", 0.0), progress)
+        max_combo = self._lerp_int(self.final_result.get("max_combo", 0), progress)
+        target_accuracy = (
+            round((self.final_result.get("correct", 0) / self.final_result.get("total", 0)) * 100, 1)
+            if self.final_result.get("total", 0) > 0
+            else 0.0
+        )
+        accuracy = round(target_accuracy * progress, 1)
+        mouse_pos = pygame.mouse.get_pos()
+
+        # 标题与结果等级
+        title = self.title_font.render(self.manager.t("report.title"), True, PlatformTheme.TEXT_PRIMARY)
+        screen.blit(title, (self.width // 2 - title.get_width() // 2, self.layout_offset_y + 80))
+        game_label = self.game_font.render(self._display_game_id(), True, PlatformTheme.TEXT_MUTED)
+        screen.blit(game_label, (self.width // 2 - game_label.get_width() // 2, self.layout_offset_y + 130))
+
+        badge_text = self._result_text(accuracy)
+        badge_color = self._accuracy_color(accuracy)
+        pulse = 1.0 + math.sin(time.time() * 6.0) * 0.04 * progress
+        badge = self.badge_font.render(badge_text, True, badge_color)
+        if pulse > 1.0:
+            badge = pygame.transform.smoothscale(
+                badge,
+                (max(1, int(badge.get_width() * pulse)), max(1, int(badge.get_height() * pulse))),
+            )
+        screen.blit(badge, (self.width // 2 - badge.get_width() // 2, self.layout_offset_y + 145))
+
+        # 建议区固定在卡片上方安全区，使用较小字号避免与卡片重叠
+        suggestion_raw = self._get_suggestion(accuracy)
+        next_plan_raw = self._get_next_plan(accuracy, duration, total)
+        suggestion_text = self._fit_text(suggestion_raw, self.trend_font, 760)
+        next_plan_text = self._fit_text(next_plan_raw, self.hint_font, 760)
+        suggestion = self.trend_font.render(suggestion_text, True, (113, 160, 84))
+        next_plan = self.hint_font.render(next_plan_text, True, PlatformTheme.TEXT_MUTED)
+        adaptive_text = self._fit_text(self._adaptive_line(), self.hint_font, 780)
+        adaptive_line = self.hint_font.render(adaptive_text, True, PlatformTheme.TEXT_MUTED)
+        suggestion_y = self.layout_offset_y + 178
+        next_plan_y = self.layout_offset_y + 202
+        screen.blit(suggestion, (self.width // 2 - suggestion.get_width() // 2, suggestion_y))
+        screen.blit(next_plan, (self.width // 2 - next_plan.get_width() // 2, next_plan_y))
+        screen.blit(adaptive_line, (self.width // 2 - adaptive_line.get_width() // 2, self.layout_offset_y + 222))
+
+        # 结果卡片
+        for idx, card in enumerate(self.cards):
+            card_progress = self._card_progress(idx, progress)
+            if card_progress <= 0:
+                continue
+
+            rect = pygame.Rect(card["x"], card["y"], card["w"], card["h"])
+            card_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+            alpha = int(90 + 165 * card_progress)
+            pygame.draw.rect(card_surface, (*PlatformTheme.CARD, alpha), pygame.Rect(0, 0, rect.width, rect.height), border_radius=10)
+            pygame.draw.rect(card_surface, (*PlatformTheme.BORDER, alpha), pygame.Rect(0, 0, rect.width, rect.height), 2, border_radius=10)
+
+            field = card["field"]
+            if field == "total":
+                text = self.manager.t("report.total_questions", total=total)
+                color = PlatformTheme.TEXT_PRIMARY
+            elif field == "correct":
+                text = self.manager.t("report.correct", correct=correct)
+                color = (113, 160, 84)
+            elif field == "wrong":
+                text = self.manager.t("report.wrong", wrong=wrong)
+                color = (195, 102, 102)
+            elif field == "accuracy":
+                text = self.manager.t("report.accuracy", accuracy=accuracy)
+                color = self._accuracy_color(accuracy)
+            elif field == "max_combo":
+                text = self.manager.t("report.max_combo", combo=max_combo)
+                color = (205, 132, 64)
+            else:
+                text = self.manager.t("report.time_used", duration=duration)
+                color = (115, 150, 185)
+
+            text_surface = self.value_font.render(text, True, color)
+            text_y = rect.height // 2 - text_surface.get_height() // 2
+            card_surface.blit(text_surface, (rect.width // 2 - text_surface.get_width() // 2, text_y))
+            offset_y = int((1.0 - card_progress) * 18)
+            screen.blit(card_surface, (rect.x, rect.y + offset_y))
+
+        # 趋势与建议
+        if self.prev_session:
+            prev_accuracy = float(self.prev_session.get("accuracy_rate", 0.0))
+            prev_duration = float(self.prev_session.get("duration_seconds", 0.0))
+            acc_delta = round(accuracy - prev_accuracy, 1)
+            dur_delta = round(duration - prev_duration, 2)
+
+            acc_arrow = "↑" if acc_delta > 0 else ("↓" if acc_delta < 0 else "→")
+            dur_arrow = "↑" if dur_delta > 0 else ("↓" if dur_delta < 0 else "→")
+
+            acc_text = self.manager.t("report.trend_accuracy", delta=f"{acc_delta:+.1f}", arrow=acc_arrow)
+            dur_text = self.manager.t("report.trend_duration", delta=f"{dur_delta:+.2f}", arrow=dur_arrow)
+            acc_surface = self.trend_font.render(self._fit_text(acc_text, self.trend_font, 820), True, PlatformTheme.TEXT_MUTED)
+            dur_surface = self.trend_font.render(self._fit_text(dur_text, self.trend_font, 820), True, PlatformTheme.TEXT_MUTED)
+            screen.blit(acc_surface, (self.width // 2 - acc_surface.get_width() // 2, self.layout_offset_y + 560))
+            screen.blit(dur_surface, (self.width // 2 - dur_surface.get_width() // 2, self.layout_offset_y + 582))
+        else:
+            no_hist = self.trend_font.render(self.manager.t("report.trend_no_history"), True, PlatformTheme.TEXT_MUTED)
+            screen.blit(no_hist, (self.width // 2 - no_hist.get_width() // 2, self.layout_offset_y + 570))
+
+        # 操作按钮
+        self._draw_button(
+            screen,
+            self.retry_button_rect,
+            self.manager.t("report.retry"),
+            mouse_pos,
+            (181, 219, 165),
+        )
+        self._draw_button(
+            screen,
+            self.menu_button_rect,
+            self.manager.t("report.back_menu"),
+            mouse_pos,
+            (252, 231, 199),
+        )
+
+        # 快捷键提示
+        hint = self.hint_font.render(self.manager.t("report.return_hint"), True, PlatformTheme.TEXT_MUTED)
+        screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.layout_offset_y + 665))
+
+        if progress < 1.0:
+            overlay = pygame.Surface((self.width, self.height))
+            overlay.fill((255, 250, 240))
+            overlay.set_alpha(int((1.0 - progress) * 170))
+            screen.blit(overlay, (0, 0))

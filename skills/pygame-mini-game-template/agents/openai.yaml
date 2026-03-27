@@ -1,0 +1,7 @@
+interface:
+  display_name: "Pygame Game Template"
+  short_description: "Create VisionSeed game module templates"
+  icon_small: "./assets/icon-small.svg"
+  icon_large: "./assets/icon-large.svg"
+  brand_color: "#2E5AAC"
+  default_prompt: "Use $pygame-mini-game-template to scaffold a new VisionSeed training game with game.py, i18n.py, scenes, and services."
