@@ -142,3 +142,6 @@ python tests/run_ui_tests.py
 - 当前分类与已接入游戏
 - 当前项目结构与运行方式
 - 与实现直接相关的稳定基线信息
+
+
+ python tools/generate_license_token.py --license-id LIC_20260228_0001 --order-ref ORDER_001 --device-hash sha256:b95c0f10dc49eb685d8e939658f6695f53b2773bf569ae2ca589fa4b8dad89a8 --expires-at 2028-12-31T23:59:59Z

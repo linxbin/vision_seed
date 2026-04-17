@@ -1,6 +1,7 @@
 import pygame
 from config import SCREEN_WIDTH, SCREEN_HEIGHT, MIN_SCREEN_WIDTH, MIN_SCREEN_HEIGHT, FPS, TITLE
 from core.app_paths import get_resource_path
+from core.display_bootstrap import clamp_window_size, detect_desktop_size, fit_startup_window_size, set_compatible_display_mode
 from core.scene_manager import SceneManager
 from core.startup_health import run_startup_health_check, safe_init_audio
 from scenes.menu_scene import MenuScene
@@ -25,16 +26,8 @@ def main():
 
     run_startup_health_check()
     audio_ok = safe_init_audio()
-
-    display_flags = pygame.RESIZABLE
-
-    def clamp_window_size(size):
-        return (
-            max(MIN_SCREEN_WIDTH, size[0]),
-            max(MIN_SCREEN_HEIGHT, size[1]),
-        )
-
-    windowed_size = clamp_window_size((SCREEN_WIDTH, SCREEN_HEIGHT))
+    desktop_size = detect_desktop_size(pygame.display)
+    windowed_size = fit_startup_window_size((SCREEN_WIDTH, SCREEN_HEIGHT), desktop_size)
 
     clock = pygame.time.Clock()
 
@@ -43,15 +36,18 @@ def main():
         manager.settings["sound_enabled"] = False
         manager.apply_sound_preference()
 
-    if manager.settings.get("fullscreen"):
-        display_flags = pygame.FULLSCREEN
-        info = pygame.display.Info()
-        screen_size = (info.current_w, info.current_h)
-    else:
-        screen_size = windowed_size
-
-    screen = pygame.display.set_mode(screen_size, display_flags)
     pygame.display.set_caption(TITLE)
+    screen, is_fullscreen, mode_error = set_compatible_display_mode(
+        pygame.display,
+        pygame,
+        bool(manager.settings.get("fullscreen")),
+        windowed_size,
+    )
+    if mode_error:
+        print(f"[display] Fullscreen startup fallback: {mode_error}")
+    if is_fullscreen != bool(manager.settings.get("fullscreen")):
+        manager.settings["fullscreen"] = is_fullscreen
+        manager.save_user_preferences()
     manager.set_screen_size(*screen.get_size())
 
     manager.register("menu", MenuScene(manager))
@@ -78,29 +74,47 @@ def main():
                 running = False
             elif event.type == pygame.VIDEORESIZE:
                 if not manager.settings.get("fullscreen", False):
-                    windowed_size = clamp_window_size(event.size)
-                    display_flags = pygame.RESIZABLE
-                    screen = pygame.display.set_mode(windowed_size, display_flags)
+                    desktop_size = detect_desktop_size(pygame.display)
+                    windowed_size = clamp_window_size(
+                        event.size,
+                        (MIN_SCREEN_WIDTH, MIN_SCREEN_HEIGHT),
+                        desktop_size,
+                    )
+                    screen = pygame.display.set_mode(windowed_size, pygame.RESIZABLE)
                     manager.set_screen_size(*screen.get_size())
                     manager.get_scene().on_resize(*screen.get_size())
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_F11 or (event.key == pygame.K_RETURN and (event.mod & pygame.KMOD_ALT)):
                     is_fullscreen = manager.settings.get("fullscreen", False)
                     if is_fullscreen:
-                        display_flags = pygame.RESIZABLE
-                        screen = pygame.display.set_mode(windowed_size, display_flags)
+                        desktop_size = detect_desktop_size(pygame.display)
+                        windowed_size = fit_startup_window_size(
+                            windowed_size,
+                            desktop_size,
+                        )
+                        screen = pygame.display.set_mode(windowed_size, pygame.RESIZABLE)
+                        next_fullscreen = False
                     else:
-                        display_flags = pygame.FULLSCREEN
-                        info = pygame.display.Info()
-                        screen = pygame.display.set_mode((info.current_w, info.current_h), display_flags)
-                    manager.settings["fullscreen"] = not is_fullscreen
+                        screen, next_fullscreen, mode_error = set_compatible_display_mode(
+                            pygame.display,
+                            pygame,
+                            True,
+                            windowed_size,
+                        )
+                        if mode_error:
+                            print(f"[display] Fullscreen toggle fallback: {mode_error}")
+                    manager.settings["fullscreen"] = next_fullscreen
                     manager.save_user_preferences()
                     manager.set_screen_size(*screen.get_size())
                     manager.get_scene().on_resize(*screen.get_size())
                 elif event.key == pygame.K_ESCAPE:
                     if manager.settings.get("fullscreen", False):
-                        display_flags = pygame.RESIZABLE
-                        screen = pygame.display.set_mode(windowed_size, display_flags)
+                        desktop_size = detect_desktop_size(pygame.display)
+                        windowed_size = fit_startup_window_size(
+                            windowed_size,
+                            desktop_size,
+                        )
+                        screen = pygame.display.set_mode(windowed_size, pygame.RESIZABLE)
                         manager.settings["fullscreen"] = False
                         manager.save_user_preferences()
                         manager.set_screen_size(*screen.get_size())
