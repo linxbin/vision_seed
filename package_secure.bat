@@ -10,10 +10,11 @@ if not exist "visionseed.spec" (
 
 echo Cleaning build directories...
 if exist "build" rmdir /s /q "build"
+if exist "dist" rmdir /s /q "dist"
 if exist "__pycache__" rmdir /s /q "__pycache__"
 
 echo Running PyInstaller...
-pyinstaller visionseed.spec
+python -m PyInstaller -y visionseed.spec
 
 if %errorlevel% neq 0 (
     echo Error: Packaging failed
@@ -22,7 +23,7 @@ if %errorlevel% neq 0 (
 )
 
 if exist "dist\VisionSeed\VisionSeed.exe" (
-    echo Success: VisionSeed.exe created successfully (one-folder)
+    echo Success: VisionSeed.exe created successfully ^(one-folder^)
     dir "dist\VisionSeed\VisionSeed.exe"
 ) else (
     echo Error: Executable not found
